@@ -1,21 +1,17 @@
-Arte ronda 1: escenario de la Fase 1 y Aprendiz en 7 gremios, pintados por código
+Inicio del repo: plan de desarrollo, documentos de concepto y arte de la Fase 1 en estilo GBC
 
 Resumen
-- Primera ronda de arte de CodeWizards (rodaja vertical), con la geometría corregida y aprobada.
+- Primer commit de CodeWizards: plan de desarrollo y agentes, documentos de concepto, arte de la
+  Fase 1 en estilo Game Boy Color generado por código y la ronda SNES archivada como referencia.
 
-Cambios
-- codewizards-art/: 91 assets (suelo, muros, esquinas, cantos, puerta con apertura, ventanal y su luz,
-  librerías, mesa, pizarra, antorchas, sillón, alfombra, estandartes de 7 gremios, sala base), Aprendiz
-  en 7 gremios con 6 estados, efectos, paletas .gpl y meta.json con anclas.
-- Generador (04_source/gen/build.py) y validador (check.py); retocados.txt protege los retoques a mano.
-
-Arreglos sobre la spec v1.0.1
-- Una sola unidad de altura (16 px), muro de 80 px, planta cuadrada, muros 2:1, alfa de 1 bit,
-  paletas por gremio de 16, tizas legibles y emblemas por gremio.
-
-Versión
-- Sin versión: la cierra el último paso.
+Contenido
+- docs/agentes.md: contexto común, contrato de eventos v0, protocolo, hoja de ruta y prompts.
+- docs/concepto/: contexto general v3.2, dirección de arte v1.0 y especificación de la Fase 1 v1.0.1.
+- codewizards-art/: 64 assets GBC, paletas .gpl, meta.json, generador (build.py) y validador (check.py).
+- codewizards-art/preview/: demo de la sala con interruptor de filtro CRT.
+- codewizards-art/legacy/snes-ronda1/: ronda 1 en estilo SNES (91 assets y su generador).
+- auditorias/: informes de arte y traspaso entre pasos.
 
 Comprobaciones
-- check.py: 91 assets, 0 errores. Luz de túnica >= 3:1 sobre el suelo en los 7 gremios; tizas >= 5,8:1.
+- check.py (GBC): 64 assets, 0 errores.
 - Sin verificar: apertura en Aseprite y aspecto en pantallas reales.

@@ -1,22 +1,31 @@
 {
- "version": "ronda-1",
+ "version": "fase1-gbc",
  "convenciones": {
-  "proyeccion": "iso 2:1, tile 32x16; sx=(x-y)*16, sy=(x+y)*8-z; 1 unidad de altura = 16 px",
-  "muro": {
-   "alto_px": 80,
+  "estilo": "parecido a Game Boy Color: RGB555, fondo 8 paletas x 4 con oscuro compartido, magos 2 paletas x 3",
+  "proyeccion": "iso 2:1, tile 16x8; sx=(x-y)*8, sy=(x+y)*4-z; 1 unidad de altura = 8 px",
+  "sala": {
+   "tiles": 12,
+   "muro_px": 40,
    "grosor_tiles": 0.25,
-   "sala_tiles": 12
+   "lienzo": [
+    208,
+    152
+   ],
+   "origen": [
+    104,
+    46
+   ]
   },
-  "alfa": "1 bit (índice 0 transparente); la translucidez (luces, halos) la pone el motor al mezclar",
-  "ancla": "píxel del PNG que corresponde al punto de mundo indicado en la nota (por defecto el origen del asset)",
+  "alfa": "1 bit (índice 0 transparente); halos, brillo de orbes y luz del ventanal los mezcla el motor",
+  "ancla": "píxel del PNG que corresponde al punto de mundo indicado (por defecto, el origen del asset)",
   "magos": {
    "lienzo": [
-    32,
-    40
+    16,
+    24
    ],
    "ancla_pies": [
-    16,
-    38
+    8,
+    23
    ],
    "direcciones": [
     "S",
@@ -30,511 +39,399 @@
    ],
    "espejo": "SO, O y NO = espejo de SE, E y NE"
   },
-  "paletas": "escenario <= 64 · 16 por gremio · 16 de efectos (192 <= 256 de la CGRAM del SNES)"
+  "contorno_sala": "Room_Base_01 ya lo lleva; si se monta por piezas, 1 px de K alrededor de la silueta"
  },
  "assets": {
   "01_tiles/floor/Floor_Base_01.png": {
-   "w": 32,
-   "h": 16,
-   "paleta": "codewizards-escenario",
-   "colores": 5,
+   "w": 16,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
    "ancla": [
-    16,
+    8,
     0
    ],
-   "nota": "tile iso 32x16; ancla = esquina superior del rombo"
+   "nota": "rombo 16x8; ancla = esquina superior"
   },
   "01_tiles/floor/Floor_Cracked_02.png": {
-   "w": 32,
-   "h": 16,
-   "paleta": "codewizards-escenario",
-   "colores": 6,
+   "w": 16,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
    "ancla": [
-    16,
+    8,
     0
    ],
-   "nota": "tile iso 32x16; ancla = esquina superior del rombo"
+   "nota": "rombo 16x8; ancla = esquina superior"
   },
   "01_tiles/floor/Floor_Moss_03.png": {
-   "w": 32,
-   "h": 16,
-   "paleta": "codewizards-escenario",
-   "colores": 7,
+   "w": 16,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 5,
    "ancla": [
-    16,
+    8,
     0
    ],
-   "nota": "tile iso 32x16; ancla = esquina superior del rombo"
+   "nota": "rombo 16x8; ancla = esquina superior"
   },
   "01_tiles/floor/Floor_Stain_04.png": {
-   "w": 32,
-   "h": 16,
-   "paleta": "codewizards-escenario",
-   "colores": 4,
+   "w": 16,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
    "ancla": [
-    16,
+    8,
     0
    ],
-   "nota": "tile iso 32x16; ancla = esquina superior del rombo"
+   "nota": "rombo 16x8; ancla = esquina superior"
   },
   "01_tiles/floor/Floor_Worn_05.png": {
-   "w": 32,
-   "h": 16,
-   "paleta": "codewizards-escenario",
-   "colores": 4,
+   "w": 16,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
    "ancla": [
-    16,
+    8,
     0
    ],
-   "nota": "tile iso 32x16; ancla = esquina superior del rombo"
+   "nota": "rombo 16x8; ancla = esquina superior"
+  },
+  "01_tiles/floor/Floor_Plain_06.png": {
+   "w": 16,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 2,
+   "ancla": [
+    8,
+    0
+   ],
+   "nota": "rombo 16x8; ancla = esquina superior"
   },
   "01_tiles/wall/Wall_Base_01_L.png": {
-   "w": 35,
-   "h": 98,
-   "paleta": "codewizards-escenario",
-   "colores": 7,
+   "w": 17,
+   "h": 49,
+   "paleta": "gbc-escenario",
+   "colores": 4,
    "ancla": [
-    35,
-    82
+    17,
+    41
    ],
-   "nota": "tramo de 2 tiles del muro izquierdo (x=0); ancla = base del tramo en el lado de la sala"
+   "nota": "tramo de 2 tiles del muro izquierdo (x = 0)"
   },
   "01_tiles/wall/Wall_Cracked_02_L.png": {
-   "w": 35,
-   "h": 98,
-   "paleta": "codewizards-escenario",
-   "colores": 8,
+   "w": 17,
+   "h": 49,
+   "paleta": "gbc-escenario",
+   "colores": 4,
    "ancla": [
-    35,
-    82
+    17,
+    41
    ],
-   "nota": "tramo de 2 tiles del muro izquierdo (x=0); ancla = base del tramo en el lado de la sala"
+   "nota": "tramo de 2 tiles del muro izquierdo (x = 0)"
   },
   "01_tiles/wall/Wall_Moss_03_L.png": {
-   "w": 35,
-   "h": 98,
-   "paleta": "codewizards-escenario",
-   "colores": 9,
-   "ancla": [
-    35,
-    82
-   ],
-   "nota": "tramo de 2 tiles del muro izquierdo (x=0); ancla = base del tramo en el lado de la sala"
-  },
-  "01_tiles/wall/Wall_Damaged_04_L.png": {
-   "w": 35,
-   "h": 98,
-   "paleta": "codewizards-escenario",
-   "colores": 9,
-   "ancla": [
-    35,
-    82
-   ],
-   "nota": "tramo de 2 tiles del muro izquierdo (x=0); ancla = base del tramo en el lado de la sala"
-  },
-  "01_tiles/wall/Wall_Base_01_R.png": {
-   "w": 35,
-   "h": 98,
-   "paleta": "codewizards-escenario",
+   "w": 17,
+   "h": 49,
+   "paleta": "gbc-escenario",
    "colores": 6,
    "ancla": [
-    0,
-    82
+    17,
+    41
    ],
-   "nota": "tramo de 2 tiles del muro derecho (y=0); ancla = base del tramo en el lado de la sala"
+   "nota": "tramo de 2 tiles del muro izquierdo (x = 0)"
+  },
+  "01_tiles/wall/Wall_Damaged_04_L.png": {
+   "w": 17,
+   "h": 49,
+   "paleta": "gbc-escenario",
+   "colores": 4,
+   "ancla": [
+    17,
+    41
+   ],
+   "nota": "tramo de 2 tiles del muro izquierdo (x = 0)"
+  },
+  "01_tiles/wall/Wall_Base_01_R.png": {
+   "w": 17,
+   "h": 49,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "ancla": [
+    0,
+    41
+   ],
+   "nota": "tramo de 2 tiles del muro derecho (y = 0)"
   },
   "01_tiles/wall/Wall_Cracked_02_R.png": {
-   "w": 35,
-   "h": 98,
-   "paleta": "codewizards-escenario",
-   "colores": 7,
+   "w": 17,
+   "h": 49,
+   "paleta": "gbc-escenario",
+   "colores": 4,
    "ancla": [
     0,
-    82
+    41
    ],
-   "nota": "tramo de 2 tiles del muro derecho (y=0); ancla = base del tramo en el lado de la sala"
+   "nota": "tramo de 2 tiles del muro derecho (y = 0)"
   },
   "01_tiles/wall/Wall_Moss_03_R.png": {
-   "w": 35,
-   "h": 98,
-   "paleta": "codewizards-escenario",
-   "colores": 8,
+   "w": 17,
+   "h": 49,
+   "paleta": "gbc-escenario",
+   "colores": 5,
    "ancla": [
     0,
-    82
+    41
    ],
-   "nota": "tramo de 2 tiles del muro derecho (y=0); ancla = base del tramo en el lado de la sala"
+   "nota": "tramo de 2 tiles del muro derecho (y = 0)"
   },
   "01_tiles/wall/Wall_Damaged_04_R.png": {
-   "w": 35,
-   "h": 98,
-   "paleta": "codewizards-escenario",
-   "colores": 8,
+   "w": 17,
+   "h": 49,
+   "paleta": "gbc-escenario",
+   "colores": 4,
    "ancla": [
     0,
-    82
+    41
    ],
-   "nota": "tramo de 2 tiles del muro derecho (y=0); ancla = base del tramo en el lado de la sala"
+   "nota": "tramo de 2 tiles del muro derecho (y = 0)"
   },
   "01_tiles/wall/Wall_Corner_Interior.png": {
-   "w": 38,
-   "h": 92,
-   "paleta": "codewizards-escenario",
-   "colores": 9,
+   "w": 18,
+   "h": 46,
+   "paleta": "gbc-escenario",
+   "colores": 4,
    "ancla": [
-    19,
-    84
+    9,
+    42
    ]
   },
   "01_tiles/wall/Wall_Corner_Exterior.png": {
-   "w": 32,
-   "h": 96,
-   "paleta": "codewizards-escenario",
-   "colores": 8,
+   "w": 18,
+   "h": 50,
+   "paleta": "gbc-escenario",
+   "colores": 4,
    "ancla": [
-    16,
-    80
+    9,
+    41
    ]
   },
   "01_tiles/wall/Wall_End_L.png": {
-   "w": 4,
-   "h": 88,
-   "paleta": "codewizards-escenario",
-   "colores": 4,
+   "w": 2,
+   "h": 44,
+   "paleta": "gbc-escenario",
+   "colores": 1,
    "ancla": [
-    4,
-    82
+    2,
+    41
    ],
-   "nota": "canto del muro cortado (frente de la sala)"
+   "nota": "canto del muro cortado, en el frente de la sala"
   },
   "01_tiles/wall/Wall_End_R.png": {
-   "w": 4,
-   "h": 88,
-   "paleta": "codewizards-escenario",
-   "colores": 4,
+   "w": 2,
+   "h": 44,
+   "paleta": "gbc-escenario",
+   "colores": 1,
    "ancla": [
     0,
-    82
+    41
    ],
-   "nota": "canto del muro cortado (frente de la sala)"
+   "nota": "canto del muro cortado, en el frente de la sala"
   },
   "01_tiles/props/Door_Closed.png": {
-   "w": 40,
-   "h": 68,
-   "paleta": "codewizards-escenario",
-   "colores": 12,
+   "w": 21,
+   "h": 32,
+   "paleta": "gbc-escenario",
+   "colores": 7,
    "ancla": [
-    32,
-    48
+    16,
+    21
    ],
    "nota": "muro izquierdo; ancla = (0, 9.5, 0)"
   },
   "01_tiles/props/Door_Opening_Sheet.png": {
    "frame": [
-    40,
-    68
+    21,
+    32
    ],
+   "paleta": "gbc-escenario",
+   "colores": 7,
    "frames": 4,
    "ms": 250,
    "una_vez": true,
    "ancla": [
-    32,
-    48
-   ],
-   "paleta": "codewizards-escenario"
+    16,
+    21
+   ]
   },
   "01_tiles/props/Door_Closing_Sheet.png": {
    "frame": [
-    40,
-    68
+    21,
+    32
    ],
+   "paleta": "gbc-escenario",
+   "colores": 7,
    "frames": 4,
    "ms": 250,
    "una_vez": true,
    "ancla": [
-    32,
-    48
-   ],
-   "paleta": "codewizards-escenario"
+    16,
+    21
+   ]
   },
   "01_tiles/props/Window_Gothic_01.png": {
-   "w": 50,
-   "h": 77,
-   "paleta": "codewizards-escenario",
-   "colores": 12,
+   "w": 25,
+   "h": 40,
+   "paleta": "gbc-escenario",
+   "colores": 9,
    "ancla": [
-    2,
-    67
+    1,
+    35
    ],
    "nota": "muro derecho; ancla = (4.5, 0, 0)"
   },
   "01_tiles/props/Window_Light_Effect.png": {
-   "w": 66,
-   "h": 43,
-   "paleta": "codewizards-escenario",
+   "w": 36,
+   "h": 23,
+   "paleta": "gbc-escenario",
    "colores": 3,
    "ancla": [
-    21,
-    -7
+    13,
+    -4
    ],
-   "mezcla": "aditiva 30-40 % (noche 10-20 %)",
-   "nota": "suelo; ancla = (4.5, 1.0, 0)"
+   "mezcla": "aditiva 20-25 %",
+   "nota": "suelo; ancla = (4.5, 1, 0)"
   },
   "01_tiles/props/Bookshelf_Base_L.png": {
-   "w": 60,
-   "h": 94,
-   "paleta": "codewizards-escenario",
-   "colores": 16,
+   "w": 30,
+   "h": 48,
+   "paleta": "gbc-escenario",
+   "colores": 11,
    "ancla": [
-    48,
-    64
+    25,
+    33
    ],
-   "nota": "3 x 0,75 tiles, 64 px; L = contra el muro izquierdo, R = contra el derecho"
+   "nota": "ancla = origen del mueble"
   },
   "01_tiles/props/Bookshelf_Base_R.png": {
-   "w": 60,
-   "h": 94,
-   "paleta": "codewizards-escenario",
-   "colores": 16,
+   "w": 30,
+   "h": 48,
+   "paleta": "gbc-escenario",
+   "colores": 11,
    "ancla": [
-    12,
-    64
+    5,
+    33
    ],
-   "nota": "3 x 0,75 tiles, 64 px; L = contra el muro izquierdo, R = contra el derecho"
+   "nota": "ancla = origen del mueble"
   },
   "01_tiles/props/LabTable_Base.png": {
-   "w": 56,
-   "h": 43,
-   "paleta": "codewizards-escenario",
-   "colores": 15,
-   "ancla": [
-    24,
-    16
-   ]
-  },
-  "01_tiles/props/Armchair_Rest.png": {
    "w": 30,
-   "h": 41,
-   "paleta": "codewizards-escenario",
-   "colores": 7,
-   "ancla": [
-    15,
-    26
-   ]
-  },
-  "01_tiles/props/Carpet_Center.png": {
-   "w": 114,
-   "h": 58,
-   "paleta": "codewizards-escenario",
+   "h": 24,
+   "paleta": "gbc-escenario",
    "colores": 9,
    "ancla": [
-    49,
-    1
-   ]
+    13,
+    10
+   ],
+   "nota": "ancla = origen del mueble"
+  },
+  "01_tiles/props/Armchair_Rest.png": {
+   "w": 17,
+   "h": 22,
+   "paleta": "gbc-escenario",
+   "colores": 6,
+   "ancla": [
+    9,
+    14
+   ],
+   "nota": "ancla = origen del mueble"
+  },
+  "01_tiles/props/Carpet_Center.png": {
+   "w": 56,
+   "h": 28,
+   "paleta": "gbc-escenario",
+   "colores": 7,
+   "ancla": [
+    23,
+    0
+   ],
+   "nota": "ancla = origen del mueble"
   },
   "01_tiles/props/Blackboard_Base.png": {
-   "w": 60,
-   "h": 58,
-   "paleta": "codewizards-escenario",
-   "colores": 12,
+   "w": 32,
+   "h": 30,
+   "paleta": "gbc-escenario",
+   "colores": 7,
    "ancla": [
-    30,
-    56
+    16,
+    27
    ],
-   "nota": "caballete a 45°, cara de frente a la cámara; zona de tiza = rectángulo interior 52x32"
+   "nota": "pizarra en caballete a 45°, de cara a la cámara"
   },
   "01_tiles/props/Torch_Base_L.png": {
-   "w": 8,
-   "h": 16,
-   "paleta": "codewizards-escenario",
-   "colores": 8,
+   "w": 5,
+   "h": 9,
+   "paleta": "gbc-escenario",
+   "colores": 2,
    "ancla": [
     1,
-    13
+    7
    ],
    "llama": [
-    0,
-    -15
+    1,
+    -5
    ],
-   "nota": "ancla = punto del muro; llama = esquina sup. izq. del fotograma de llama"
+   "nota": "ancla = punto del muro; llama = esquina superior izquierda del fotograma de llama"
   },
   "01_tiles/props/Torch_Base_R.png": {
-   "w": 8,
-   "h": 16,
-   "paleta": "codewizards-escenario",
-   "colores": 8,
+   "w": 5,
+   "h": 9,
+   "paleta": "gbc-escenario",
+   "colores": 2,
    "ancla": [
-    7,
-    13
+    3,
+    7
    ],
    "llama": [
-    -3,
-    -15
+    1,
+    -5
    ],
-   "nota": "ancla = punto del muro; llama = esquina sup. izq. del fotograma de llama"
+   "nota": "la llama va en espejo"
   },
   "01_tiles/props/Torch_Flame_Sheet.png": {
    "frame": [
-    10,
-    16
+    3,
+    5
    ],
-   "frames": 4,
-   "ms": 125,
-   "paleta": "codewizards-escenario"
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "frames": 3,
+   "ms": 125
   },
   "03_effects/Torch_Halo_Sheet.png": {
    "frame": [
     16,
     16
    ],
+   "paleta": "gbc-escenario",
+   "colores": 1,
    "frames": 3,
-   "mezcla": "aditiva 10/12/16 % por banda",
-   "paleta": "codewizards-escenario"
+   "mezcla": "aditiva 10/12/16 % por banda (en tiempo de ejecución)"
   },
-  "01_tiles/props/banners/Banner_Anthropic_L.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-anthropic",
-   "colores": 8,
-   "ancla": [
-    16,
-    68
-   ]
+  "03_effects/Orb_Glow_Sheet.png": {
+   "frame": [
+    13,
+    13
+   ],
+   "paleta": "gbc-escenario",
+   "colores": 1,
+   "frames": 2,
+   "mezcla": "teñir con la luz del gremio; aditiva 16/18 %"
   },
-  "01_tiles/props/banners/Banner_Anthropic_R.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-anthropic",
-   "colores": 8,
-   "ancla": [
-    0,
-    68
-   ]
-  },
-  "01_tiles/props/banners/Banner_OpenAI_L.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-openai",
-   "colores": 8,
-   "ancla": [
-    16,
-    68
-   ]
-  },
-  "01_tiles/props/banners/Banner_OpenAI_R.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-openai",
-   "colores": 8,
-   "ancla": [
-    0,
-    68
-   ]
-  },
-  "01_tiles/props/banners/Banner_Gemini_L.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-gemini",
-   "colores": 8,
-   "ancla": [
-    16,
-    68
-   ]
-  },
-  "01_tiles/props/banners/Banner_Gemini_R.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-gemini",
-   "colores": 8,
-   "ancla": [
-    0,
-    68
-   ]
-  },
-  "01_tiles/props/banners/Banner_DeepSeek_L.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-deepseek",
-   "colores": 8,
-   "ancla": [
-    16,
-    68
-   ]
-  },
-  "01_tiles/props/banners/Banner_DeepSeek_R.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-deepseek",
-   "colores": 8,
-   "ancla": [
-    0,
-    68
-   ]
-  },
-  "01_tiles/props/banners/Banner_Qwen_L.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-qwen",
-   "colores": 8,
-   "ancla": [
-    16,
-    68
-   ]
-  },
-  "01_tiles/props/banners/Banner_Qwen_R.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-qwen",
-   "colores": 8,
-   "ancla": [
-    0,
-    68
-   ]
-  },
-  "01_tiles/props/banners/Banner_Copilot_L.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-copilot",
-   "colores": 8,
-   "ancla": [
-    16,
-    68
-   ]
-  },
-  "01_tiles/props/banners/Banner_Copilot_R.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-copilot",
-   "colores": 8,
-   "ancla": [
-    0,
-    68
-   ]
-  },
-  "01_tiles/props/banners/Banner_Meta_L.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-meta",
-   "colores": 8,
-   "ancla": [
-    16,
-    68
-   ]
-  },
-  "01_tiles/props/banners/Banner_Meta_R.png": {
-   "w": 16,
-   "h": 40,
-   "paleta": "gremio-meta",
-   "colores": 8,
-   "ancla": [
-    0,
-    68
-   ]
-  },
-  "03_effects/Chalk_Font_4x6.png": {
+  "03_effects/Pixel_Font_3x5.png": {
    "w": 64,
    "h": 24,
-   "paleta": "codewizards-escenario",
+   "paleta": "gbc-escenario",
    "colores": 1,
    "celda": [
     4,
@@ -543,186 +440,342 @@
    "columnas": 16,
    "orden": " !\"#&'()*+,-./0123456789:;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[]_{|}"
   },
-  "01_tiles/Room_Base_01.png": {
-   "w": 400,
-   "h": 292,
-   "paleta": "codewizards-escenario",
-   "colores": 33,
+  "01_tiles/props/banners/Banner_Anthropic_L.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-anthropic",
+   "colores": 4,
    "ancla": [
-    200,
-    90
+    6,
+    38
    ],
-   "nota": "suelo + muros + puerta + ventanal + alfombra ya compuestos (fondo, exento del tope de 16)",
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_Anthropic_R.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-anthropic",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_OpenAI_L.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-openai",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_OpenAI_R.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-openai",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_Gemini_L.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-gemini",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_Gemini_R.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-gemini",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_DeepSeek_L.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-deepseek",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_DeepSeek_R.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-deepseek",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_Qwen_L.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-qwen",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_Qwen_R.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-qwen",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_Copilot_L.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-copilot",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_Copilot_R.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-copilot",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_Meta_L.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-meta",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/props/banners/Banner_Meta_R.png": {
+   "w": 12,
+   "h": 22,
+   "paleta": "gbc-meta",
+   "colores": 4,
+   "ancla": [
+    6,
+    38
+   ],
+   "nota": "ancla = centro del estandarte a ras de suelo en su muro"
+  },
+  "01_tiles/Room_Base_01.png": {
+   "w": 208,
+   "h": 152,
+   "paleta": "gbc-escenario",
+   "colores": 20,
+   "ancla": [
+    104,
+    46
+   ],
+   "nota": "suelo, muros, puerta, ventanal y alfombra ya compuestos (fondo, exento del tope de 16)",
    "disposicion": {
     "suelo": {
-     "0,0": "base",
-     "1,0": "stain",
-     "2,0": "moss",
-     "3,0": "worn",
+     "0,0": "stain",
+     "1,0": "moss",
+     "2,0": "base",
+     "3,0": "plain",
      "4,0": "base",
-     "5,0": "base",
-     "6,0": "cracked",
-     "7,0": "base",
-     "8,0": "base",
-     "9,0": "base",
-     "10,0": "worn",
-     "11,0": "moss",
-     "0,1": "base",
-     "1,1": "moss",
-     "2,1": "stain",
-     "3,1": "base",
-     "4,1": "stain",
-     "5,1": "cracked",
-     "6,1": "base",
-     "7,1": "stain",
-     "8,1": "worn",
+     "5,0": "moss",
+     "6,0": "stain",
+     "7,0": "worn",
+     "8,0": "cracked",
+     "9,0": "worn",
+     "10,0": "base",
+     "11,0": "plain",
+     "0,1": "moss",
+     "1,1": "base",
+     "2,1": "plain",
+     "3,1": "stain",
+     "4,1": "plain",
+     "5,1": "base",
+     "6,1": "plain",
+     "7,1": "base",
+     "8,1": "plain",
      "9,1": "base",
-     "10,1": "base",
+     "10,1": "stain",
      "11,1": "base",
-     "0,2": "cracked",
-     "1,2": "stain",
-     "2,2": "base",
-     "3,2": "base",
+     "0,2": "base",
+     "1,2": "plain",
+     "2,2": "cracked",
+     "3,2": "plain",
      "4,2": "base",
-     "5,2": "worn",
-     "6,2": "stain",
-     "7,2": "base",
+     "5,2": "plain",
+     "6,2": "base",
+     "7,2": "plain",
      "8,2": "base",
-     "9,2": "base",
+     "9,2": "plain",
      "10,2": "base",
-     "11,2": "cracked",
-     "0,3": "stain",
+     "11,2": "plain",
+     "0,3": "plain",
      "1,3": "base",
-     "2,3": "base",
-     "3,3": "base",
-     "4,3": "base",
+     "2,3": "plain",
+     "3,3": "cracked",
+     "4,3": "plain",
      "5,3": "base",
-     "6,3": "worn",
-     "7,3": "base",
-     "8,3": "cracked",
+     "6,3": "plain",
+     "7,3": "cracked",
+     "8,3": "plain",
      "9,3": "base",
-     "10,3": "base",
-     "11,3": "base",
+     "10,3": "plain",
+     "11,3": "moss",
      "0,4": "base",
-     "1,4": "worn",
-     "2,4": "cracked",
-     "3,4": "base",
+     "1,4": "cracked",
+     "2,4": "base",
+     "3,4": "plain",
      "4,4": "base",
-     "5,4": "base",
+     "5,4": "plain",
      "6,4": "base",
-     "7,4": "base",
+     "7,4": "plain",
      "8,4": "base",
-     "9,4": "base",
-     "10,4": "base",
-     "11,4": "base",
-     "0,5": "moss",
-     "1,5": "cracked",
-     "2,5": "base",
-     "3,5": "worn",
-     "4,5": "base",
-     "5,5": "base",
-     "6,5": "base",
-     "7,5": "worn",
-     "8,5": "base",
+     "9,4": "plain",
+     "10,4": "worn",
+     "11,4": "plain",
+     "0,5": "cracked",
+     "1,5": "base",
+     "2,5": "plain",
+     "3,5": "base",
+     "4,5": "plain",
+     "5,5": "cracked",
+     "6,5": "plain",
+     "7,5": "cracked",
+     "8,5": "plain",
      "9,5": "base",
-     "10,5": "moss",
-     "11,5": "worn",
+     "10,5": "plain",
+     "11,5": "cracked",
      "0,6": "base",
-     "1,6": "worn",
-     "2,6": "stain",
-     "3,6": "stain",
+     "1,6": "plain",
+     "2,6": "base",
+     "3,6": "plain",
      "4,6": "base",
-     "5,6": "base",
-     "6,6": "base",
-     "7,6": "base",
-     "8,6": "cracked",
-     "9,6": "base",
+     "5,6": "plain",
+     "6,6": "cracked",
+     "7,6": "plain",
+     "8,6": "base",
+     "9,6": "plain",
      "10,6": "base",
-     "11,6": "base",
-     "0,7": "base",
+     "11,6": "plain",
+     "0,7": "plain",
      "1,7": "base",
-     "2,7": "base",
+     "2,7": "plain",
      "3,7": "base",
-     "4,7": "base",
+     "4,7": "plain",
      "5,7": "base",
-     "6,7": "base",
+     "6,7": "plain",
      "7,7": "base",
-     "8,7": "worn",
-     "9,7": "stain",
-     "10,7": "base",
+     "8,7": "plain",
+     "9,7": "worn",
+     "10,7": "plain",
      "11,7": "base",
-     "0,8": "worn",
-     "1,8": "moss",
+     "0,8": "cracked",
+     "1,8": "plain",
      "2,8": "base",
-     "3,8": "base",
-     "4,8": "cracked",
-     "5,8": "base",
-     "6,8": "stain",
-     "7,8": "base",
+     "3,8": "plain",
+     "4,8": "base",
+     "5,8": "plain",
+     "6,8": "base",
+     "7,8": "worn",
      "8,8": "base",
-     "9,8": "base",
-     "10,8": "moss",
+     "9,8": "plain",
+     "10,8": "base",
      "11,8": "worn",
-     "0,9": "cracked",
+     "0,9": "moss",
      "1,9": "base",
-     "2,9": "base",
-     "3,9": "worn",
-     "4,9": "base",
+     "2,9": "plain",
+     "3,9": "base",
+     "4,9": "plain",
      "5,9": "base",
-     "6,9": "base",
+     "6,9": "plain",
      "7,9": "base",
-     "8,9": "stain",
+     "8,9": "plain",
      "9,9": "base",
-     "10,9": "worn",
-     "11,9": "cracked",
+     "10,9": "plain",
+     "11,9": "base",
      "0,10": "worn",
-     "1,10": "cracked",
+     "1,10": "plain",
      "2,10": "base",
-     "3,10": "base",
+     "3,10": "moss",
      "4,10": "base",
-     "5,10": "moss",
+     "5,10": "plain",
      "6,10": "base",
-     "7,10": "base",
-     "8,10": "cracked",
-     "9,10": "base",
-     "10,10": "stain",
-     "11,10": "worn",
-     "0,11": "stain",
-     "1,11": "moss",
-     "2,11": "cracked",
+     "7,10": "plain",
+     "8,10": "base",
+     "9,10": "plain",
+     "10,10": "base",
+     "11,10": "plain",
+     "0,11": "plain",
+     "1,11": "base",
+     "2,11": "plain",
      "3,11": "base",
-     "4,11": "cracked",
-     "5,11": "stain",
-     "6,11": "base",
+     "4,11": "plain",
+     "5,11": "cracked",
+     "6,11": "plain",
      "7,11": "base",
-     "8,11": "stain",
-     "9,11": "moss",
-     "10,11": "base",
+     "8,11": "plain",
+     "9,11": "base",
+     "10,11": "plain",
      "11,11": "base"
     },
+    "muro_L": [
+     "base",
+     "base",
+     "damaged",
+     "moss",
+     "base",
+     "base"
+    ],
     "muro_R": [
      "base",
      "base",
-     "cracked",
+     "base",
      "base",
      "base",
      "cracked"
-    ],
-    "muro_L": [
-     "base",
-     "damaged",
-     "base",
-     "base",
-     "base",
-     "base"
     ]
    }
   },
   "02_characters/apprentice/anthropic/Apprentice_Anthropic_Idle_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
+   "paleta": "gbc-anthropic",
+   "colores": 6,
    "frames": 4,
    "ms": 250,
    "filas": [
@@ -736,18 +789,18 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-anthropic",
-   "colores": 14
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/anthropic/Apprentice_Anthropic_Walk_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
-   "frames": 8,
+   "paleta": "gbc-anthropic",
+   "colores": 6,
+   "frames": 4,
    "ms": 125,
    "filas": [
     "S",
@@ -760,88 +813,17 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-anthropic",
-   "colores": 14
-  },
-  "02_characters/apprentice/anthropic/Apprentice_Anthropic_Read_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-anthropic",
-   "colores": 15
-  },
-  "02_characters/apprentice/anthropic/Apprentice_Anthropic_Create_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 8,
-   "ms": 250,
-   "filas": [
-    "SE",
-    "SW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-anthropic",
-   "colores": 15
-  },
-  "02_characters/apprentice/anthropic/Apprentice_Anthropic_Present_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-anthropic",
-   "colores": 15
-  },
-  "02_characters/apprentice/anthropic/Apprentice_Anthropic_Rest_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 4,
-   "ms": 500,
-   "filas": [
-    "S"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-anthropic",
-   "colores": 12
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/openai/Apprentice_OpenAI_Idle_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
+   "paleta": "gbc-openai",
+   "colores": 6,
    "frames": 4,
    "ms": 250,
    "filas": [
@@ -855,18 +837,18 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-openai",
-   "colores": 14
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/openai/Apprentice_OpenAI_Walk_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
-   "frames": 8,
+   "paleta": "gbc-openai",
+   "colores": 6,
+   "frames": 4,
    "ms": 125,
    "filas": [
     "S",
@@ -879,88 +861,17 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-openai",
-   "colores": 14
-  },
-  "02_characters/apprentice/openai/Apprentice_OpenAI_Read_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-openai",
-   "colores": 15
-  },
-  "02_characters/apprentice/openai/Apprentice_OpenAI_Create_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 8,
-   "ms": 250,
-   "filas": [
-    "SE",
-    "SW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-openai",
-   "colores": 15
-  },
-  "02_characters/apprentice/openai/Apprentice_OpenAI_Present_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-openai",
-   "colores": 15
-  },
-  "02_characters/apprentice/openai/Apprentice_OpenAI_Rest_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 4,
-   "ms": 500,
-   "filas": [
-    "S"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-openai",
-   "colores": 12
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/gemini/Apprentice_Gemini_Idle_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
+   "paleta": "gbc-gemini",
+   "colores": 6,
    "frames": 4,
    "ms": 250,
    "filas": [
@@ -974,18 +885,18 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-gemini",
-   "colores": 14
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/gemini/Apprentice_Gemini_Walk_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
-   "frames": 8,
+   "paleta": "gbc-gemini",
+   "colores": 6,
+   "frames": 4,
    "ms": 125,
    "filas": [
     "S",
@@ -998,88 +909,17 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-gemini",
-   "colores": 14
-  },
-  "02_characters/apprentice/gemini/Apprentice_Gemini_Read_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-gemini",
-   "colores": 15
-  },
-  "02_characters/apprentice/gemini/Apprentice_Gemini_Create_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 8,
-   "ms": 250,
-   "filas": [
-    "SE",
-    "SW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-gemini",
-   "colores": 15
-  },
-  "02_characters/apprentice/gemini/Apprentice_Gemini_Present_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-gemini",
-   "colores": 15
-  },
-  "02_characters/apprentice/gemini/Apprentice_Gemini_Rest_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 4,
-   "ms": 500,
-   "filas": [
-    "S"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-gemini",
-   "colores": 12
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/deepseek/Apprentice_DeepSeek_Idle_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
+   "paleta": "gbc-deepseek",
+   "colores": 6,
    "frames": 4,
    "ms": 250,
    "filas": [
@@ -1093,18 +933,18 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-deepseek",
-   "colores": 14
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/deepseek/Apprentice_DeepSeek_Walk_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
-   "frames": 8,
+   "paleta": "gbc-deepseek",
+   "colores": 6,
+   "frames": 4,
    "ms": 125,
    "filas": [
     "S",
@@ -1117,88 +957,17 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-deepseek",
-   "colores": 14
-  },
-  "02_characters/apprentice/deepseek/Apprentice_DeepSeek_Read_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-deepseek",
-   "colores": 15
-  },
-  "02_characters/apprentice/deepseek/Apprentice_DeepSeek_Create_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 8,
-   "ms": 250,
-   "filas": [
-    "SE",
-    "SW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-deepseek",
-   "colores": 15
-  },
-  "02_characters/apprentice/deepseek/Apprentice_DeepSeek_Present_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-deepseek",
-   "colores": 15
-  },
-  "02_characters/apprentice/deepseek/Apprentice_DeepSeek_Rest_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 4,
-   "ms": 500,
-   "filas": [
-    "S"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-deepseek",
-   "colores": 12
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/qwen/Apprentice_Qwen_Idle_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
+   "paleta": "gbc-qwen",
+   "colores": 6,
    "frames": 4,
    "ms": 250,
    "filas": [
@@ -1212,18 +981,18 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-qwen",
-   "colores": 14
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/qwen/Apprentice_Qwen_Walk_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
-   "frames": 8,
+   "paleta": "gbc-qwen",
+   "colores": 6,
+   "frames": 4,
    "ms": 125,
    "filas": [
     "S",
@@ -1236,88 +1005,17 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-qwen",
-   "colores": 14
-  },
-  "02_characters/apprentice/qwen/Apprentice_Qwen_Read_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-qwen",
-   "colores": 15
-  },
-  "02_characters/apprentice/qwen/Apprentice_Qwen_Create_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 8,
-   "ms": 250,
-   "filas": [
-    "SE",
-    "SW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-qwen",
-   "colores": 15
-  },
-  "02_characters/apprentice/qwen/Apprentice_Qwen_Present_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-qwen",
-   "colores": 15
-  },
-  "02_characters/apprentice/qwen/Apprentice_Qwen_Rest_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 4,
-   "ms": 500,
-   "filas": [
-    "S"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-qwen",
-   "colores": 12
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/copilot/Apprentice_Copilot_Idle_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
+   "paleta": "gbc-copilot",
+   "colores": 6,
    "frames": 4,
    "ms": 250,
    "filas": [
@@ -1331,18 +1029,18 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-copilot",
-   "colores": 14
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/copilot/Apprentice_Copilot_Walk_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
-   "frames": 8,
+   "paleta": "gbc-copilot",
+   "colores": 6,
+   "frames": 4,
    "ms": 125,
    "filas": [
     "S",
@@ -1355,88 +1053,17 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-copilot",
-   "colores": 14
-  },
-  "02_characters/apprentice/copilot/Apprentice_Copilot_Read_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-copilot",
-   "colores": 15
-  },
-  "02_characters/apprentice/copilot/Apprentice_Copilot_Create_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 8,
-   "ms": 250,
-   "filas": [
-    "SE",
-    "SW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-copilot",
-   "colores": 15
-  },
-  "02_characters/apprentice/copilot/Apprentice_Copilot_Present_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-copilot",
-   "colores": 15
-  },
-  "02_characters/apprentice/copilot/Apprentice_Copilot_Rest_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 4,
-   "ms": 500,
-   "filas": [
-    "S"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-copilot",
-   "colores": 12
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/meta/Apprentice_Meta_Idle_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
+   "paleta": "gbc-meta",
+   "colores": 6,
    "frames": 4,
    "ms": 250,
    "filas": [
@@ -1450,18 +1077,18 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-meta",
-   "colores": 14
+    8,
+    23
+   ]
   },
   "02_characters/apprentice/meta/Apprentice_Meta_Walk_Sheet.png": {
    "frame": [
-    32,
-    40
+    16,
+    24
    ],
-   "frames": 8,
+   "paleta": "gbc-meta",
+   "colores": 6,
+   "frames": 4,
    "ms": 125,
    "filas": [
     "S",
@@ -1474,92 +1101,9 @@
     "SW"
    ],
    "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-meta",
-   "colores": 14
-  },
-  "02_characters/apprentice/meta/Apprentice_Meta_Read_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-meta",
-   "colores": 15
-  },
-  "02_characters/apprentice/meta/Apprentice_Meta_Create_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 8,
-   "ms": 250,
-   "filas": [
-    "SE",
-    "SW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-meta",
-   "colores": 15
-  },
-  "02_characters/apprentice/meta/Apprentice_Meta_Present_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 6,
-   "ms": 250,
-   "filas": [
-    "NE",
-    "NW"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-meta",
-   "colores": 15
-  },
-  "02_characters/apprentice/meta/Apprentice_Meta_Rest_Sheet.png": {
-   "frame": [
-    32,
-    40
-   ],
-   "frames": 4,
-   "ms": 500,
-   "filas": [
-    "S"
-   ],
-   "ancla": [
-    16,
-    38
-   ],
-   "paleta": "gremio-meta",
-   "colores": 12
-  },
-  "03_effects/Dust_Puff_Sheet.png": {
-   "frame": [
     8,
-    6
-   ],
-   "frames": 4,
-   "ms": 100,
-   "paleta": "codewizards-fx",
-   "uso": "Aprendiz al caminar, fotogramas de apoyo 0 y 4; base del sprite en los pies"
+    23
+   ]
   }
  }
 }

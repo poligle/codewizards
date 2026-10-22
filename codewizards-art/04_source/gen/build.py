@@ -1,27 +1,31 @@
-"""Genera todos los assets de la ronda 1 en codewizards-art/ y las vistas previas en auditorias/img/arte/.
+"""Arte de la Fase 1 en estilo GBC: assets, paletas, meta.json, vistas previas y demo con filtro CRT.
 
 Uso:  python3 codewizards-art/04_source/gen/build.py
 Los PNG listados en codewizards-art/04_source/retocados.txt NO se sobrescriben (retoques a mano).
 """
-import os, sys, json
+import os
+import sys
+import io
+import json
+import base64
 import numpy as np
 from PIL import Image
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from core import Canvas, Pal, save_sheet, save_grid
-import pal as P, env, props, wizard as Z, scene, font
-from env import SCENE
+import gbc as G                                   # noqa: E402  (fija la escala GBC en core)
+from core import Canvas, save_sheet, save_grid   # noqa: E402
+import font                                       # noqa: E402
 
 ART = os.path.abspath(os.path.join(HERE, '..', '..'))
 REPO = os.path.dirname(ART)
 PREV = os.path.join(REPO, 'auditorias', 'img', 'arte')
-FXP = Pal(P.FX, 'codewizards-fx')
-GP = scene.GPAL
+DEMO = os.path.join(ART, 'preview')
 META = {}
 SKIP = set()
-rp = os.path.join(ART, '04_source', 'retocados.txt')
-if os.path.exists(rp):
-    SKIP = {l.strip() for l in open(rp) if l.strip() and not l.startswith('#')}
+_rp = os.path.join(ART, '04_source', 'retocados.txt')
+if os.path.exists(_rp):
+    SKIP = {l.strip() for l in open(_rp, encoding='utf-8') if l.strip() and not l.startswith('#')}
 
 
 def out(rel):
@@ -31,8 +35,7 @@ def out(rel):
 
 
 def save(cv, rel, pal=None, **meta):
-    name = os.path.basename(rel)
-    if name in SKIP:
+    if os.path.basename(rel) in SKIP:
         print('  (retocado, no se toca)', rel)
     else:
         cv.save(out(rel), pal)
@@ -41,155 +44,122 @@ def save(cv, rel, pal=None, **meta):
     META[rel] = m
 
 
-def world(fn, anchor, pal=SCENE, w=480, h=360, ox=240, oy=120):
-    cv = Canvas(w, h, pal, ox=ox, oy=oy)
-    fn(cv)
-    return cv, cv.sp(*anchor)
+def sheet(fl, rel, pal=None, grid=False, **meta):
+    f0 = fl[0][0] if grid else fl[0]
+    if os.path.basename(rel) not in SKIP:
+        (save_grid if grid else save_sheet)(fl, out(rel), pal)
+    flat = [f for r in fl for f in r] if grid else fl
+    used = set()
+    for f in flat:
+        used |= set(int(v) for v in np.unique(f.a)) - {0}
+    m = {'frame': [f0.w, f0.h], 'paleta': (pal or f0.pal).name, 'colores': len(used)}
+    m.update(meta)
+    META[rel] = m
 
 
 def crop_all(cvs, anchor_px):
-    boxes = [c.bbox() for c in cvs]
-    bb = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+    bbs = [c.bbox() for c in cvs]
+    bb = (min(b[0] for b in bbs), min(b[1] for b in bbs), max(b[2] for b in bbs), max(b[3] for b in bbs))
     return [c.crop(bb) for c in cvs], [int(anchor_px[0] - bb[0]), int(anchor_px[1] - bb[1])]
 
 
-def one(fn, anchor, pal=SCENE):
-    cv, a = world(fn, anchor, pal)
-    (c,), an = crop_all([cv], a)
+def one(cv, wx, wy, wz=0):
+    (c,), an = crop_all([cv], cv.sp(wx, wy, wz))
     return c, an
 
 
+def prop(fn, outline=True, pal=G.SCENE):
+    cv = G._bigcv(pal)
+    fn(cv)
+    if outline:
+        cv.outline('K')
+    return cv
+
+
 def build_env():
-    print('· suelo')
-    for v in env.FLOOR_VARIANTS:
-        save(env.floor_tile(v), f'01_tiles/floor/{env.FLOOR_FILES[v]}.png', ancla=[16, 0],
-             nota='tile iso 32x16; ancla = esquina superior del rombo')
-    print('· muros')
+    print('· suelo y muros')
+    for v in G.FLOOR_V:
+        cv = Canvas(16, 8, G.SCENE, ox=8, oy=0)
+        cv.face((0, 0, 0), (1, 0, 0), (0, 1, 0), 8, 8, G.floor_tex_v(v))
+        save(cv, f'01_tiles/floor/{G.FLOOR_FILES[v]}.png', ancla=[8, 0], nota='rombo 16x8; ancla = esquina superior')
     for side in ('L', 'R'):
-        for v in env.WALL_VARIANTS:
-            cv, a = world(lambda c: c.blit(env.wall_piece(side, v), 0, 0), (0, 0, 0))
-            piece = env.wall_piece(side, v)
-            (c,), an = crop_all([piece], piece.sp(0, 0, 0))
-            save(c, f'01_tiles/wall/{env.WALL_FILES[v]}_{side}.png', ancla=an,
-                 nota=f'tramo de 2 tiles del muro {"izquierdo (x=0)" if side == "L" else "derecho (y=0)"}; ancla = base del tramo en el lado de la sala')
-    for name, fn in (('Wall_Corner_Interior', env.corner_interior), ('Wall_Corner_Exterior', env.corner_exterior)):
-        piece = fn()
-        (c,), an = crop_all([piece], piece.sp(0, 0, 0))
+        for v in G.WALL_V:
+            c, an = one(G.wall_piece(side, v), 0, 0)
+            save(c, f'01_tiles/wall/{G.WALL_FILES[v]}_{side}.png', ancla=an,
+                 nota='tramo de 2 tiles del muro ' + ('izquierdo (x = 0)' if side == 'L' else 'derecho (y = 0)'))
+    for name, fn in (('Wall_Corner_Interior', G.corner_interior), ('Wall_Corner_Exterior', G.corner_exterior)):
+        c, an = one(fn(), 0, 0)
         save(c, f'01_tiles/wall/{name}.png', ancla=an)
     for side in ('L', 'R'):
-        piece = env.wall_end(side)
-        (c,), an = crop_all([piece], piece.sp(0, 0, 0))
-        save(c, f'01_tiles/wall/Wall_End_{side}.png', ancla=an, nota='canto del muro cortado (frente de la sala)')
+        c, an = one(G.wall_end(side), 0, 0)
+        save(c, f'01_tiles/wall/Wall_End_{side}.png', ancla=an, nota='canto del muro cortado, en el frente de la sala')
     print('· puerta, ventanal y luz')
-    y0 = env.DOOR['i0'] / 16.0
-    frames = []
-    for th in (0, 30, 60, 90):
-        cv = Canvas(480, 360, SCENE, ox=240, oy=120)
-
-        def tex(i, z, th=th):
-            reg = env.door_region(i, z)
-            if reg == 'frame':
-                return env.door_frame_texel(i, z)
-            if reg == 'open':
-                return (env.door_leaf_texel(i, z) or 'k0') if th == 0 else ('k1' if z < 3 else 'k0')
-            return None
-        cv.face((0, y0, 0), (0, 2, 0), (0, 0, 56), 32, 56, tex)
-        if th:
-            env.door_leaves(cv, th)
-        frames.append(cv)
+    frames, y0 = G.door_frames()
     fr, an = crop_all(frames, frames[0].sp(0, y0, 0))
     save(fr[0], '01_tiles/props/Door_Closed.png', ancla=an, nota='muro izquierdo; ancla = (0, 9.5, 0)')
-    save_sheet(fr, out('01_tiles/props/Door_Opening_Sheet.png'))
-    META['01_tiles/props/Door_Opening_Sheet.png'] = {'frame': [fr[0].w, fr[0].h], 'frames': 4, 'ms': 250,
-                                                    'una_vez': True, 'ancla': an, 'paleta': SCENE.name}
-    save_sheet(fr[::-1], out('01_tiles/props/Door_Closing_Sheet.png'))
-    META['01_tiles/props/Door_Closing_Sheet.png'] = dict(META['01_tiles/props/Door_Opening_Sheet.png'])
-    c, an = one(lambda cv: (cv.face((4.5, 0, 0), (3, 0, 0), (0, 0, env.H_WALL), 48, env.H_WALL, env.window_texel),
-                            env.draw_sill(cv)), (4.5, 0, 0))
+    sheet(fr, '01_tiles/props/Door_Opening_Sheet.png', frames=4, ms=250, una_vez=True, ancla=an)
+    sheet(fr[::-1], '01_tiles/props/Door_Closing_Sheet.png', frames=4, ms=250, una_vez=True, ancla=an)
+    c, an = one(G.window_sprite(), G.WIN_I0 / 8.0, 0)
     save(c, '01_tiles/props/Window_Gothic_01.png', ancla=an, nota='muro derecho; ancla = (4.5, 0, 0)')
-    c, an = one(env.draw_window_light, (env.LIGHT_RECT[0], env.LIGHT_RECT[1], 0))
-    save(c, '01_tiles/props/Window_Light_Effect.png', ancla=an, mezcla='aditiva 30-40 % (noche 10-20 %)',
-         nota='suelo; ancla = (4.5, 1.0, 0)')
+    c, an = one(prop(G.window_light, outline=False), G.LIGHT[0], G.LIGHT[1])
+    save(c, '01_tiles/props/Window_Light_Effect.png', ancla=an, mezcla='aditiva 20-25 %', nota='suelo; ancla = (4.5, 1, 0)')
     print('· mobiliario')
-    for side in ('L', 'R'):
-        c, an = one(lambda cv: props.bookshelf(cv, 0, 0, side, seed=10), (0, 0, 0))
-        save(c, f'01_tiles/props/Bookshelf_Base_{side}.png', ancla=an,
-             nota='3 x 0,75 tiles, 64 px; L = contra el muro izquierdo, R = contra el derecho')
-    for name, fn in (('LabTable_Base', lambda cv: props.lab_table(cv, 0, 0)),
-                     ('Armchair_Rest', lambda cv: props.armchair(cv, 0, 0)),
-                     ('Carpet_Center', lambda cv: props.carpet(cv, 0, 0))):
-        c, an = one(fn, (0, 0, 0))
-        save(c, f'01_tiles/props/{name}.png', ancla=an)
-    c, an = one(lambda cv: props.blackboard(cv, 0, 0), (0, 0, 0))
-    save(c, '01_tiles/props/Blackboard_Base.png', ancla=an,
-         nota='caballete a 45°, cara de frente a la cámara; zona de tiza = rectángulo interior 52x32')
-    for side in ('L', 'R'):
-        tb = props.torch_base(mirror=(side == 'R'))
-        save(tb, f'01_tiles/props/Torch_Base_{side}.png',
-             ancla=[1, 13] if side == 'L' else [tb.w - 1, 13],
-             llama=[0, -15] if side == 'L' else [tb.w - 11, -15], nota='ancla = punto del muro; llama = esquina sup. izq. del fotograma de llama')
-    save_sheet([props.flame(n) for n in range(4)], out('01_tiles/props/Torch_Flame_Sheet.png'))
-    META['01_tiles/props/Torch_Flame_Sheet.png'] = {'frame': [10, 16], 'frames': 4, 'ms': 125, 'paleta': SCENE.name}
-    save_sheet([props.halo(b) for b in range(3)], out('03_effects/Torch_Halo_Sheet.png'))
-    META['03_effects/Torch_Halo_Sheet.png'] = {'frame': [16, 16], 'frames': 3, 'mezcla': 'aditiva 10/12/16 % por banda',
-                                               'paleta': SCENE.name}
+    for name, fn, outline in (('Bookshelf_Base_L', lambda cv: G.bookshelf(cv, 0, 0), True),
+                              ('Bookshelf_Base_R', lambda cv: G.bookshelf_R(cv, 0, 0), True),
+                              ('LabTable_Base', lambda cv: G.lab_table(cv, 0, 0), True),
+                              ('Armchair_Rest', lambda cv: G.armchair(cv, 0, 0), True),
+                              ('Carpet_Center', lambda cv: G.carpet(cv, 0, 0), False),
+                              ('Blackboard_Base', lambda cv: G.blackboard(cv, 0, 0), True)):
+        c, an = one(prop(fn, outline), 0, 0)
+        save(c, f'01_tiles/props/{name}.png', ancla=an,
+             nota='pizarra en caballete a 45°, de cara a la cámara' if name == 'Blackboard_Base' else 'ancla = origen del mueble')
+    save(G.torch_sprite('L'), '01_tiles/props/Torch_Base_L.png', ancla=[1, 7], llama=[1, -5],
+         nota='ancla = punto del muro; llama = esquina superior izquierda del fotograma de llama')
+    save(G.torch_sprite('R'), '01_tiles/props/Torch_Base_R.png', ancla=[3, 7], llama=[1, -5],
+         nota='la llama va en espejo')
+    sheet([G.flame_sprite(n) for n in range(3)], '01_tiles/props/Torch_Flame_Sheet.png', frames=3, ms=125)
+    sheet([G.disc(r, 16, 'x1') for r in (7, 5, 3)], '03_effects/Torch_Halo_Sheet.png', frames=3,
+          mezcla='aditiva 10/12/16 % por banda (en tiempo de ejecución)')
+    sheet([G.disc(r, 13, 'b0') for r in (6, 3.5)], '03_effects/Orb_Glow_Sheet.png', frames=2,
+          mezcla='teñir con la luz del gremio; aditiva 16/18 %')
+    at, cols = font.atlas(G.SCENE, 'p0')
+    save(at, '03_effects/Pixel_Font_3x5.png', celda=[4, 6], columnas=cols, orden=''.join(font.ORDER))
     print('· estandartes')
-    for g in P.GUILDS:
+    for g in G.GUILDS:
         for side in ('L', 'R'):
-            c, an = one(lambda cv: props.banner(cv, side, 0.5, g), (0, 0, 0) if side == 'R' else (0, 0, 0), pal=GP[g])
-            save(c, f'01_tiles/props/banners/Banner_{P.GUILD_NAMES[g]}_{side}.png', GP[g], ancla=an)
-    print('· fuente y sala base')
-    at, cols = font.atlas(SCENE)
-    save(at, '03_effects/Chalk_Font_4x6.png', celda=[4, 6], columnas=cols, orden=''.join(font.ORDER))
-    room, lay = env.render_room()
-    props.carpet(room, *scene.LAYOUT['carpet'])
-    save(room, '01_tiles/Room_Base_01.png', ancla=[env.ROOM_OX, env.ROOM_OY],
-         nota='suelo + muros + puerta + ventanal + alfombra ya compuestos (fondo, exento del tope de 16)')
-    META['01_tiles/Room_Base_01.png']['disposicion'] = {'suelo': {f'{x},{y}': v for (x, y), v in lay['floor'].items()},
-                                                        'muro_R': lay['wall_R'], 'muro_L': lay['wall_L']}
-
-
-DUST = [["........", "........", "........", "...dd...", "..d22d..", "........"],
-        ["........", "........", "..d..d..", ".d2dd2d.", "..d22d..", "........"],
-        ["........", ".d....d.", "d.2..2.d", ".d....d.", "..3..3..", "........"],
-        ["........", "d......d", "........", "3......3", "........", "........"]]
+            cv = prop(lambda c: G.banner(c, side, 1.0, g), pal=G.GP[g])
+            c, an = one(cv, *((1.0, 0) if side == 'R' else (0, 1.0)))
+            save(c, f'01_tiles/props/banners/Banner_{G.GNAMES[g]}_{side}.png', G.GP[g], ancla=an,
+                 nota='ancla = centro del estandarte a ras de suelo en su muro')
+    print('· sala base')
+    room = G.render_room()
+    G.carpet(room, *G.LAYOUT['carpet'])
+    lay = G.room_layout()
+    save(room, '01_tiles/Room_Base_01.png', ancla=[G.OX, G.OY],
+         nota='suelo, muros, puerta, ventanal y alfombra ya compuestos (fondo, exento del tope de 16)',
+         disposicion={'suelo': {f'{x},{y}': v for (x, y), v in lay['suelo'].items()},
+                      'muro_L': lay['muro_L'], 'muro_R': lay['muro_R']})
 
 
 def build_chars():
     print('· aprendices (7 gremios)')
-    for g in P.GUILDS:
-        G = P.GUILD_NAMES[g]
-        for pose, (nf, ms, dirs) in Z.POSES.items():
-            rows = [[Z.frame(d, pose, f) for f in range(nf)] for d in dirs]
-            rel = f'02_characters/apprentice/{g}/Apprentice_{G}_{pose.capitalize()}_Sheet.png'
-            if os.path.basename(rel) not in SKIP:
-                save_grid(rows, out(rel), GP[g])
-            META[rel] = {'frame': [Z.W, Z.H], 'frames': nf, 'ms': ms, 'filas': dirs, 'ancla': list(Z.ANCHOR),
-                         'paleta': GP[g].name, 'colores': len(set(np.unique(np.concatenate([f.a for r in rows for f in r]))) - {0})}
-    fr = []
-    for rows in DUST:
-        c = Canvas(8, 6, FXP)
-        for j, row in enumerate(rows):
-            for i, ch in enumerate(row):
-                if ch != '.':
-                    c.set(i, j, {'d': 'd1', '2': 'd2', '3': 'd3'}[ch])
-        fr.append(c)
-    save_sheet(fr, out('03_effects/Dust_Puff_Sheet.png'))
-    META['03_effects/Dust_Puff_Sheet.png'] = {'frame': [8, 6], 'frames': 4, 'ms': 100, 'paleta': FXP.name,
-                                             'uso': 'Aprendiz al caminar, fotogramas de apoyo 0 y 4; base del sprite en los pies'}
+    for g in G.GUILDS:
+        for pose, ms in (('idle', 250), ('walk', 125)):
+            rows = [[G.frame(g, d, pose, f) for f in range(4)] for d in G.DIRS]
+            rel = f'02_characters/apprentice/{g}/Apprentice_{G.GNAMES[g]}_{pose.capitalize()}_Sheet.png'
+            sheet(rows, rel, G.GP[g], grid=True, frames=4, ms=ms, filas=G.DIRS, ancla=[8, 23])
 
 
 def build_palettes():
     pd = os.path.join(ART, 'palettes')
     os.makedirs(pd, exist_ok=True)
-    open(os.path.join(pd, 'escenario.gpl'), 'w').write(SCENE.gpl())
-    open(os.path.join(pd, 'fx.gpl'), 'w').write(FXP.gpl())
-    for g in P.GUILDS:
-        open(os.path.join(pd, f'gremio_{g}.gpl'), 'w').write(GP[g].gpl())
+    open(os.path.join(pd, 'gbc_escenario.gpl'), 'w').write(G.SCENE.gpl())
+    for g in G.GUILDS:
+        open(os.path.join(pd, f'gbc_gremio_{g}.gpl'), 'w').write(G.GP[g].gpl())
 
 
-# ------------------------------------------------------------------ vistas previas
-def _txt(img, x, y, text, col=(230, 226, 214)):
+# ------------------------------------------------------------------ vistas previas y demo
+def _txt(img, x, y, text, col=(232, 232, 224)):
     for n, ch in enumerate(text):
         for j, row in enumerate(font.glyph(ch)):
             for i, px in enumerate(row):
@@ -197,8 +167,7 @@ def _txt(img, x, y, text, col=(230, 226, 214)):
                     img[y + j, x + n * 4 + i] = col
 
 
-def contact(items, path, width=420, scale=3, bg=(30, 28, 36)):
-    """items = [(rgba, etiqueta)] en flujo; etiqueta debajo con la fuente de tiza."""
+def contact(items, path, width=360, scale=4, bg=(40, 36, 52)):
     pad, x, y, rowh, pos = 6, 6, 6, 0, []
     for im, lab in items:
         w = max(im.shape[1], len(lab) * 4)
@@ -218,91 +187,74 @@ def contact(items, path, width=420, scale=3, bg=(30, 28, 36)):
     Image.fromarray(img).resize((width * scale, H * scale), Image.NEAREST).save(path)
 
 
-def rgba_of(rel, pal=SCENE):
-    im = Image.open(os.path.join(ART, rel)).convert('RGBA')
-    return np.array(im)
+def actors(t):
+    return [('anthropic', 1.6, 6.75, 'NW', 'idle', (t // 2) % 4),
+            ('openai', 5.5, 2.45, 'SW', 'idle', (t // 2 + 1) % 4),
+            ('gemini', 9.3, 3.6, 'NE', 'idle', (t // 2 + 2) % 4),
+            ('copilot', 3.0, 4.6, 'SE', 'idle', (t // 2 + 3) % 4),
+            ('meta', 9.0, 9.4, 'W', 'idle', (t // 2) % 4),
+            ('deepseek', 0.3 + t / 8.0, 10.5, 'SE', 'walk', t % 4),
+            ('qwen', 6.75, 9.9 - t / 8.0, 'NE', 'walk', t % 4)]
 
 
 def build_previews():
     os.makedirs(PREV, exist_ok=True)
-    print('· vistas previas')
-    env_items = [(rgba_of(k), os.path.basename(k)[:-4].replace('_', ' ')) for k in sorted(META)
-                 if k.startswith('01_tiles/') and 'banners' not in k and 'Room_Base' not in k and not k.endswith('Sheet.png')]
-    for k in ('01_tiles/props/Torch_Flame_Sheet.png', '01_tiles/props/Door_Opening_Sheet.png', '03_effects/Torch_Halo_Sheet.png',
-              '03_effects/Chalk_Font_4x6.png', '03_effects/Dust_Puff_Sheet.png'):
-        env_items.append((rgba_of(k), os.path.basename(k)[:-4].replace('_', ' ')))
-    contact(env_items, os.path.join(PREV, 'hoja_entorno.png'), width=520)
-    ban = [(rgba_of(f'01_tiles/props/banners/Banner_{P.GUILD_NAMES[g]}_R.png'), P.GUILD_NAMES[g]) for g in P.GUILDS]
-    lineup = []
-    for g in P.GUILDS:
-        for d, pose, f in (('S', 'idle', 0), ('SE', 'walk', 2), ('NW', 'read', 1), ('SW', 'create', 3)):
-            lineup.append((Z.frame(d, pose, f).rgba(GP[g]), ''))
-    contact(ban + lineup, os.path.join(PREV, 'gremios.png'), width=300, scale=4)
-    for g in ('anthropic',):
-        G = P.GUILD_NAMES[g]
-        items = []
-        for pose, (nf, ms, dirs) in Z.POSES.items():
-            rel = f'02_characters/apprentice/{g}/Apprentice_{G}_{pose.capitalize()}_Sheet.png'
-            items.append((rgba_of(rel), f'{pose} {nf}F {ms}MS: ' + ' '.join(dirs)))
-        contact(items, os.path.join(PREV, 'hoja_aprendiz_anthropic.png'), width=300, scale=3)
-    room = scene.Room()
-    still = room.frame(TIMELINE(56), door=0, torch_f=1)
-    Image.fromarray(still[..., :3]).resize((still.shape[1] * 3, still.shape[0] * 3), Image.NEAREST).save(
-        os.path.join(PREV, 'sala_rodaja.png'))
-    plain = room.frame([], door=0, torch_f=0, lights=False)
-    Image.fromarray(plain[..., :3]).resize((plain.shape[1] * 2, plain.shape[0] * 2), Image.NEAREST).save(
-        os.path.join(PREV, 'sala_sin_luces.png'))
-    frames = []
-    for t in range(72):
-        door = DOOR_T.get(t, 0)
-        img = room.frame(TIMELINE(t), door=door, torch_f=t % 4)
-        frames.append(Image.fromarray(img[..., :3]).resize((img.shape[1] * 2, img.shape[0] * 2), Image.NEAREST))
-    pal_img = frames[40].quantize(colors=255, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
-    q = [f.quantize(palette=pal_img, dither=Image.Dither.NONE) for f in frames]
-    q[0].save(os.path.join(PREV, 'sala_rodaja.gif'), save_all=True, append_images=q[1:], duration=125, loop=0,
-              optimize=False, disposal=1)
-
-
-DOOR_T = {0: 0, 1: 0, 2: 30, 3: 30, 4: 60, 5: 60, 6: 90, 7: 90}
-for _t in range(8, 34):
-    DOOR_T[_t] = 90
-for _n, _a in enumerate((90, 60, 60, 30, 30, 0)):
-    DOOR_T[34 + _n] = _a
-
-
-def TIMELINE(t):
-    """Rodaja vertical: un Aprendiz entra por la puerta y va a leer; el resto trabaja."""
-    act = [('openai', 5.5, 2.4, 'SW', 'create', (t // 2) % 8),
-           ('gemini', 9.3, 3.55, 'NE', 'present', (t // 2) % 6),
-           ('qwen', 6.6, 8.6, 'S', 'rest', (t // 4) % 4)]
-    path = [(-0.1, 10.5), (1.5, 10.5), (1.5, 6.75)]
-    s = (t - 8) / 8.0
-    if t < 8:
-        return act
-    seg0 = path[1][0] - path[0][0]
-    seg1 = path[1][1] - path[2][1]
-    if s < seg0:
-        act.append(('anthropic', path[0][0] + s, 10.5, 'SE', 'walk', (t - 8) % 8))
-    elif s < seg0 + seg1:
-        act.append(('anthropic', 1.5, 10.5 - (s - seg0), 'NE', 'walk', (t - 8) % 8))
-    else:
-        act.append(('anthropic', 1.5, 6.75, 'NW', 'read', (t // 2) % 6))
-    return act
+    os.makedirs(DEMO, exist_ok=True)
+    print('· vistas previas y demo')
+    items = []
+    for k in sorted(META):
+        if k.startswith('01_tiles/') and 'banners' not in k and 'Room_Base' not in k:
+            items.append((np.array(Image.open(out(k)).convert('RGBA')), os.path.basename(k)[:-4].replace('_', ' ')))
+    for k in ('03_effects/Torch_Halo_Sheet.png', '03_effects/Orb_Glow_Sheet.png', '03_effects/Pixel_Font_3x5.png'):
+        items.append((np.array(Image.open(out(k)).convert('RGBA')), os.path.basename(k)[:-4].replace('_', ' ')))
+    for g in G.GUILDS:
+        items.append((np.array(Image.open(out(f'01_tiles/props/banners/Banner_{G.GNAMES[g]}_R.png')).convert('RGBA')), ''))
+    contact(items, os.path.join(PREV, 'hoja_gbc_fase1.png'))
+    room = G.Room('anthropic', door_closed=False)
+    frames = [room.frame(actors(t), t=t)[..., :3] for t in range(32)]
+    Image.fromarray(frames[12]).resize((G.CW * 4, G.CH * 4), Image.NEAREST).save(os.path.join(PREV, 'sala_gbc.png'))
+    Image.fromarray(G.crt(frames[12], 5)).save(os.path.join(PREV, 'sala_gbc_crt.png'))
+    gif = [Image.fromarray(f).resize((G.CW * 3, G.CH * 3), Image.NEAREST) for f in frames]
+    pal = gif[12].quantize(colors=255, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    q = [g.quantize(palette=pal, dither=Image.Dither.NONE) for g in gif]
+    q[0].save(os.path.join(PREV, 'sala_gbc.gif'), save_all=True, append_images=q[1:], duration=125, loop=0, disposal=1)
+    W, H = 16, 24
+    rows = [[G.frame(g, d, 'idle', 1) for d in G.DIRS] + [G.frame(g, 'SE', 'walk', f) for f in range(4)] for g in G.GUILDS]
+    sh = np.zeros((len(rows) * (H + 3) + 3, 12 * (W + 3) + 3, 3), np.uint8)
+    sh[:] = (168, 176, 200)
+    for r, row in enumerate(rows):
+        for c, f in enumerate(row):
+            a = f.rgba()
+            m = a[..., 3] > 0
+            blk = sh[3 + r * (H + 3):3 + r * (H + 3) + H, 3 + c * (W + 3):3 + c * (W + 3) + W]
+            blk[m] = a[..., :3][m]
+    Image.fromarray(sh).resize((sh.shape[1] * 5, sh.shape[0] * 5), Image.NEAREST).save(os.path.join(PREV, 'magos_gbc.png'))
+    cols = 8
+    atlas = np.zeros((G.CH * 4, G.CW * cols, 3), np.uint8)
+    for n, f in enumerate(frames):
+        atlas[(n // cols) * G.CH:(n // cols + 1) * G.CH, (n % cols) * G.CW:(n % cols + 1) * G.CW] = f
+    buf = io.BytesIO()
+    Image.fromarray(atlas).save(buf, 'PNG', optimize=True)
+    html = open(os.path.join(HERE, 'demo.html'), encoding='utf-8').read()
+    html = html.replace('__ATLAS__', base64.b64encode(buf.getvalue()).decode())
+    html = html.replace('__FW__', str(G.CW)).replace('__FH__', str(G.CH))
+    open(os.path.join(DEMO, 'codewizards_estilo_gbc.html'), 'w', encoding='utf-8').write(html)
 
 
 if __name__ == '__main__':
     build_env()
     build_chars()
     build_palettes()
-    meta = {'version': 'ronda-1', 'convenciones': {
-        'proyeccion': 'iso 2:1, tile 32x16; sx=(x-y)*16, sy=(x+y)*8-z; 1 unidad de altura = 16 px',
-        'muro': {'alto_px': env.H_WALL, 'grosor_tiles': env.T_WALL, 'sala_tiles': env.ROOM},
-        'alfa': '1 bit (índice 0 transparente); la translucidez (luces, halos) la pone el motor al mezclar',
-        'ancla': 'píxel del PNG que corresponde al punto de mundo indicado en la nota (por defecto el origen del asset)',
-        'magos': {'lienzo': [Z.W, Z.H], 'ancla_pies': list(Z.ANCHOR), 'direcciones': Z.DIRS,
+    meta = {'version': 'fase1-gbc', 'convenciones': {
+        'estilo': 'parecido a Game Boy Color: RGB555, fondo 8 paletas x 4 con oscuro compartido, magos 2 paletas x 3',
+        'proyeccion': 'iso 2:1, tile 16x8; sx=(x-y)*8, sy=(x+y)*4-z; 1 unidad de altura = 8 px',
+        'sala': {'tiles': G.ROOM, 'muro_px': G.HW, 'grosor_tiles': G.TW, 'lienzo': [G.CW, G.CH], 'origen': [G.OX, G.OY]},
+        'alfa': '1 bit (índice 0 transparente); halos, brillo de orbes y luz del ventanal los mezcla el motor',
+        'ancla': 'píxel del PNG que corresponde al punto de mundo indicado (por defecto, el origen del asset)',
+        'magos': {'lienzo': [16, 24], 'ancla_pies': [8, 23], 'direcciones': G.DIRS,
                   'espejo': 'SO, O y NO = espejo de SE, E y NE'},
-        'paletas': 'escenario <= 64 · 16 por gremio · 16 de efectos (192 <= 256 de la CGRAM del SNES)'},
+        'contorno_sala': 'Room_Base_01 ya lo lleva; si se monta por piezas, 1 px de K alrededor de la silueta'},
         'assets': META}
-    json.dump(meta, open(os.path.join(ART, 'meta.json'), 'w'), ensure_ascii=False, indent=1)
+    json.dump(meta, open(os.path.join(ART, 'meta.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     build_previews()
     print('assets:', len(META))

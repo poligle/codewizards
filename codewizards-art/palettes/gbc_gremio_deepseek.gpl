@@ -1,0 +1,11 @@
+GIMP Palette
+Name: gbc-deepseek
+Columns: 8
+#
+255   0 255	(transparente)
+ 24  16  64	K
+ 80  72 192	M
+168 168 248	L
+248 248 240	W
+240 176 136	S
+168 112  64	T

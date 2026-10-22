@@ -1,0 +1,11 @@
+GIMP Palette
+Name: gbc-meta
+Columns: 8
+#
+255   0 255	(transparente)
+ 40   8  72	K
+136  56 200	M
+224 168 248	L
+248 248 240	W
+240 176 136	S
+168 112  64	T

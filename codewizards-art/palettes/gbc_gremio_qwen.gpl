@@ -1,0 +1,11 @@
+GIMP Palette
+Name: gbc-qwen
+Columns: 8
+#
+255   0 255	(transparente)
+ 16  56  32	K
+ 56 160  88	M
+168 240 160	L
+248 248 240	W
+240 176 136	S
+168 112  64	T

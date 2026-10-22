@@ -1,0 +1,47 @@
+# Mensaje del commit en curso (se usa con: git commit -F COMMIT_MSG.txt)
+COMMIT_MSG.txt
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Web (para cuando llegue la maqueta / frontend)
+node_modules/
+dist/
+build/
+.cache/
+.vite/
+
+# Cloudflare / Wrangler
+.wrangler/
+.dev.vars
+
+# Secretos: la clave de la API nunca va al repo
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Nix / direnv
+result
+result-*
+.direnv/
+
+# Editores y sistema
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Copias de seguridad de Aseprite
+*.ase.bak
+*.aseprite.bak
+
+# Registros
+*.log

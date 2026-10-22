@@ -1,5 +1,7 @@
 # Traspaso entre pasos
 
+> Nota (22/10/2026): la ronda 1 en estilo SNES está archivada en `codewizards-art/legacy/snes-ronda1/`; las rutas de su entrada se refieren a esa carpeta.
+
 ## Paso 6 · Arte (ronda 1, adelantado) · 22/10/2026
 - Cambios: escenario completo de la Fase 1 con la escala corregida, sala base compuesta, estandartes con emblema por gremio, Aprendiz en 7 gremios (idle, walk, read, create, present, rest), efectos (halo, polvo, fuente de tiza), paletas `.gpl`, `meta.json` con anclas, generador y validador.
 - Archivos tocados: `codewizards-art/` (nuevo), `auditorias/arte.md`, `auditorias/img/arte/`, este traspaso y `COMMIT_MSG.txt`.
@@ -11,3 +13,11 @@
   - (paso 5, UI/UX) → cómo conviven la sala y los paneles del IDE.
 - Preguntas abiertas: ¿qué 6 estados tiene el Aprendiz? ¿Muro de 80 px o 64? ¿El gremio Copilot representa la plataforma o el fabricante del modelo?
 - Pruebas para Pol: las 4 de `auditorias/arte.md` §9.
+
+## Paso 6 · Arte GBC, Fase 1 · 22/10/2026
+- Cambios: arte de la Fase 1 rehecho en estilo GBC (64 assets): suelo con 6 variantes, muros con 4 variantes por lado, esquinas, cantos, puerta con apertura de 4 fotogramas, ventanal y su luz, librerías L y R, mesa, pizarra, antorchas con llama, halos, brillo del orbe, sillón, alfombra, 14 estandartes, sala base, Aprendiz en 7 gremios (reposo y paso en 8 direcciones) y fuente de píxel 3 × 5. Ronda SNES archivada.
+- Archivos tocados: `codewizards-art/` (generador GBC, assets, paletas, `meta.json`, demo), `auditorias/arte_gbc_fase1.md`, `auditorias/img/arte/`, `docs/`.
+- Decisiones de Pol: estilo «parecido a Game Boy Color» con filtro CRT opcional; mago viejecito encorvado con gran sombrero y orbe del color del gremio; plan de desarrollo aprobado; repo iniciado antes del hito 2.
+- Encargos para pasos siguientes: (paso 0, maqueta) → poses de estación, confusión, celebración y descanso, y el Archimago; (paso 2) → motor de la sala con `meta.json` y escalado entero; (paso 4) → estados del mago por evento.
+- Preguntas abiertas: las de `docs/agentes.md`, sección «Riesgos y preguntas abiertas».
+- Pruebas para Pol: abrir la demo; abrir un PNG en Aseprite (indexado, índice 0 transparente); cargar una `.gpl` de gremio sobre un sprite del Aprendiz y ver que cambia de gremio sin tocar píxeles.

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CodeWizards · prueba de estilo GBC</title>
+<style>
+:root{--bg:#efe9e2;--fg:#28222f;--muted:#655d70;--card:#ffffff;--line:#d8d0c8;--accent:#b8541c;
+  color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141218;--fg:#ece6f2;--muted:#a79fb3;--card:#1e1b24;--line:#2e2a36;--accent:#f8b860;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141218;--fg:#ece6f2;--muted:#a79fb3;--card:#1e1b24;--line:#2e2a36;--accent:#f8b860;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 32px}
+h1{font-size:clamp(18px,2.6vw,24px);margin:0 0 4px;letter-spacing:.2px}
+.lead{color:var(--muted);margin:0 0 16px;max-width:70ch}
+.tv{background:#0f0d13;border-radius:24px;padding:clamp(10px,2.4vw,22px);box-shadow:0 10px 30px rgba(0,0,0,.25),inset 0 0 0 2px #26222d}
+.screen{position:relative;margin:0 auto;overflow:hidden;background:#000;border-radius:6px;transition:border-radius .2s}
+.screen canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+.fx{position:absolute;inset:0;pointer-events:none;display:none}
+.screen.crt{border-radius:22px/28px}
+.screen.crt .fx{display:block}
+.screen:not(.crt) .fx{display:none}
+.screen.crt #scr{filter:saturate(1.12) contrast(1.06) brightness(1.05)}
+#bloom{position:absolute;inset:0;width:100%;height:100%;filter:blur(5px) brightness(1.35);mix-blend-mode:screen;opacity:.38}
+.scan{background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,0) calc(var(--px,4px)*.55),rgba(0,0,0,.36) calc(var(--px,4px)*.55),rgba(0,0,0,.36) var(--px,4px))}
+.mask{background:repeating-linear-gradient(to right,rgba(255,70,70,.10) 0 1px,rgba(70,255,70,.10) 1px 2px,rgba(70,70,255,.10) 2px 3px);mix-blend-mode:multiply}
+.vig{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 58%,rgba(0,0,0,.55) 100%);box-shadow:inset 0 0 40px rgba(0,0,0,.65)}
+@media (prefers-reduced-motion:no-preference){.screen.crt .vig{animation:flick 3.2s steps(2) infinite}}
+@keyframes flick{0%,100%{opacity:1}50%{opacity:.94}}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-top:14px}
+.switch{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--line);
+  background:var(--card);color:var(--fg);font:inherit;font-weight:600;cursor:pointer}
+.switch:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.knob{width:38px;height:22px;border-radius:999px;background:var(--line);position:relative;transition:background .15s}
+.knob::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch[aria-pressed="true"] .knob{background:var(--accent)}
+.switch[aria-pressed="true"] .knob::after{transform:translateX(16px)}
+.guilds{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0;padding:0;list-style:none;color:var(--muted);font-size:14px}
+.guilds li{display:inline-flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.notes{margin-top:18px;color:var(--muted);font-size:14px}
+.notes b{color:var(--fg)}
+</style>
+</head>
+<body>
+<main>
+<h1>CodeWizards · prueba de estilo «Game Boy Color»</h1>
+<p class="lead">Sala de 12 × 12 tiles de 16 × 8 px (unos 208 × 152 px en total), colores RGB555 y paletas de 4 colores con el oscuro compartido, como la GBC. Cada mago usa 2 paletas de 3 colores: la de su gremio y una común para barba, nariz y bastón. El orbe del bastón brilla con el color del gremio.</p>
+<div class="tv"><div class="screen crt" id="screen">
+  <canvas id="scr" width="__FW__" height="__FH__" role="img" aria-label="Sala de magos en pixel art: siete magos de distintos gremios trabajan, caminan y descansan"></canvas>
+  <canvas id="bloom" class="fx" width="__FW__" height="__FH__" aria-hidden="true"></canvas>
+  <div class="fx mask"></div><div class="fx scan"></div><div class="fx vig"></div>
+</div></div>
+<div class="bar">
+  <button class="switch" id="crt" aria-pressed="true"><span class="knob" aria-hidden="true"></span>Filtro CRT</button>
+  <ul class="guilds">
+    <li><span class="dot" style="background:#d86828"></span>Anthropic</li><li><span class="dot" style="background:#3878e0"></span>OpenAI</li>
+    <li><span class="dot" style="background:#d82848"></span>Gemini</li><li><span class="dot" style="background:#5048c0"></span>DeepSeek</li>
+    <li><span class="dot" style="background:#38a058"></span>Qwen</li><li><span class="dot" style="background:#18b0b8"></span>Copilot</li>
+    <li><span class="dot" style="background:#8838c8"></span>Meta</li>
+  </ul>
+</div>
+<p class="notes"><b>Filtro CRT:</b> líneas de barrido, rejilla RGB, resplandor, viñeta y esquinas curvas, todo en CSS sobre un lienzo a escala entera; se puede apagar. <b>Animación:</b> 32 fotogramas a 125 ms; el DeepSeek sale por la puerta y el Qwen cruza la alfombra.</p>
+</main>
+<script>
+(function(){
+  var FW=__FW__,FH=__FH__,N=32,COLS=8;
+  var scr=document.getElementById('scr'),ctx=scr.getContext('2d');
+  var bl=document.getElementById('bloom'),bctx=bl.getContext('2d');
+  var screen=document.getElementById('screen'),btn=document.getElementById('crt');
+  var img=new Image(),f=0;
+  function fit(){
+    var cs=getComputedStyle(screen.parentElement);
+    var w=screen.parentElement.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-0.5;
+    var s=Math.max(1,Math.floor(w/FW));
+    screen.style.width=(FW*s)+'px';screen.style.height=(FH*s)+'px';
+    screen.style.setProperty('--px',s+'px');
+  }
+  function draw(){
+    var sx=(f%COLS)*FW,sy=Math.floor(f/COLS)*FH;
+    ctx.clearRect(0,0,FW,FH);ctx.drawImage(img,sx,sy,FW,FH,0,0,FW,FH);
+    bctx.clearRect(0,0,FW,FH);bctx.drawImage(scr,0,0);
+  }
+  var on=true;
+  try{var v=localStorage.getItem('cw-crt');if(v==='0')on=false;}catch(e){}
+  function apply(){screen.classList.toggle('crt',on);btn.setAttribute('aria-pressed',on?'true':'false');}
+  btn.addEventListener('click',function(){on=!on;apply();try{localStorage.setItem('cw-crt',on?'1':'0');}catch(e){}});
+  apply();
+  new ResizeObserver(fit).observe(screen.parentElement);fit();
+  var still=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  img.onload=function(){draw();if(!still){setInterval(function(){f=(f+1)%N;draw();},125);}};
+  img.src='data:image/png;base64,__ATLAS__';
+})();
+</script>
+</body>
+</html>

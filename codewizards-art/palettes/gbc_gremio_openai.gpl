@@ -1,0 +1,11 @@
+GIMP Palette
+Name: gbc-openai
+Columns: 8
+#
+255   0 255	(transparente)
+ 16  32  88	K
+ 56 120 224	M
+144 216 248	L
+248 248 240	W
+240 176 136	S
+168 112  64	T

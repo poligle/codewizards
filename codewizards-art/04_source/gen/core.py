@@ -55,8 +55,11 @@ class Pal:
         return '\n'.join(lines) + '\n'
 
 
+HX, HY, TEX = 16.0, 8.0, 16   # medio tile en x e y (px) y téxeles por tile; el estilo GBC usa 8, 4, 8
+
+
 def proj(x, y, z=0.0):
-    return ((x - y) * 16.0, (x + y) * 8.0 - z)
+    return ((x - y) * HX, (x + y) * HY - z)
 
 
 def hsh(*a):
@@ -168,14 +171,15 @@ class Canvas:
     def box(self, x0, y0, z0, dx, dy, dz, top=None, left=None, right=None):
         """Caja alineada a la rejilla. left = cara +y (iluminada), right = cara +x (en sombra), top = tapa.
         Texturas de cara vertical: i de izquierda a derecha en pantalla, j de abajo arriba."""
+        T = TEX
         if left is not None:
-            self.face((x0, y0 + dy, z0), (dx, 0, 0), (0, 0, dz), max(1, round(16 * dx)), max(1, round(dz)),
+            self.face((x0, y0 + dy, z0), (dx, 0, 0), (0, 0, dz), max(1, round(T * dx)), max(1, round(dz)),
                       _t(left))
         if right is not None:
-            self.face((x0 + dx, y0 + dy, z0), (0, -dy, 0), (0, 0, dz), max(1, round(16 * dy)),
+            self.face((x0 + dx, y0 + dy, z0), (0, -dy, 0), (0, 0, dz), max(1, round(T * dy)),
                       max(1, round(dz)), _t(right))
         if top is not None:
-            self.face((x0, y0, z0 + dz), (dx, 0, 0), (0, dy, 0), max(1, round(16 * dx)), max(1, round(16 * dy)),
+            self.face((x0, y0, z0 + dz), (dx, 0, 0), (0, dy, 0), max(1, round(T * dx)), max(1, round(T * dy)),
                       _t(top))
 
     # --- utilidades ---
