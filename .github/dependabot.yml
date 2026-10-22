@@ -4,7 +4,3 @@ updates:
     directory: /
     schedule:
       interval: weekly
-  - package-ecosystem: pip
-    directory: /codewizards-art/04_source
-    schedule:
-      interval: monthly
