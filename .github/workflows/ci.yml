@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  art:
+    name: Art (GBC)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: codewizards-art/04_source/requirements.txt
+      - run: pip install -r codewizards-art/04_source/requirements.txt
+      - name: Validate assets
+        run: python3 codewizards-art/04_source/gen/check.py
+
+  mockup:
+    name: Mockup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: codewizards-art/04_source/requirements.txt
+      - run: pip install -r codewizards-art/04_source/requirements.txt
+      - name: JavaScript syntax
+        run: for f in apps/maqueta/src/*.js; do node --check "$f"; done
+      - name: Logic and event contract v0
+        run: node apps/maqueta/test/maqueta.test.mjs
+      - name: maqueta.html is up to date
+        run: python3 apps/maqueta/build.py --check

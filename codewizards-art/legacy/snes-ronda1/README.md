@@ -1,8 +1,8 @@
-# Ronda 1 · estilo SNES (archivada)
+# Round 1 · SNES style (archived)
 
-Primera ronda de arte (22/10/2026), en estilo 16-bit SNES: 91 assets, tile 32 × 16 y magos de 32 × 40.
-El estilo quedó sustituido por el «parecido a Game Boy Color», pero sus correcciones de geometría
-(una sola unidad de altura, planta cuadrada, muros 2:1 y cámara con los dos muros del fondo) siguen vigentes.
+First art round (22/10/2026), in 16-bit SNES style: 91 assets, 32 × 16 tiles and 32 × 40 wizards.
+The style was replaced by the Game Boy Color one, but its geometry fixes (a single height unit,
+square floor plan, 2:1 walls and a camera that shows the two back walls) still apply.
 
-Regenerar: `python3 codewizards-art/legacy/snes-ronda1/04_source/gen/build.py` (escribe en esta carpeta).
-Informe: `auditorias/arte_ronda1_snes.md`.
+Regenerate: `python3 codewizards-art/legacy/snes-ronda1/04_source/gen/build.py` (writes into this folder).
+Report (Spanish): `auditorias/arte_ronda1_snes.md`.

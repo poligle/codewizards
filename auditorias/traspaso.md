@@ -21,3 +21,11 @@
 - Encargos para pasos siguientes: (paso 0, maqueta) → poses de estación, confusión, celebración y descanso, y el Archimago; (paso 2) → motor de la sala con `meta.json` y escalado entero; (paso 4) → estados del mago por evento.
 - Preguntas abiertas: las de `docs/agentes.md`, sección «Riesgos y preguntas abiertas».
 - Pruebas para Pol: abrir la demo; abrir un PNG en Aseprite (indexado, índice 0 transparente); cargar una `.gpl` de gremio sobre un sprite del Aprendiz y ver que cambia de gremio sin tocar píxeles.
+
+## Paso 0 · Maqueta (Claude, en el Proyecto) · 22/10/2026
+- Cambios: maqueta v0 del hito 0 (`apps/maqueta/`): mundo con rutas A* y estaciones, simulador del contrato de eventos v0, renderizador en canvas (orden por profundidad, bocadillos, partículas, Archimago con círculo rúnico, luz en tiempo de ejecución) e interfaz (grimorio, tareas, maná por gremio, pizarra con aprobar/rechazar, pergamino, velocidad, aprobación automática y CRT). Rango Gran Sabio (estrella en el sombrero) y pose de trabajo en el generador. CI y Dependabot. README en inglés.
+- Archivos tocados: `apps/maqueta/`, `codewizards-art/04_source/gen/gbc.py`, `.github/`, `README.md`, `codewizards-art/README.md`, `docs/agentes.md`, `auditorias/maqueta.md`.
+- Decisiones de Pol: commits y README en inglés; licencia probablemente MIT, la decide el paso 1.
+- Encargos para pasos siguientes: (paso 1) licencia e idioma del producto; (paso 2) pruebas en navegador real con Playwright en CI y despliegue de la maqueta; (paso 4) revisar la máquina de estados y el ritmo; (paso 5) escala de la sala en móvil (hoy ×1); (paso 6) sprite propio del Archimago, poses de estación y sentarse en el sillón.
+- Preguntas abiertas: las de `docs/agentes.md`.
+- Pruebas para Pol: las de `auditorias/maqueta.md` §5.

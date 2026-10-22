@@ -38,7 +38,7 @@ CodeWizards (`codewizards.app`) es un IDE web multiagente que muestra el trabajo
 - Documentos de concepto en `docs/concepto/`: contexto general v3.2, dirección de arte v1.0 y especificación de la Fase 1 v1.0.1, escritos para estilo SNES.
 - Ronda 1 de arte (SNES): 91 assets pintados por código y validados, archivados en `codewizards-art/legacy/snes-ronda1/`. Sirven de referencia de geometría y método.
 - Arte de la Fase 1 en estilo GBC: 64 assets en `codewizards-art/`, validados con `check.py`.
-- Aún no hay código del IDE.
+- Maqueta v0 del hito 0 en `apps/maqueta/`: sala, grimorio, pizarra y pergamino con agentes simulados que emiten el contrato de eventos v0.
 
 ### Decisiones de Pol (no se cambian sin preguntarle)
 
@@ -109,7 +109,7 @@ El de BaitSpace, adaptado: lectura, referencias, propuesta, puerta de aprobació
 4. **Puerta de aprobación**: sin el «adelante» de Pol no se tocan el estilo, la marca, el contrato de eventos, el modelo de negocio, la gestión de claves ni sus decisiones. Los arreglos pequeños y evidentes se hacen y se anotan.
 5. **Implementación**: cambios pequeños y revisables; ninguna clave en el repo ni en el navegador; el arte, siempre por el generador; colores nuevos, dentro de las paletas GBC.
 6. **Validación**: tests y `check.py` en verde; la maqueta sin errores de consola; capturas a ×3 con y sin CRT; lo no comprobado se dice.
-7. **Traspaso**: informe en `auditorias/<tema>.md`, cambios con `COMMIT_MSG.txt` y entrada en `auditorias/traspaso.md`:
+7. **Traspaso**: informe en `auditorias/<tema>.md`, cambios con `COMMIT_MSG.txt` y entrada en `auditorias/traspaso.md`. Idioma: `COMMIT_MSG.txt` y los README, en inglés; el plan, los informes y el traspaso, en español.
 
 ```markdown
 ## Paso <N> · <rol> · <fecha>
@@ -303,6 +303,7 @@ Preguntas para Pol:
 - [ ] ¿Los agentes trabajan sobre repos de GitHub (ramas y PR) o en un espacio propio?
 - [ ] ¿Qué estados tiene cada rango de mago?
 - [ ] ¿El gremio Copilot representa la plataforma o al fabricante del modelo?
+- [ ] Licencia: Pol se inclina por MIT; la decide el paso 1.
 
 ## Documentos de referencia
 

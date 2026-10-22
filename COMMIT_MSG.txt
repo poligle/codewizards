@@ -1,17 +1,24 @@
-Inicio del repo: plan de desarrollo, documentos de concepto y arte de la Fase 1 en estilo GBC
+Add milestone 0 mockup with simulated agents in the GBC room
 
-Resumen
-- Primer commit de CodeWizards: plan de desarrollo y agentes, documentos de concepto, arte de la
-  Fase 1 en estilo Game Boy Color generado por código y la ronda SNES archivada como referencia.
+Summary
+- First working mockup of CodeWizards: one self-contained page with the GBC room, the spell
+  book, the board and the event log, driven by a simulator that emits event contract v0.
+  No API calls.
 
-Contenido
-- docs/agentes.md: contexto común, contrato de eventos v0, protocolo, hoja de ruta y prompts.
-- docs/concepto/: contexto general v3.2, dirección de arte v1.0 y especificación de la Fase 1 v1.0.1.
-- codewizards-art/: 64 assets GBC, paletas .gpl, meta.json, generador (build.py) y validador (check.py).
-- codewizards-art/preview/: demo de la sala con interruptor de filtro CRT.
-- codewizards-art/legacy/snes-ronda1/: ronda 1 en estilo SNES (91 assets y su generador).
-- auditorias/: informes de arte y traspaso entre pasos.
+Changes
+- apps/maqueta/: world (grid, A* paths, stations, wizard behaviour), simulator (contract v0),
+  canvas renderer (depth sorting, emote bubbles, particles, Archmage, runtime light) and UI
+  (spell book, tasks, mana per guild, approve/reject on the board, event log, speed,
+  auto-approve and CRT toggle).
+- apps/maqueta/build.py: bundles maqueta.html with the art embedded as indexed RLE data.
+- apps/maqueta/test/: node tests for paths, contract v0 and a full spell end to end.
+- codewizards-art: Grand Sage rank (star on the hat), work pose and a blank board for
+  runtime chalk.
+- .github/: CI (art check, mockup tests, build check) and Dependabot.
+- README files in English; docs/agentes.md: language rule and license note.
 
-Comprobaciones
-- check.py (GBC): 64 assets, 0 errores.
-- Sin verificar: apertura en Aseprite y aspecto en pantallas reales.
+Checks
+- node apps/maqueta/test/maqueta.test.mjs: 3448/3448 passed
+- python3 codewizards-art/04_source/gen/check.py: 64 assets, 0 errors
+- python3 apps/maqueta/build.py --check: up to date
+- Not verified: real browsers (the renderer was only exercised headless in node).

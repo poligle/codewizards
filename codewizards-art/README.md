@@ -1,35 +1,35 @@
-# codewizards-art · Fase 1 en estilo GBC
+# codewizards-art · Phase 1, GBC style
 
-Arte pintado píxel a píxel por código (sin modelos de imagen) y retocable a mano.
+Pixel art painted pixel by pixel by code (no generative image models) and retouchable by hand.
 
-## Estructura
-- `01_tiles/floor/`: 6 rombos de suelo (16 × 8): base, lisa y 4 variaciones.
-- `01_tiles/wall/`: tramos de 2 tiles con albardilla (`_L` muro izquierdo, `_R` derecho) en 4 variantes, esquinas y cantos.
-- `01_tiles/props/`: puerta (cerrada y hojas de apertura/cierre), ventanal y su luz, librerías L y R, mesa, pizarra, antorchas y llama, sillón, alfombra y `banners/` (7 gremios × 2 muros).
-- `01_tiles/Room_Base_01.png`: sala base ya compuesta (208 × 152).
-- `02_characters/apprentice/<gremio>/`: Aprendiz en reposo y caminando; filas = direcciones S, SE, E, NE, N, NO, O, SO; 4 fotogramas.
-- `03_effects/`: halo de antorcha, brillo del orbe (máscaras que tiñe el motor) y fuente de píxel 3 × 5.
-- `palettes/`: `gbc_escenario.gpl` y `gbc_gremio_<gremio>.gpl` (se cargan en Aseprite).
-- `meta.json`: tamaño, fotogramas, milisegundos, paleta y ancla de cada asset.
-- `preview/`: demo HTML con interruptor CRT.
-- `04_source/gen/`: generador (`gbc.py`, `build.py`), validador (`check.py`) y plantilla de la demo.
-- `legacy/snes-ronda1/`: la ronda 1 en estilo SNES, con su propio generador.
+## Layout
+- `01_tiles/floor/`: 6 floor diamonds (16 × 8): base, plain and 4 variations.
+- `01_tiles/wall/`: 2-tile wall pieces with coping (`_L` left wall, `_R` right wall) in 4 variants, corners and cut ends.
+- `01_tiles/props/`: door (closed, opening and closing sheets), gothic window and its light, bookshelves L and R, lab table, blackboard, torches and flame, armchair, carpet and `banners/` (7 guilds × 2 walls).
+- `01_tiles/Room_Base_01.png`: the room already composed (208 × 152).
+- `02_characters/apprentice/<guild>/`: Apprentice idle and walking; rows = directions S, SE, E, NE, N, NW, W, SW; 4 frames.
+- `03_effects/`: torch halo, orb glow (masks the engine tints) and a 3 × 5 pixel font.
+- `palettes/`: `gbc_escenario.gpl` and `gbc_gremio_<guild>.gpl` (load them in Aseprite).
+- `meta.json`: size, frames, milliseconds, palette and anchor of every asset.
+- `preview/`: HTML demo with the CRT toggle.
+- `04_source/gen/`: generator (`gbc.py`, `build.py`), validator (`check.py`) and the demo template.
+- `legacy/snes-ronda1/`: the first round in SNES style, with its own generator.
 
-## Reglas del estilo
-| Regla | Valor |
+## Style rules
+| Rule | Value |
 | --- | --- |
-| Tile | 16 × 8 px, iso 2:1; 8 px por unidad de altura |
-| Sala | 12 × 12 tiles; muro de 40 px; lienzo 208 × 152, origen (104, 46) |
-| Color | RGB555 (canales múltiplos de 8) |
-| Fondo | 8 paletas de 4 colores con el oscuro compartido (25 colores) |
-| Magos y estandartes | 16 × 24 px; 2 paletas de 3: gremio (luz, base, oscuro) + común (barba, nariz, bastón) |
-| Alfa | 1 bit; halos, orbes y luz del ventanal los mezcla el motor |
+| Tile | 16 × 8 px, 2:1 isometric; 8 px per height unit |
+| Room | 12 × 12 tiles; 40 px walls; 208 × 152 canvas, origin (104, 46) |
+| Colour | RGB555 (channels are multiples of 8) |
+| Background | 8 palettes of 4 colours sharing the darkest one (25 colours) |
+| Wizards and banners | 16 × 24 px; 2 palettes of 3: guild (light, base, dark) + common (beard, nose, staff) |
+| Alpha | 1 bit; halos, orbs and window light are blended by the engine |
 
-## Para el motor
-- Proyección: `sx = (x - y) * 8`, `sy = (x + y) * 4 - z`, con x, y en tiles y z en px.
-- Ancla: el píxel del PNG que corresponde al punto de mundo de la `nota` de `meta.json`.
-- Magos: pies en (8, 23); SO, O y NO son el espejo de SE, E y NE.
-- Orden de dibujo: profundidad `x + y` del centro de cada objeto; escalado siempre entero.
+## For the engine
+- Projection: `sx = (x - y) * 8`, `sy = (x + y) * 4 - z`, with x, y in tiles and z in px.
+- Anchor: the PNG pixel that matches the world point given in the `nota` field of `meta.json`.
+- Wizards: feet at (8, 23); SW, W and NW are mirrors of SE, E and NE.
+- Draw order: depth `x + y` of each object's centre; integer scaling only.
 
-## Retocar
-Abre el PNG en Aseprite (es indexado, índice 0 transparente), usa solo su paleta y añade su nombre a `04_source/retocados.txt`.
+## Retouching
+Open the PNG in Aseprite (indexed, index 0 transparent), use only its palette and add its file name to `04_source/retocados.txt` so `build.py` never overwrites it.

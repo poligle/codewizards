@@ -371,7 +371,7 @@ def lab_table(cv, x0, y0):
     cv.face((x0 + 0.75, y0 + 0.875, 8), (0.625, 0, 0), (0, 0.375, 0), 5, 3, lambda i, j: 'p0' if (i + j) % 3 else 'p1')
 
 
-def blackboard(cv, cx, cy):
+def blackboard(cv, cx, cy, chalk=True):
     sx, sy = cv.sp(cx, cy, 0)
     sx, sy = int(sx), int(sy)
     bw, bh = 30, 18
@@ -390,7 +390,7 @@ def blackboard(cv, cx, cy):
             else:
                 k = 'g2'
             cv.set(x, y, k)
-    lines = [(3, 14, 'g0'), (5, 9, 'r0'), (5, 12, 'p0'), (3, 7, 'g0')]
+    lines = [(3, 14, 'g0'), (5, 9, 'r0'), (5, 12, 'p0'), (3, 7, 'g0')] if chalk else []
     for n, (a, ln, k) in enumerate(lines):
         y = y0 + 3 + n * 3
         for x in range(x0 + a, x0 + a + ln):
@@ -494,6 +494,9 @@ WIZ = {
           ".KLMMMMMMMMMMKT.", "..KLMMMMMMMMMKT.", "..KKKKKKKKKKKKT.", "...KKK..KKK...T."],
 }
 ORB = {'S': (1, 1), 'SE': (1, 1), 'E': (13, 1), 'NE': (14, 2), 'N': (14, 1)}
+STAR = {'S': (9, 5), 'SE': (6, 6), 'E': (5, 6), 'NE': (5, 6), 'N': (6, 5)}   # estrella del Gran Sabio en el sombrero
+RANKS = ['aprendiz', 'sabio', 'archimago']
+ARCHI = ('#f8f0a0', '#c89830', '#402808')   # túnica del Archimago: oro viejo
 MIRROR = {'SW': 'SE', 'W': 'E', 'NW': 'NE'}
 DIRS = ['S', 'SE', 'E', 'NE', 'N', 'NW', 'W', 'SW']
 for _k, _v in WIZ.items():
@@ -511,16 +514,21 @@ def _orb(cv, x, y, big):
     cv.set(x, y, 'W')
 
 
-def frame(g, d, pose='idle', f=0):
-    """Fotograma 16 x 24 del mago del gremio g. idle: 4 fotogramas (orbe que late y cabezada);
-    walk: 4 fotogramas (rebote y pasos)."""
+def frame(g, d, pose='idle', f=0, rank='aprendiz'):
+    """Fotograma 16 x 24 del mago del gremio g. idle: orbe que late y cabezada; walk: rebote y pasos;
+    work: orbe encendido y chispa que gira. rank: aprendiz | sabio (estrella en el sombrero, orbe grande)
+    | archimago (como sabio; paleta propia en el motor)."""
     base = MIRROR.get(d, d)
     rows = [list(r) for r in WIZ[base]]
+    if rank != 'aprendiz':
+        sx_, sy_ = STAR[base]
+        for (dx, dy) in ((0, -1), (-1, 0), (0, 0), (1, 0), (0, 1)):
+            rows[sy_ + dy][sx_ + dx] = 'W'
     cv = Canvas(16, 24, GP[g])
     bob = 0
     if pose == 'walk':
         bob = [0, -1, 0, -1][f % 4]
-    nod = 1 if (pose == 'idle' and f % 4 in (1, 2)) else 0
+    nod = 1 if (pose in ('idle', 'work') and f % 4 in (1, 2)) else 0
     for j, row in enumerate(rows):
         for i, ch in enumerate(row):
             if ch == '.':
@@ -548,7 +556,16 @@ def frame(g, d, pose='idle', f=0):
                     if base in ('E', 'SE'):
                         cv.set(i + 1, 23, 'K')
     ox, oy = ORB[base]
-    _orb(cv, ox, oy + bob, big=(f % 2 == 1) if pose == 'idle' else (f % 4 in (1, 2)))
+    if pose == 'work':
+        big = True
+    elif rank != 'aprendiz':
+        big = True
+    else:
+        big = (f % 2 == 1) if pose == 'idle' else (f % 4 in (1, 2))
+    _orb(cv, ox, oy + bob, big=big)
+    if pose == 'work':
+        dx, dy = ((0, -3), (3, 0), (0, 3), (-3, 0))[f % 4]
+        cv.set(ox + dx, oy + dy, 'W')
     if d in MIRROR:
         cv = cv.flip_h()
     return cv
