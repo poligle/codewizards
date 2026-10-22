@@ -1,0 +1,21 @@
+Arte ronda 1: escenario de la Fase 1 y Aprendiz en 7 gremios, pintados por código
+
+Resumen
+- Primera ronda de arte de CodeWizards (rodaja vertical), con la geometría corregida y aprobada.
+
+Cambios
+- codewizards-art/: 91 assets (suelo, muros, esquinas, cantos, puerta con apertura, ventanal y su luz,
+  librerías, mesa, pizarra, antorchas, sillón, alfombra, estandartes de 7 gremios, sala base), Aprendiz
+  en 7 gremios con 6 estados, efectos, paletas .gpl y meta.json con anclas.
+- Generador (04_source/gen/build.py) y validador (check.py); retocados.txt protege los retoques a mano.
+
+Arreglos sobre la spec v1.0.1
+- Una sola unidad de altura (16 px), muro de 80 px, planta cuadrada, muros 2:1, alfa de 1 bit,
+  paletas por gremio de 16, tizas legibles y emblemas por gremio.
+
+Versión
+- Sin versión: la cierra el último paso.
+
+Comprobaciones
+- check.py: 91 assets, 0 errores. Luz de túnica >= 3:1 sobre el suelo en los 7 gremios; tizas >= 5,8:1.
+- Sin verificar: apertura en Aseprite y aspecto en pantallas reales.

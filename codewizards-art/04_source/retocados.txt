@@ -1,0 +1,2 @@
+# Un nombre de PNG por línea (p. ej. Bookshelf_Base_L.png).
+# build.py no sobrescribe los ficheros listados aquí: es donde se protegen los retoques a mano.
