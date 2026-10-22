@@ -19,7 +19,7 @@
 - [x] Un hechizo completo en menos de 2 minutos de simulación (lo comprueba el test).
 - [x] 7 gremios y 2 rangos distinguibles sin color: emblema y nombre en tareas y maná; estrella del Gran Sabio en el sombrero.
 - [x] El filtro CRT se activa, se desactiva y se recuerda.
-- [ ] Sin errores de consola en escritorio y móvil: no comprobado en un navegador real (solo en node, con un canvas sin DOM).
+- [x] Sin errores de consola en escritorio y móvil: comprobado en Chromium (escritorio 1440 × 900 y móvil 390 × 844) después de corregir el fallo del primer fotograma (§6). Sin comprobar en Firefox ni Safari.
 - [x] El simulador emite exactamente el contrato de eventos v0 (lo comprueba el test).
 
 ## 4. Decisiones tomadas en este paso
@@ -35,3 +35,8 @@
 3. Apagar el CRT, recargar y comprobar que sigue apagado.
 4. Probar ×4 y «Aprobar solo».
 5. Abrirla en el móvil: una columna, con la sala arriba.
+
+## 6. Corrección del 22/10/2026
+- En un navegador real, la maqueta se congelaba al cargar: dibujaba la sala una vez y «Lanzar» no creaba tareas. El primer fotograma de `requestAnimationFrame` puede llegar con una marca de tiempo anterior a la que se tomó con `performance.now()`. Ese `dt` negativo dejaba el reloj por debajo de cero, el índice de la llama de las antorchas valía −1 y `drawImage` lanzaba una excepción que paraba el bucle. En node no aparecía porque el reloj de los tests solo avanza.
+- Arreglo: en el bucle (`ui.js`) el `dt` nunca es negativo, y `Sim.tick` y `World.update` ignoran un `dt` negativo o NaN. Test nuevo en `maqueta.test.mjs`, que falla con el código anterior.
+- Comprobado en Chromium, en escritorio (×3) y en móvil (×1): un hechizo completo con un rechazo y aprobaciones a mano, «Aprobar solo» a ×4 y el CRT recordado al recargar; 0 errores de página o de consola y ninguna petición de red.

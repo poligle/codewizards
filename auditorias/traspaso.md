@@ -37,3 +37,11 @@
 - Encargos para pasos siguientes: (paso 2) → despliegue con acciones fijadas por SHA y los secretos de despliegue en un environment protegido; (paso 3) → la clave de la API, solo como secreto del Worker, y validar los campos de los eventos reales antes de meterlos en `innerHTML` (hoy `t.state` entra sin escapar en un `class`).
 - Preguntas abiertas: ¿Pages desde la rama `main` o con un workflow propio que publique solo la maqueta? Recomendación: workflow propio.
 - Pruebas para Pol: las de `auditorias/seguridad.md` §7.
+
+## Paso 0 · Maqueta, corrección (Claude) · 22/10/2026
+- Cambios: la maqueta se congelaba en el primer fotograma en cualquier navegador real (`dt` negativo → reloj bajo cero → `drawImage` sin imagen). Ahora el `dt` del bucle nunca es negativo, y `Sim.tick` y `World.update` ignoran un `dt` negativo o NaN. Test de regresión y `maqueta.html` regenerada. Detalle en `auditorias/maqueta.md` §6.
+- Archivos tocados: `apps/maqueta/src/ui.js`, `apps/maqueta/src/sim.js`, `apps/maqueta/src/world.js`, `apps/maqueta/test/maqueta.test.mjs`, `apps/maqueta/maqueta.html`, `auditorias/maqueta.md`, este traspaso y `COMMIT_MSG.txt`.
+- Decisiones de Pol: ninguna nueva; es un arreglo pequeño y evidente, según el protocolo.
+- Encargos para pasos siguientes: (paso 2) → prueba de humo con Playwright en la CI que cargue la maqueta, lance un hechizo y falle ante cualquier error de página. Este fallo pasaba los tests de node y solo se veía en un navegador.
+- Preguntas abiertas: ¿«adelante» a la maqueta para cerrar el hito 0?
+- Pruebas para Pol: abrir la maqueta en GitHub Pages, pulsar «Lanzar» y ver entrar a los magos; después, las de `auditorias/maqueta.md` §5.

@@ -431,6 +431,7 @@ textarea{width:100%;resize:vertical;border:2px solid var(--line);background:var(
     }
 
     update(dt) {
+      if (!(dt >= 0)) return;   // time never goes back (negative or NaN dt)
       this.time += dt;
       for (const w of this.wizards.values()) this.step(w, dt);
       for (const [id, w] of this.wizards) if (w.gone) { this.wizards.delete(id); if (this.selected === id) this.selected = null; }
@@ -531,6 +532,7 @@ textarea{width:100%;resize:vertical;border:2px solid var(--line);background:var(
       this.q.sort((a, b) => a.t - b.t || a.n - b.n);
     }
     tick(dt) {
+      if (!(dt >= 0)) return;   // time never goes back (negative or NaN dt)
       this.t += dt;
       while (this.q.length && this.q[0].t <= this.t) this.q.shift().fn();
     }
@@ -1072,7 +1074,9 @@ textarea{width:100%;resize:vertical;border:2px solid var(--line);background:var(
   const bctx = $('bloom').getContext('2d');
   let last = G.performance.now();
   function loop(now) {
-    const dt = Math.min(0.1, (now - last) / 1000) * speed;
+    // The first frame's timestamp can be earlier than `last`: a negative dt sent the clock
+    // below zero and the torch flame index to -1, so drawImage threw and the loop stopped.
+    const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)) * speed;
     last = now;
     sim.tick(dt);
     world.update(dt);

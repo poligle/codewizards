@@ -202,7 +202,9 @@
   const bctx = $('bloom').getContext('2d');
   let last = G.performance.now();
   function loop(now) {
-    const dt = Math.min(0.1, (now - last) / 1000) * speed;
+    // The first frame's timestamp can be earlier than `last`: a negative dt sent the clock
+    // below zero and the torch flame index to -1, so drawImage threw and the loop stopped.
+    const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)) * speed;
     last = now;
     sim.tick(dt);
     world.update(dt);

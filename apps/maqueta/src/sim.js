@@ -80,6 +80,7 @@
       this.q.sort((a, b) => a.t - b.t || a.n - b.n);
     }
     tick(dt) {
+      if (!(dt >= 0)) return;   // time never goes back (negative or NaN dt)
       this.t += dt;
       while (this.q.length && this.q[0].t <= this.t) this.q.shift().fn();
     }

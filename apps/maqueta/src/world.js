@@ -295,6 +295,7 @@
     }
 
     update(dt) {
+      if (!(dt >= 0)) return;   // time never goes back (negative or NaN dt)
       this.time += dt;
       for (const w of this.wizards.values()) this.step(w, dt);
       for (const [id, w] of this.wizards) if (w.gone) { this.wizards.delete(id); if (this.selected === id) this.selected = null; }

@@ -70,5 +70,16 @@ function validate(events) {
   ok(events.filter(e => e.t === 'task.done').length === n, 'every task ends after the rejection');
 }
 
+// 3) a negative or NaN dt (a browser's first frame) never moves time back
+{
+  const { sim, world, events } = run(7);
+  sim.cast('Refactor the settings page');
+  sim.tick(-0.016); world.update(-0.016);
+  sim.tick(NaN); world.update(NaN);
+  ok(sim.t === 0 && world.time === 0, `time stays at 0 (sim ${sim.t}, world ${world.time})`);
+  for (let t = 0; t < 5; t += 0.05) { sim.tick(0.05); world.update(0.05); }
+  ok(world.time > 0 && events.every(e => e.ts >= 0), 'the clock then runs forward and no event has a negative ts');
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 process.exit(fails ? 1 : 0);
