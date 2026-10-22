@@ -1,5 +1,7 @@
 # Mensaje del commit en curso (se usa con: git commit -F COMMIT_MSG.txt)
 COMMIT_MSG.txt
+# Mensaje del tag anotado de una versión (se usa con: git tag -a vX.Y -F TAG_MSG.txt)
+TAG_MSG.txt
 
 # Python
 __pycache__/

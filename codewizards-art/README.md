@@ -12,8 +12,9 @@ Pixel art painted pixel by pixel by code (no generative image models) and retouc
 - `palettes/`: `gbc_escenario.gpl` and `gbc_gremio_<guild>.gpl` (load them in Aseprite).
 - `meta.json`: size, frames, milliseconds, palette and anchor of every asset.
 - `preview/`: HTML demo with the CRT toggle.
-- `04_source/gen/`: generator (`gbc.py`, `build.py`), validator (`check.py`) and the demo template.
-- `legacy/snes-ronda1/`: the first round in SNES style, with its own generator.
+- `04_source/gen/`: generator (`gbc.py`, `build.py`, with the helpers `core.py` and `font.py`), validator (`check.py`) and the demo template.
+
+The first round, in SNES style, was retired in v1.1; it lives in tag `v1.0` under `codewizards-art/legacy/snes-ronda1/`.
 
 ## Style rules
 | Rule | Value |
@@ -33,3 +34,6 @@ Pixel art painted pixel by pixel by code (no generative image models) and retouc
 
 ## Retouching
 Open the PNG in Aseprite (indexed, index 0 transparent), use only its palette and add its file name to `04_source/retocados.txt` so `build.py` never overwrites it.
+
+## License
+The art in this folder is licensed under [CC BY 4.0](LICENSE): credit it as "CodeWizards art by poligle, CC BY 4.0". The generator in `04_source/` is code, under the [MIT License](../LICENSE). The CodeWizards name and logo are not licensed.

@@ -25,29 +25,41 @@ Si un agente necesita algo de un paso anterior, lo anota en `traspaso.md` como e
 
 ## Contexto común del proyecto
 
-CodeWizards (`codewizards.app`) es un IDE web multiagente que muestra el trabajo de los LLM como una torre de magos en pixel art isométrico: cada proyecto es una sala y cada agente, un mago. Lema: «Do not vibecode. Spellcode.»
+CodeWizards es una app local y open source que dirige los CLI oficiales de agentes de código (Claude Code primero) con las cuentas del propio usuario, y muestra su trabajo como una torre de magos en pixel art isométrico: cada proyecto es una sala y cada agente, un mago. `codewizards.app` será la página de descarga. Lema: «Do not vibecode. Spellcode.»
 
 ### Qué es
 
 - **La sala**: 12 × 12 tiles con librería (leer contexto), mesa de laboratorio (escribir código) y pizarra (presentar entregables y revisarlos).
-- **Los magos**: un gremio por proveedor de IA (color y emblema) y un rango por potencia del modelo: Aprendiz, Mago Joven, Gran Sabio y un Archimago único que orquesta.
-- **La propuesta**: control y ahorro de tokens frente al «vibecoding»; cada acción de un agente es un hechizo auditado.
+- **Los magos**: un gremio por fabricante de modelos (nombre de fantasía, color y emblema; el fabricante, como dato) y un rango por potencia del modelo: Aprendiz, Mago Joven, Gran Sabio y un Archimago único que orquesta.
+- **Las cuentas**: cada mago trabaja con una cuenta del usuario, a través de un CLI oficial: su plan de Claude con Claude Code, su plan de ChatGPT con Codex, la cuota gratuita de Google con su CLI… o una clave de API opcional. El maná es la cuota que queda en cada cuenta.
+- **La propuesta**: control frente al «vibecoding». Cada acción de un agente es un hechizo auditado, nada entra sin revisión y cada tarea va a la cuenta con cuota adecuada. CodeWizards no tiene servidor y no guarda claves, tokens ni código.
 
 ### Estado a 22/10/2026
 
-- Documentos de concepto en `docs/concepto/`: contexto general v3.2, dirección de arte v1.0 y especificación de la Fase 1 v1.0.1, escritos para estilo SNES.
-- Ronda 1 de arte (SNES): 91 assets pintados por código y validados, archivados en `codewizards-art/legacy/snes-ronda1/`. Sirven de referencia de geometría y método.
+- Concepto de partida en `docs/concepto/contexto_general.md` (v3.2), anterior al estilo GBC y a la app local; donde choque con este plan, manda el plan.
+- Ronda 1 de arte (SNES) y sus documentos: retirados en v1.1; siguen en el tag `v1.0`, en `codewizards-art/legacy/snes-ronda1/`.
 - Arte de la Fase 1 en estilo GBC: 64 assets en `codewizards-art/`, validados con `check.py`.
-- Maqueta v0 del hito 0 en `apps/maqueta/`: sala, grimorio, pizarra y pergamino con agentes simulados que emiten el contrato de eventos v0.
+- Maqueta v0 del hito 0 en `apps/maqueta/`: sala, grimorio, pizarra y pergamino con agentes simulados que emiten el contrato de eventos v0. Hito 0 cerrado (tag `v1.0`).
+- Seguridad del repo y CI: escaneo de secretos, acciones fijadas por SHA y ajustes de GitHub (`auditorias/seguridad.md`).
+- Paso 1 (producto y marca) hecho en v1.1: `auditorias/producto.md`.
 
 ### Decisiones de Pol (no se cambian sin preguntarle)
 
 - Estilo «parecido a Game Boy Color» con filtro CRT opcional.
 - El mago: viejecito encorvado, gran sombrero, barba y bata largas; solo se le ve la nariz. Su bastón acaba en un orbe que brilla con el color del gremio.
 - El arte se pinta por código, sin modelos generativos de imagen, y Pol lo retoca a mano.
-- Primero una maqueta; después cada parte la especializa un agente; con una versión buena, API de Claude con la clave de Pol.
-- Sala cuadrada de 12 × 12 con los dos muros del fondo visibles; un gremio por proveedor, con emblema propio.
+- Primero una maqueta; después cada parte la especializa un agente; con una versión buena, Claude Code real con la cuenta de Pol (hito 3).
+- Sala cuadrada de 12 × 12 con los dos muros del fondo visibles; un gremio por fabricante de modelos, con emblema propio.
 - Los puntos débiles del arte se pulen cuando el proyecto esté más maduro.
+
+Decididas en el paso 1 (22/10/2026; detalle en `auditorias/producto.md` §8):
+
+- App local y open source que dirige los CLI oficiales con las cuentas del usuario (planes de pago o cuotas gratuitas); sin modelo de consumo por token; claves de API solo como opción. `codewizards.app`, página de descarga.
+- CodeWizards no guarda nada: ni claves, ni tokens, ni código, y nunca toca las credenciales de los proveedores. Sin servidor propio; lo que registre la app se queda en el ordenador del usuario.
+- Licencias: código MIT y arte CC BY 4.0; el nombre y el logo no se licencian.
+- El producto, solo en inglés.
+- Los agentes trabajan en repos de GitHub, con ramas y PR.
+- 6 gremios, uno por fabricante (Anthropic, OpenAI, Google, DeepSeek, Qwen y Meta), con nombre de fantasía y el fabricante como dato. Copilot deja de ser gremio; puede volver como cuenta.
 
 ### Estilo vigente (GBC)
 
@@ -58,7 +70,7 @@ CodeWizards (`codewizards.app`) es un IDE web multiagente que muestra el trabajo
 | Color | RGB555 (canales múltiplos de 8) |
 | Fondo | 8 paletas de 4 colores con el oscuro compartido (25 colores) |
 | Magos | 16 × 24 px; 2 paletas de 3 colores: gremio (luz, base, oscuro) y común (barba, nariz, bastón) |
-| Gremios | 7 paletas + 1 común = las 8 paletas de sprites de la GBC |
+| Gremios | 6 paletas + 1 común, de las 8 paletas de sprites de la GBC; la de Copilot sigue en el arte hasta el paso 6 |
 | Luces | Alfa de 1 bit; el brillo de orbes y antorchas lo mezcla el motor |
 | CRT | Barrido, rejilla RGB, resplandor, viñeta y esquinas curvas en CSS, con interruptor |
 | Escalado | Siempre entero (×3, ×4…) con `image-rendering: pixelated` |
@@ -66,13 +78,13 @@ CodeWizards (`codewizards.app`) es un IDE web multiagente que muestra el trabajo
 ### Cómo se construye
 
 - **Maqueta**: una página HTML con canvas, con datos simulados.
-- **Producto**: monorepo en GitHub; frontend estático y backend en Cloudflare Workers; una sala = un Durable Object con su registro de eventos y su WebSocket.
-- **Agentes**: primero la API de Claude, con la clave como secreto del Worker (nunca en el navegador ni en el repo); otros proveedores después.
+- **Producto**: app local (el empaquetado lo decide el paso 2) que lanza los CLI oficiales sin modificar, con un adaptador por CLI que traduce su salida al contrato de eventos. La sala sigue siendo web, como la maqueta. Registro de eventos local; ramas y PR con el `git` y el `gh` del usuario. Sin backend propio: la página de descarga de `codewizards.app` es estática.
+- **Agentes**: primero Claude Code, con la cuenta del usuario (su plan de Claude o su clave de API); después Codex, el CLI de Google y otros. Cada CLI se autentica con su propio flujo; CodeWizards nunca ve, guarda ni reenvía credenciales.
 - **Arte**: generador en Python (`codewizards-art/04_source/gen/gbc.py`), PNG indexados y `meta.json` con anclas.
 
 ## Contrato de eventos v0
 
-La sala no sabe de LLM: solo reproduce eventos. La maqueta los simula y el backend real emitirá los mismos, así que la sala no cambia al conectar la API.
+La sala no sabe de LLM: solo reproduce eventos. La maqueta los simula y los adaptadores de los CLI emitirán los mismos, así que la sala no cambia al conectar los agentes reales.
 
 Formato: JSON por WebSocket, `{"v":0,"t":"<tipo>","ts":<ms>,"room":"<id>","agent":"<id>", …}`.
 
@@ -109,7 +121,7 @@ El de BaitSpace, adaptado: lectura, referencias, propuesta, puerta de aprobació
 4. **Puerta de aprobación**: sin el «adelante» de Pol no se tocan el estilo, la marca, el contrato de eventos, el modelo de negocio, la gestión de claves ni sus decisiones. Los arreglos pequeños y evidentes se hacen y se anotan.
 5. **Implementación**: cambios pequeños y revisables; ninguna clave en el repo ni en el navegador; el arte, siempre por el generador; colores nuevos, dentro de las paletas GBC.
 6. **Validación**: tests y `check.py` en verde; la maqueta sin errores de consola; capturas a ×3 con y sin CRT; lo no comprobado se dice.
-7. **Traspaso**: informe en `auditorias/<tema>.md`, cambios con `COMMIT_MSG.txt` y entrada en `auditorias/traspaso.md`. Idioma: `COMMIT_MSG.txt` y los README, en inglés; el plan, los informes y el traspaso, en español.
+7. **Traspaso**: informe en `auditorias/<tema>.md`, cambios con `COMMIT_MSG.txt` y entrada en `auditorias/traspaso.md`; si el paso cierra una versión, también `TAG_MSG.txt` para el tag anotado y una entrada en `CHANGELOG.md`. Idioma: `COMMIT_MSG.txt`, `TAG_MSG.txt`, el changelog y los README, en inglés; el plan, los informes y el traspaso, en español.
 
 ```markdown
 ## Paso <N> · <rol> · <fecha>
@@ -123,16 +135,16 @@ El de BaitSpace, adaptado: lectura, referencias, propuesta, puerta de aprobació
 
 ## Hoja de ruta
 
-Seis hitos: ahora la maqueta; la API de Claude llega en el hito 3. Cada hito se cierra en su puerta: la maqueta y el repo se prueban antes de gastar un token real. Las fechas las pone Pol.
+Seis hitos: la maqueta está hecha (v1.0) y ahora toca la especialización; Claude Code real llega en el hito 3. Cada hito se cierra en su puerta: la maqueta y el repo se prueban antes de gastar cuota real. Las fechas las pone Pol.
 
 | Hito | Qué | Quién | Puerta para pasar al siguiente |
 | --- | --- | --- | --- |
-| 0 · Maqueta | Sala GBC, grimorio y pizarra con agentes simulados | Claude, en el Proyecto (ahora) | «Adelante» de Pol a la maqueta |
-| 1 · Especialización | Cada agente pule su parte sobre la maqueta | Agentes de los pasos 1 a 7 | Contrato de eventos estable y maqueta pulida |
-| 2 · GitHub y Cloudflare | Monorepo, CI y despliegue de prueba en codewizards.app | Pol y paso 2 | CI en verde y despliegue de prueba en marcha |
-| 3 · API de Claude | Gremio Anthropic real, con la clave de Pol y topes de gasto | Pasos 2 y 3 | Una tarea real de punta a punta, con su coste medido |
-| 4 · Multigremio y ahorro | Otros proveedores y ahorro de tokens medido con evals | Paso 3 | Ahorro medido sin perder calidad |
-| 5 · Lanzamiento | Landing, plan de lanzamiento y versión publicada | Pasos 8 y 9 | — |
+| 0 · Maqueta | Sala GBC, grimorio y pizarra con agentes simulados | Claude, en el Proyecto (hecho, v1.0) | «Adelante» de Pol a la maqueta |
+| 1 · Especialización | Cada agente pule su parte sobre la maqueta | Agentes de los pasos 1 a 7 (paso 1 hecho, v1.1) | Contrato de eventos estable y maqueta pulida |
+| 2 · App local | Empaquetado, CI con prueba de humo y una primera versión de prueba | Pol y paso 2 | CI en verde y una versión de prueba que se instala y abre la sala |
+| 3 · Claude Code real | Gremio Anthropic real con Claude Code y la cuenta de Pol, con topes de uso | Pasos 2 y 3 | Una tarea real de punta a punta, con su consumo medido |
+| 4 · Más cuentas y reparto | Codex, el CLI de Google y otros; reparto por cuota restante, medido con evals | Paso 3 | Reparto medido sin perder calidad |
+| 5 · Lanzamiento | Página de descarga, plan de lanzamiento y versión publicada | Pasos 8 y 9 | — |
 
 ## Hito 0 · La maqueta
 
@@ -154,30 +166,30 @@ Recorrido:
 
 Arte que hace falta (ronda GBC): poses de leer, escribir, presentar, descansar, confusión y celebración; el Archimago con su círculo rúnico; iconos de 8 × 8. Ya hechos: puerta animada y fuente de píxel 3 × 5.
 
-Criterios de terminado:
+Criterios de terminado (cumplidos; hito cerrado el 22/10/2026 con el tag `v1.0`, detalle en `auditorias/maqueta.md`):
 
-- [ ] Un hechizo completo de punta a punta en menos de 2 minutos de simulación.
-- [ ] Los 7 gremios y al menos 2 rangos, distinguibles también sin color.
-- [ ] El filtro CRT se activa, se desactiva y se recuerda.
-- [ ] Sin errores de consola, en escritorio y en móvil.
-- [ ] El simulador emite exactamente el contrato de eventos v0.
+- [x] Un hechizo completo de punta a punta en menos de 2 minutos de simulación.
+- [x] Los 7 gremios y al menos 2 rangos, distinguibles también sin color.
+- [x] El filtro CRT se activa, se desactiva y se recuerda.
+- [x] Sin errores de consola, en escritorio y en móvil.
+- [x] El simulador emite exactamente el contrato de eventos v0.
 
 ## Orden de trabajo
 
-Tras la maqueta (paso 0) vienen nueve pasos con ocho agentes; sonido y copy van en paralelo en el paso 7. La ronda 1 trabaja sobre la maqueta y la ronda 2 sobre el producto conectado a la API.
+Tras la maqueta (paso 0) vienen nueve pasos con ocho agentes; sonido y copy van en paralelo en el paso 7. La ronda 1 trabaja sobre la maqueta y la ronda 2 sobre la app conectada a los agentes reales.
 
 | Paso | Agente | Por qué en este punto | Deja para los siguientes |
 | --- | --- | --- | --- |
 | 0 | Claude (Proyecto) | La idea hay que verla funcionar antes de especializar | Maqueta, contrato de eventos v0 y este documento |
 | 1 | Producto y marca (A) | Público, MVP, negocio y riesgos condicionan todo | `auditorias/producto.md` y encargos |
-| 2 | Arquitectura y software (A) | Repo, Cloudflare, claves y pruebas antes de construir encima | `docs/arquitectura.md`, repo base y CI |
+| 2 | Arquitectura y software (A) | App local, adaptadores de los CLI, credenciales y pruebas antes de construir encima | `docs/arquitectura.md`, esqueleto de la app y CI |
 | 3 | Orquestación y tokens | Qué hacen de verdad los agentes y cuánto cuesta | Router, tabla de rangos y evals de ahorro |
 | 4 | Simulación y comportamiento | Convierte eventos en vida dentro de la sala | Máquina de estados del mago, rutas y ritmo |
 | 5 | UI/UX | Ordena IDE y sala sobre un comportamiento cerrado | Sistema de diseño GBC, pantallas y lista de piezas |
 | 6 | Arte GBC | Dibuja dentro de una interfaz estable | Assets por el generador, retocables |
 | 7 | Sonido y copy | Ponen voz y tono a lo que ya no cambia | Chiptune y textos finales |
-| 8 | Producto y marca (B) | La web y el lanzamiento necesitan la app final | Landing de codewizards.app y plan de lanzamiento |
-| 9 | Arquitectura y software (B) | Alguien cierra y publica | Versión desplegada y notas |
+| 8 | Producto y marca (B) | La web y el lanzamiento necesitan la app final | Página de descarga de codewizards.app y plan de lanzamiento |
+| 9 | Arquitectura y software (B) | Alguien cierra y publica | Versión publicada y notas |
 
 Si un paso descubre que hay que volver atrás, lo anota como encargo y Pol decide si se hace ya o en la siguiente ronda.
 
@@ -194,25 +206,26 @@ Actúa como Director de Producto y Marketing de herramientas para desarrolladore
 5. Riesgos: marcas de terceros en los gremios, términos de uso de cada API, privacidad del código del usuario y coste.
 6. Métricas útiles sin rastreo invasivo.
 
-**Paso 8 (fase B)**: textos de la landing, capturas con y sin CRT, GIF de la sala y plan de las 4 primeras semanas.
+**Paso 8 (fase B)**: textos de la página de descarga, capturas con y sin CRT, GIF de la sala, búsqueda de la marca CodeWizards, política de privacidad breve y plan de las 4 primeras semanas (encargos en `auditorias/producto.md` §9).
 
 Criterios: cada cifra con su fuente; no prometer ahorro de tokens sin la medición del paso 3.
 
 ## Prompt: arquitectura y software (pasos 2 y 9)
 
-Actúa como Ingeniero de Software Senior especializado en aplicaciones web en tiempo real sobre Cloudflare. En el paso 2 dejas una base sana; en el paso 9 cierras y publicas.
+Actúa como Ingeniero de Software Senior especializado en aplicaciones locales para desarrolladores que orquestan herramientas de línea de comandos. En el paso 2 dejas una base sana; en el paso 9 cierras y publicas.
 
-**Paso 2 (fase A)**: recibes la maqueta, el contrato de eventos y el brief de producto; dejas el repo base, `docs/arquitectura.md` y la CI.
+**Paso 2 (fase A)**: recibes la maqueta, el contrato de eventos y el brief de producto (`auditorias/producto.md`); dejas el esqueleto de la app, `docs/arquitectura.md` y la CI.
 
-1. Monorepo: `apps/web` (la maqueta pasa a frontend), `workers/`, `codewizards-art/`, `docs/` y `auditorias/`.
-2. Cloudflare: frontend estático (Pages o Workers con assets, según la recomendación vigente); un Durable Object por sala con registro y WebSocket; colas o Workflows para trabajos largos; D1 o KV para persistir. Comprueba la documentación y los límites actuales.
-3. Claves: la de Claude como secreto del Worker, nunca en el navegador, el repo ni los logs; tope de gasto por sala.
-4. Ejecución del código de los agentes: decide dónde se ejecuta y se prueba (sandbox en la nube, GitHub Actions o local). Un Worker solo no compila ni pasa tests arbitrarios.
-5. GitHub: los agentes trabajan en ramas y PR; la pizarra es la revisión del diff.
-6. Pruebas: el simulador y el backend emiten el mismo contrato; pruebas de humo de la maqueta con Playwright; `check.py` del arte en CI.
-7. Guías «cómo añadir»: un evento, un gremio, un rango, un asset y una pantalla.
+1. Repo: `apps/` (la maqueta pasa a ser la sala de la app), `codewizards-art/`, `docs/` y `auditorias/`; lo demás lo propones.
+2. App local: empaquetado para macOS, Linux y Windows (app de escritorio, o un proceso local que abre la sala en el navegador), firma, actualizaciones y qué se descarga desde `codewizards.app`. Comprueba la documentación y las licencias actuales.
+3. Adaptadores: uno por CLI oficial, que lanza el binario sin modificar y traduce su salida (hooks, JSON…) al contrato v0; primero Claude Code. Revisa los términos de cada proveedor (`auditorias/producto.md` §6.1).
+4. Credenciales: CodeWizards nunca las toca. Cada CLI se autentica con su propio flujo y gestiona sus claves de API opcionales; nada de credenciales en el repo ni en los logs. Tope de uso por tarea y por sala.
+5. Ejecución del código de los agentes: los CLI ejecutan comandos en el ordenador del usuario; decide cómo se limitan (permisos de cada CLI, un worktree por tarea, contenedor opcional).
+6. GitHub: los agentes trabajan en ramas y PR, con el `git` y el `gh` del usuario; la pizarra es la revisión del diff.
+7. Pruebas: el simulador y los adaptadores emiten el mismo contrato (tests con salidas grabadas de cada CLI); pruebas de humo de la sala con Playwright; `check.py` del arte en CI.
+8. Guías «cómo añadir»: un evento, un gremio, una cuenta (un CLI), un rango, un asset y una pantalla.
 
-**Paso 9 (fase B)**: regresión completa, despliegue, notas de versión y README.
+**Paso 9 (fase B)**: regresión completa, versión descargable publicada, notas de versión y README.
 
 Criterios: cada problema con archivo, reproducción, gravedad, arreglo y comprobación; ninguna optimización sin medida antes y después.
 
@@ -220,11 +233,11 @@ Criterios: cada problema con archivo, reproducción, gravedad, arreglo y comprob
 
 Actúa como ingeniero de LLMOps especializado en sistemas multiagente y coste de inferencia. Recibes el repo base, el contrato de eventos y el brief; dejas el router, la tabla de rangos, los prompts de sistema por rango y un banco de evals.
 
-1. Router (el Archimago): clasifica la petición y elige rango y gremio. Empieza solo con Claude y una tabla configurable rango → modelo. Propuesta inicial: Aprendiz = `claude-haiku-5-5`, Mago Joven = `claude-sonnet-5-5`, Gran Sabio = `claude-opus-5-5`, Archimago = el modelo más barato que clasifique bien. Ningún nombre de modelo fijo en el código.
+1. Router (el Archimago): clasifica la petición y elige rango, gremio y cuenta según la cuota que queda en cada cuenta. Empieza solo con Claude Code y una tabla configurable rango → modelo. Propuesta inicial: Aprendiz = `claude-haiku-5-5`, Mago Joven = `claude-sonnet-5-5`, Gran Sabio = `claude-opus-5-5`, Archimago = el modelo más barato que clasifique bien. Ningún nombre de modelo fijo en el código.
 2. Ciclo del agente: leer contexto, escribir, presentar y revisión; cada paso emite su evento.
-3. Ahorro de tokens, siempre medido: caché de prompts del proveedor, mapa del repo por AST, cierre de hilos al acabar subtareas, compresión de prompts y la traducción al inglés.
-4. Presupuesto: estimación antes de lanzar, coste real después y tope por tarea y por sala.
-5. Evals: 20–30 tareas pequeñas de programación con resultado comprobable por tests; coste y calidad por configuración.
+3. Ahorro de cuota, siempre medido, con lo que permita cada CLI: caché de prompts del proveedor, mapa del repo por AST, cierre de hilos al acabar subtareas, compresión de prompts y la traducción al inglés.
+4. Presupuesto: estimación antes de lanzar, consumo real después (tokens o la medida de cada plan) y tope por tarea y por sala. Averigua qué información de cuota restante expone cada CLI.
+5. Evals: 20–30 tareas pequeñas de programación con resultado comprobable por tests; consumo y calidad por configuración.
 
 Criterios: cada técnica entra solo si su eval muestra ahorro sin perder calidad; las cifras sin fuente del documento de concepto (como el 30 % de «Caveman») no se usan sin medirlas.
 
@@ -235,7 +248,7 @@ Actúa como Game Designer de simulaciones de gestión aplicadas a herramientas. 
 1. Máquina de estados por evento: llegar, caminar, leer, escribir, presentar, esperar, confusión, celebración, descanso y salida.
 2. Rutas: A* sobre la rejilla de 12 × 12 con obstáculos; varias plazas por estación y cola cuando están llenas.
 3. Ritmo: los eventos reales llegan a ráfagas o tras pausas largas. Suaviza con tiempos mínimos por animación y una cola de acciones, sin falsear el estado.
-4. Recursos visibles: maná (tokens) por gremio, salud del proyecto (orbe) y tiempo (reloj de arena).
+4. Recursos visibles: maná (cuota restante) por cuenta, salud del proyecto (orbe) y tiempo (reloj de arena).
 5. Escala: qué se ve en la sala y qué pasa al panel cuando hay 20 agentes a la vez.
 
 Criterios: la sala nunca contradice el registro de eventos; nada premia gastar más tokens.
@@ -277,38 +290,40 @@ Criterios: todo original; con la pestaña en segundo plano solo suenan los aviso
 
 ## Prompt: copy y lenguaje (paso 7)
 
-Actúa como UX writer y copywriter de producto para desarrolladores, en inglés y en español. Recibes todas las pantallas; dejas los textos finales, el glosario del mundo y un manual de tono.
+Actúa como UX writer y copywriter de producto para desarrolladores, en inglés. Recibes todas las pantallas; dejas los textos finales, el glosario del mundo y un manual de tono.
 
 1. Voz: técnica y precisa, con humor de desarrollador contenido («Do not vibecode. Spellcode.»); nada infantil.
-2. Glosario: cada término mágico con su equivalente técnico visible al pasar el ratón (hechizo = petición, maná = tokens, pizarra = revisión).
+2. Glosario: cada término mágico con su equivalente técnico visible al pasar el ratón (hechizo = petición, maná = cuota, pizarra = revisión).
 3. Errores y avisos: primero claros, después graciosos.
-4. Idiomas: según lo que decida Pol (ver preguntas abiertas).
+4. Idioma: el producto, solo en inglés (decisión de Pol). Cierra con Pol los nombres de los gremios a partir de la propuesta de `auditorias/producto.md` §6.2.
 
 Criterios: ningún término cambia de nombre según la pantalla; la metáfora nunca esconde un coste ni un riesgo.
 
 ## Riesgos y preguntas abiertas
 
-Los riesgos mayores son el coste y la clave de la API; se controlan desde el hito 3 con topes y con la clave solo en el servidor.
+Los riesgos mayores son los términos de los proveedores y el consumo de las cuentas del usuario; se controlan con los binarios oficiales sin modificar, sin tocar credenciales y con topes de uso desde el hito 3 (detalle en `auditorias/producto.md` §6).
 
-- **Marcas de terceros**: los gremios usan nombres y colores de proveedores; revisar sus guías de marca antes de publicar (paso 1).
-- **Coste**: un bucle de agentes puede gastar mucho; topes por tarea y por sala desde la primera llamada real.
+- **Términos de los proveedores**: cada CLI, con sus condiciones; Anthropic exige su binario sin modificar y sus términos comerciales, y prohíbe intermediar credenciales.
+- **Marcas de terceros**: nombres de fantasía, el fabricante como dato, emblemas propios y aviso de no afiliación. El paso 7 cierra los nombres y el paso 8 busca la marca CodeWizards.
+- **Consumo**: un bucle de agentes agota el límite del plan del usuario; topes por tarea y por sala desde la primera llamada real.
 - **Seguridad**: el código que escriben los agentes nunca se ejecuta sin aislamiento.
 - **Alcance**: la sala es lo vistoso, pero el valor está en el control; la maqueta tiene que probar las dos cosas.
 - **Legibilidad**: el estilo GBC no puede volver ilegibles el código ni los costes.
 
 Preguntas para Pol:
 
-- [ ] ¿El producto sale en inglés, en español o en ambos?
-- [ ] ¿Modelo de partida: clave propia gratis o de pago?
-- [ ] ¿Los agentes trabajan sobre repos de GitHub (ramas y PR) o en un espacio propio?
-- [ ] ¿Qué estados tiene cada rango de mago?
-- [ ] ¿El gremio Copilot representa la plataforma o al fabricante del modelo?
-- [ ] Licencia: Pol se inclina por MIT; la decide el paso 1.
+- [x] ¿El producto sale en inglés, en español o en ambos? Solo en inglés.
+- [x] ¿Modelo de partida: clave propia gratis o de pago? Gratis y local, con las cuentas del usuario; claves de API solo como opción.
+- [x] ¿Los agentes trabajan sobre repos de GitHub (ramas y PR) o en un espacio propio? En repos de GitHub, con ramas y PR.
+- [ ] ¿Qué estados tiene cada rango de mago? Sigue abierta: la cierra el paso 4 con Pol.
+- [x] ¿El gremio Copilot representa la plataforma o al fabricante del modelo? Ninguna de las dos: deja de ser gremio y puede volver como cuenta.
+- [x] Licencia: código MIT y arte CC BY 4.0.
 
 ## Documentos de referencia
 
-- `docs/concepto/contexto_general.md` (v3.2): visión, marca y arquitectura de partida.
-- `docs/concepto/art_direction_snes_v1.0.md` y `docs/concepto/art_specs_fase1_snes_v1.0.1.md`: estilo SNES ya sustituido; sus correcciones de geometría están en `auditorias/arte_ronda1_snes.md`.
+- `auditorias/producto.md` (paso 1): público, posicionamiento, MVP, modelo de negocio, riesgos, métricas y encargos.
+- `auditorias/seguridad.md`: seguridad del repo y CI.
+- `docs/concepto/contexto_general.md` (v3.2): visión, marca y arquitectura de partida; donde choque con este plan, manda el plan.
+- Ronda SNES (arte, generador y documentos de estilo): en el tag `v1.0`; sus correcciones de geometría están en `auditorias/arte_ronda1_snes.md`.
 - La metodología se adaptó del `agentes.md` de BaitSpace (otro proyecto de Pol; no está en este repo).
-- `codewizards-art/legacy/snes-ronda1/`: ronda 1 de arte con su generador y sus 91 assets.
 - `codewizards-art/preview/codewizards_estilo_gbc.html`: la sala con interruptor CRT.

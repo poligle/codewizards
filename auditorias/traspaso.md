@@ -1,6 +1,6 @@
 # Traspaso entre pasos
 
-> Nota (22/10/2026): la ronda 1 en estilo SNES está archivada en `codewizards-art/legacy/snes-ronda1/`; las rutas de su entrada se refieren a esa carpeta.
+> Nota (22/10/2026, v1.1): la ronda 1 en estilo SNES se retiró del árbol en v1.1 y sigue en el tag `v1.0`, en `codewizards-art/legacy/snes-ronda1/`; las rutas de su entrada se refieren a esa carpeta del tag. `auditorias/arte.md` se fusionó en `auditorias/arte_ronda1_snes.md`. `Chalk_Font_4x6.png` era de la ronda SNES: el arte GBC usa `codewizards-art/03_effects/Pixel_Font_3x5.png`.
 
 ## Paso 6 · Arte (ronda 1, adelantado) · 22/10/2026
 - Cambios: escenario completo de la Fase 1 con la escala corregida, sala base compuesta, estandartes con emblema por gremio, Aprendiz en 7 gremios (idle, walk, read, create, present, rest), efectos (halo, polvo, fuente de tiza), paletas `.gpl`, `meta.json` con anclas, generador y validador.
@@ -45,3 +45,33 @@
 - Encargos para pasos siguientes: (paso 2) → prueba de humo con Playwright en la CI que cargue la maqueta, lance un hechizo y falle ante cualquier error de página. Este fallo pasaba los tests de node y solo se veía en un navegador.
 - Preguntas abiertas: ¿«adelante» a la maqueta para cerrar el hito 0?
 - Pruebas para Pol: abrir la maqueta en GitHub Pages, pulsar «Lanzar» y ver entrar a los magos; después, las de `auditorias/maqueta.md` §5.
+
+## Paso 1 · Producto y marca (A) · 22/10/2026
+- Cambios:
+  - `auditorias/producto.md`: público, posicionamiento, MVP, modelo de negocio, riesgos, métricas y encargos.
+  - Giro de producto: CodeWizards pasa a ser una app local y open source que dirige los CLI oficiales (Claude Code primero) con las cuentas del usuario. No tiene servidor ni guarda claves, tokens o código; `codewizards.app` será la página de descarga.
+  - Licencias: `LICENSE` (código, MIT) y `codewizards-art/LICENSE` (arte, CC BY 4.0).
+  - README nuevo (imagen de la sala en `docs/img/room.png`, estado, principios, hoja de ruta, estructura, licencias y aviso de no afiliación) y `CHANGELOG.md`.
+  - Limpieza: fuera la ronda SNES (`codewizards-art/legacy/`, 118 archivos) y sus dos documentos de estilo; los restos SNES del arte GBC (28 hojas Read, Create, Present y Rest del Aprendiz, `Chalk_Font_4x6.png`, `Dust_Puff_Sheet.png` y 9 paletas SNES); 5 módulos del generador sin uso; y `auditorias/arte.md`, fusionado en `arte_ronda1_snes.md`. Todo sigue en el tag `v1.0`.
+  - `docs/agentes.md` al día con las decisiones: contexto, hoja de ruta, prompts de los pasos 2, 3, 4, 7 y 8, riesgos y preguntas. Nota de vigencia en `docs/concepto/contexto_general.md`.
+- Archivos tocados: `auditorias/producto.md` (nuevo), `README.md`, `CHANGELOG.md` (nuevo), `LICENSE` (nuevo), `codewizards-art/LICENSE` (nuevo), `codewizards-art/README.md`, `docs/img/room.png` (nuevo), `docs/agentes.md`, `docs/concepto/contexto_general.md`, `auditorias/arte_ronda1_snes.md`, `.gitignore`, este traspaso, `COMMIT_MSG.txt` y `TAG_MSG.txt`. Borrados: los de la limpieza.
+- Decisiones de Pol: app local con sus cuentas (planes de pago o cuotas gratuitas), sin modelo por token y sin guardar nada; página de descarga en `codewizards.app`; open source, con código MIT y arte CC BY 4.0; producto solo en inglés; agentes en repos de GitHub, con ramas y PR; 6 gremios con nombre de fantasía y el fabricante como dato, y Copilot fuera como gremio; limpieza completa con tag `v1.0`. Su «todo funciona» en la maqueta lo tomo como el «adelante» que cierra el hito 0.
+- Encargos para pasos siguientes (detalle en `auditorias/producto.md` §9):
+  - (paso 2) → arquitectura de la app local y empaquetado; un adaptador por CLI que lance el binario oficial sin modificar, primero Claude Code; credenciales intocables; ramas o worktrees y PR por tarea; tests de contrato con salidas grabadas y prueba de humo con Playwright; confirmar si hay que aceptar los términos comerciales de Anthropic; proponer si los eventos llevan la cuenta.
+  - (paso 3) → reparto por cuota restante entre cuentas; qué información de cuota expone cada CLI; estimación, consumo real y topes.
+  - (paso 4) → 6 gremios, maná por cuenta y estados «sin cuota» y «esperando al usuario».
+  - (paso 5) → pantalla de cuentas, avisos de no afiliación y de privacidad por proveedor, interfaz en inglés.
+  - (paso 6) → quitar el gremio Copilot del arte y decidir el uso de la paleta que queda libre; emblemas sin parecido con logos reales.
+  - (paso 7) → textos en inglés y nombres de los gremios (propuesta en `auditorias/producto.md` §6.2).
+  - (paso 8) → búsqueda de la marca CodeWizards, página de descarga con analítica sin cookies y política de privacidad.
+  - Quedan sin efecto los encargos que suponían Cloudflare Workers o la clave de Pol en un servidor, como la primera mitad del encargo de seguridad para el paso 3. Siguen en pie la prueba de humo con Playwright y escapar los campos de los eventos reales antes de meterlos en `innerHTML`.
+- Preguntas abiertas:
+  - ¿Qué estados tiene cada rango de mago? (paso 4)
+  - Titular del copyright en `LICENSE`: ¿«poligle» o tu nombre completo?
+  - ¿Aceptas los términos comerciales de Anthropic antes de distribuir la primera versión que ejecute Claude Code? (lo prepara el paso 2)
+  - La versión de trabajo de `docs/agentes.md` en Claude Docs no tiene estos cambios: ¿se sustituye por la del repo?
+- Pruebas para Pol:
+  1. Tras el push, abrir el repo en GitHub: imagen de la sala, insignias de CI y de licencias, y enlaces del README (maqueta, licencias y ronda SNES en el tag `v1.0`).
+  2. Leer `auditorias/producto.md` §0 y §8 y confirmar que las decisiones son las tuyas.
+  3. Ver la release v1.1 en GitHub con sus notas.
+  4. Comprobar que la maqueta sigue igual en GitHub Pages.

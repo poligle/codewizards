@@ -1,4 +1,7 @@
 # Proyecto: CodeWizards IDE
+
+> Nota (22/10/2026, v1.1): documento de partida, anterior al estilo GBC y a la app local. Donde choque con `docs/agentes.md` o `auditorias/producto.md`, mandan estos: el estilo es GBC, el producto es una app local que usa las cuentas del usuario (sin Cloudflare Workers) y Copilot deja de ser gremio.
+
 **Documento de Especificación de Arquitectura, Marca y Contexto (v3.2)**  
 *Diseñado para la orquestación distribuida de LLMs y optimización de tokens por agentes multi-modelo[cite: 1].*
 

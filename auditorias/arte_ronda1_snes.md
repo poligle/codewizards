@@ -2,9 +2,11 @@
 
 Paso 6 adelantado por decisión de Pol · 22/10/2026 · Estado: entregado para revisión.
 
+> Nota (v1.1): informe histórico. La ronda SNES se retiró del árbol en v1.1; su arte y su generador siguen en el tag `v1.0`, en `codewizards-art/legacy/snes-ronda1/`, y las rutas de este informe se refieren a esa carpeta. Sus imágenes siguen en `auditorias/img/arte/`.
+
 ## 1. Inventario
 - `codewizards-art/`: 91 assets en `meta.json` (los 23 de la Fase 1, sus variantes de orientación, 14 estandartes, el Aprendiz en 7 gremios y 3 efectos), 9 paletas `.gpl` y el generador en `04_source/gen/` (`pal`, `core`, `env`, `props`, `wizard`, `font`, `scene`, `build`, `check`).
-- Vistas previas en `codewizards-art/legacy/snes-ronda1/preview/`: `sala_rodaja.gif` (9 s, la rodaja animada), `sala_rodaja.png`, `sala_sin_luces.png`, `hoja_entorno.png`, `hoja_aprendiz_anthropic.png` y `gremios.png`.
+- Vistas previas en `auditorias/img/arte/`: `sala_rodaja.gif` (9 s, la rodaja animada), `sala_rodaja.png`, `sala_sin_luces.png`, `hoja_entorno.png`, `hoja_aprendiz_anthropic.png` y `gremios.png`.
 
 ## 2. Método (opción b, elegida por Pol)
 Pixel art pintado por código, sin modelos generativos de imagen; Pol retoca en Aseprite. Un rasterizador isométrico propio muestrea el centro de cada píxel: en suelo y muros cada píxel corresponde a un téxel (16 por tile), así que las líneas 2:1 salen limpias sin antialias ni tramado. Las cabezas del mago están dibujadas a mano (plantillas ASCII); el cuerpo es semiprocedural para que las animaciones sean coherentes.
@@ -87,5 +89,5 @@ No comprobado aquí: que Aseprite abra los PNG en modo indexado con su paleta (n
 ## 9. Pruebas para Pol
 1. Abrir `01_tiles/props/Bookshelf_Base_L.png` en Aseprite: debe entrar indexado, con el índice 0 transparente.
 2. Cargar `palettes/gremio_anthropic.gpl` y cambiarla por otra `.gpl` sobre un sprite del Aprendiz: debe cambiar de gremio sin tocar píxeles.
-3. Ver `codewizards-art/legacy/snes-ronda1/preview/sala_rodaja.gif`: escala del mago frente a puerta, librería y mesa.
+3. Ver `auditorias/img/arte/sala_rodaja.gif`: escala del mago frente a puerta, librería y mesa.
 4. Retocar un PNG, añadirlo a `04_source/retocados.txt`, ejecutar `build.py` y comprobar que no se sobrescribe.
