@@ -4,3 +4,12 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Wait a week before adopting a new release (a compromised tag is usually
+    # caught within days). Security updates are not delayed by this.
+    cooldown:
+      default-days: 7
+    # One PR per week for all actions instead of one per action.
+    groups:
+      github-actions:
+        patterns:
+          - '*'

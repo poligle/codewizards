@@ -29,3 +29,11 @@
 - Encargos para pasos siguientes: (paso 1) licencia e idioma del producto; (paso 2) pruebas en navegador real con Playwright en CI y despliegue de la maqueta; (paso 4) revisar la máquina de estados y el ritmo; (paso 5) escala de la sala en móvil (hoy ×1); (paso 6) sprite propio del Archimago, poses de estación y sentarse en el sillón.
 - Preguntas abiertas: las de `docs/agentes.md`.
 - Pruebas para Pol: las de `auditorias/maqueta.md` §5.
+
+## Paso 2 (adelantado) · Seguridad del repo y CI (Claude) · 22/10/2026
+- Cambios: escaneo de secretos en su propio workflow (push a cualquier rama, PR, a mano y semanal con el historial completo) con gitleaks 8.30.1; acciones fijadas por SHA; `persist-credentials: false` y timeouts; Dependabot con espera de 7 días y PR agrupado; `COMMIT_MSG.txt` sale del índice. Historial completo escaneado: 0 fugas.
+- Archivos tocados: `.github/workflows/ci.yml`, `.github/workflows/secrets.yml` (nuevo), `.github/dependabot.yml`, `auditorias/seguridad.md` (nuevo), este traspaso y `COMMIT_MSG.txt`.
+- Decisiones de Pol: repo público; abrir GitHub Pages para la maqueta.
+- Encargos para pasos siguientes: (paso 2) → despliegue con acciones fijadas por SHA y los secretos de despliegue en un environment protegido; (paso 3) → la clave de la API, solo como secreto del Worker, y validar los campos de los eventos reales antes de meterlos en `innerHTML` (hoy `t.state` entra sin escapar en un `class`).
+- Preguntas abiertas: ¿Pages desde la rama `main` o con un workflow propio que publique solo la maqueta? Recomendación: workflow propio.
+- Pruebas para Pol: las de `auditorias/seguridad.md` §7.
