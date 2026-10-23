@@ -70,6 +70,9 @@ textarea{width:100%;resize:vertical;border:2px solid var(--line);background:var(
 .deliv .dt{font-size:15px;text-transform:none;letter-spacing:0;color:var(--ink);margin:0 0 4px}
 .dm{margin:0 0 8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 .dm .emb{width:16px;height:16px}
+.dm .model{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+.done-note{margin:0 0 8px;padding:6px 8px;border:2px solid var(--add);font-size:13px;line-height:1.5}
+.done-note code{font-size:12px;word-break:break-all}
 .diff{margin:0;max-height:260px;overflow:auto;background:var(--code);border:2px solid var(--line);padding:8px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre}
 .diff .add{color:var(--add)}
 .diff .del{color:var(--del)}

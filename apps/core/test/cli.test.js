@@ -14,6 +14,14 @@ test('parseArgs: flags, values and errors', () => {
   assert.throws(() => parseArgs(['serve', '--repo']), /needs a value/);
 });
 
+test('serve refuses --merge with --open-prs before touching anything', () => {
+  let err = null;
+  try { execFileSync(process.execPath, [BIN, 'serve', '--repo', tmp(), '--merge', '--open-prs'], { stdio: 'pipe', encoding: 'utf8' }); } catch (e) { err = e; }
+  assert.equal(err && err.status, 1);
+  assert.match(err.stderr, /do not go together/);
+  assert.deepEqual(parseArgs(['serve', '--repo', '.', '--merge', '--record', '--use-api-key']), { _: ['serve'], repo: '.', merge: true, record: true, 'use-api-key': true });
+});
+
 test('room ids are readable and stable per repository path', () => {
   assert.match(roomIdFor('/home/pol/My Repo'), /^my-repo-[0-9a-f]{8}$/);
   assert.equal(roomIdFor('/a/b'), roomIdFor('/a/b'));

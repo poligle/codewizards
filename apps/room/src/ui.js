@@ -23,6 +23,11 @@
     choose: 'Elige una tarea o un mago.',
     nothing: 'El mago aún no ha entregado nada.',
     manaOf: g => 'Maná de ' + g,
+    saved: 'Aprobado y guardado en la rama',
+    bring: 'Para traerlo a tu rama:',
+    merged: 'Aprobado e integrado en tu rama actual. Queda también en la rama',
+    pr: 'Pull request (borrador):',
+    noChanges: 'Aprobado sin cambios: no hay nada que integrar.',
   };
   const MANA = 60000;
   const live = !!(CW.net && CW.net.live);
@@ -84,7 +89,7 @@
     btn.addEventListener('click', () => select(ev.task));
     li.appendChild(btn);
     $('tasks').appendChild(li);
-    tasks.set(ev.task, { id: ev.task, title: ev.title, estimate: ev.estimate, state: 'created', prev: null, tokens: 0, guild: null, rank: null, agent: null, diff: null, partial: null, file: null, btn });
+    tasks.set(ev.task, { id: ev.task, title: ev.title, estimate: ev.estimate, state: 'created', prev: null, tokens: 0, guild: null, rank: null, model: null, agent: null, diff: null, partial: null, file: null, branch: null, pr: null, result: null, btn });
     renderTask(ev.task);
     if (!selTask) select(ev.task);
   }
@@ -121,14 +126,27 @@
     }).join('\n') : '';
     box.innerHTML = '<h3 class="dt">' + esc(t.title) + '</h3><p class="dm">' +
       (t.guild ? emblem(t.guild) + esc(nameOf(t.guild)) + ' · ' + esc(T.ranks[t.rank] || t.rank) + ' · ' : '') +
+      (t.model ? '<span class="model">' + esc(t.model) + '</span> · ' : '') +
       '<span class="st st-' + st + '">' + esc(T.states[st]) + '</span>' + (t.file ? ' · <code>' + esc(t.file) + '</code>' : '') + '</p>' +
+      doneNote(t) +
       (lines ? '<pre class="diff">' + lines + '</pre>' : '<p class="empty">' + esc(T.nothing) + '</p>');
+  }
+
+  // Where an approved change went (live mode: the core reports the task branch and maybe a PR).
+  function doneNote(t) {
+    if (t.state !== 'done' || !t.branch) return '';
+    const b = '<code>' + esc(t.branch) + '</code>';
+    if (t.result === 'no-changes') return '<p class="done-note">' + esc(T.noChanges) + '</p>';
+    if (t.result === 'merged') return '<p class="done-note">' + esc(T.merged) + ' ' + b + '.</p>';
+    const pr = /^https:\/\/[^\s"'<>]+$/.test(t.pr || '')
+      ? ' ' + esc(T.pr) + ' <a href="' + esc(t.pr) + '" target="_blank" rel="noopener noreferrer">' + esc(t.pr) + '</a>' : '';
+    return '<p class="done-note">' + esc(T.saved) + ' ' + b + '.' + pr + '<br>' + esc(T.bring) + ' <code>git merge ' + esc(t.branch) + '</code></p>';
   }
 
   const fmtT = ms => { const s = Math.max(0, ms) / 1000; return String(Math.floor(s / 60)).padStart(2, '0') + ':' + (s % 60).toFixed(1).padStart(4, '0'); };
   function logEvent(ev) {
     const ul = $('log'), near = ul.scrollTop + ul.clientHeight >= ul.scrollHeight - 24;
-    const keys = ['agent', 'task', 'guild', 'rank', 'file', 'title', 'message', 'reason'].filter(k => ev[k] !== undefined).map(k => ev[k]);
+    const keys = ['agent', 'task', 'guild', 'rank', 'model', 'file', 'title', 'message', 'reason', 'branch'].filter(k => ev[k] !== undefined).map(k => ev[k]);
     if (ev.t === 'tokens.used') keys.push(ev.input + '+' + ev.output + ' tok');
     const li = doc.createElement('li');
     li.className = 'ev ev-' + ev.t.split('.')[0].replace(/[^a-z]/g, '');
@@ -150,7 +168,7 @@
       case 'agent.assigned': {
         agentTask.set(ev.agent, ev.task);
         const t = tasks.get(ev.task), a = agents.get(ev.agent);
-        if (t) { t.agent = ev.agent; t.guild = a ? a.guild : 'unknown'; t.rank = a ? a.rank : 'aprendiz'; }
+        if (t) { t.agent = ev.agent; t.guild = a ? a.guild : 'unknown'; t.rank = a ? a.rank : 'aprendiz'; t.model = a ? a.model : null; }
         if (selTask === ev.task) world.selected = ev.agent;
         setState(ev.task, 'assigned');
         break;
@@ -176,7 +194,7 @@
       case 'agent.error': setState(tk, 'error'); break;
       case 'agent.blocked': { const t = tasks.get(tk); if (t && t.state !== 'blocked') t.prev = t.state; setState(tk, 'blocked'); break; }
       case 'agent.unblocked': { const t = tasks.get(tk); if (t && t.state === 'blocked') setState(tk, t.prev || 'writing'); break; }
-      case 'task.done': setState(tk, 'done'); break;
+      case 'task.done': { const t = tasks.get(tk); if (t) { t.branch = ev.branch || null; t.pr = ev.pr || null; t.result = ev.result; } setState(tk, 'done'); break; }
       case 'task.failed': setState(tk, 'failed'); break;
       case 'task.cancelled': setState(tk, 'cancelled'); break;
       default: break;

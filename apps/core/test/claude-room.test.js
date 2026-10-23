@@ -15,7 +15,7 @@ function setup(extra = {}) {
   const store = new EventStore({ room: 'test-room', file: path.join(dir, 'events.jsonl') });
   const argsFile = path.join(dir, 'args.jsonl');
   const env = { ...process.env, FAKE_CLAUDE_DELAY_MS: '1', FAKE_CLAUDE_ARGS_FILE: argsFile, ...(extra.env || {}) };
-  const room = new ClaudeRoom({ store, repo: repo.dir, dir, bin: FAKE_CLAUDE, policy: buildPolicy({ platform: 'linux' }), env, caps: extra.caps });
+  const room = new ClaudeRoom({ store, repo: repo.dir, dir, bin: FAKE_CLAUDE, policy: buildPolicy({ platform: 'linux' }), env, caps: extra.caps, ...(extra.room || {}) });
   const types = () => store.events.map(e => e.t);
   const has = (t, pred = () => true) => store.events.find(e => e.t === t && pred(e));
   const runs = () => (fs.existsSync(argsFile) ? fs.readFileSync(argsFile, 'utf8').trim().split('\n').map(l => JSON.parse(l)) : []);
@@ -31,6 +31,7 @@ test('cast → wizard works in a worktree → blackboard → approve → commit 
   assert.match(art.diff, /\+Hello from the wizard/);
   assert.match(art.diff, /Now with a greeting/);
   assert.deepEqual(types().slice(0, 4), ['room.opened', 'task.created', 'agent.summoned', 'agent.assigned']);
+  assert.equal(has('agent.summoned').model, 'claude-sonnet-5-5', 'the wizard carries the model Claude Code reports at start');
   assert.ok(has('code.write', e => e.file === 'hello.txt'));
   assert.ok(has('agent.error', e => /Permission denied: Bash/.test(e.message)));
   assert.equal(repo.git('status', '--porcelain'), '', 'nothing touches the user checkout before approval');
@@ -102,6 +103,8 @@ test('caps: timeout, crash without result, room tokens, task count', async () =>
   const cf = await waitFor(() => c.has('task.failed'), { what: 'crash' });
   assert.equal(cf.reason, 'error');
   assert.match(cf.message, /without a result.*boom/);
+  assert.equal(cf.agent, undefined, 'a CLI that never started has no wizard in the room');
+  assert.ok(!c.has('agent.summoned'));
   const k = setup({ caps: { roomTokens: 100, maxTasks: 2 } });
   k.room.cast('One');
   await waitFor(() => k.has('review.requested'), { what: 'first task' });
@@ -130,4 +133,45 @@ test('a restarted room continues the ids of its log', async () => {
   const again = new ClaudeRoom({ store: new EventStore({ room: 'test-room', file: path.join(dir, 'events.jsonl') }), repo: repo.dir, dir, bin: FAKE_CLAUDE });
   assert.equal(again.taskSeq, 1);
   assert.equal(again.agentSeq, 1);
+});
+
+test('--merge: approval fast-forwards the user\'s branch to the task branch', async () => {
+  const { repo, room, has } = setup({ room: { merge: true } });
+  room.cast('Add a greeting file');
+  await waitFor(() => has('review.requested'), { what: 'review' });
+  await room.handle({ cmd: 'approve', task: 't1' });
+  assert.deepEqual([has('task.done').result, has('task.done').branch], ['merged', 'cw/t1-add-a-greeting-file']);
+  assert.match(repo.git('show', 'main:hello.txt'), /Hello from the wizard/);
+  assert.equal(fs.readFileSync(path.join(repo.dir, 'hello.txt'), 'utf8'), 'Hello from the wizard\n', 'the file is in the user\'s checkout');
+  assert.equal(repo.git('rev-parse', 'main').trim(), repo.git('rev-parse', 'cw/t1-add-a-greeting-file').trim());
+});
+
+test('--merge never forces: if the user\'s branch moved, the change stays on its branch', async () => {
+  const { repo, room, has } = setup({ room: { merge: true } });
+  room.cast('Add a greeting file');
+  await waitFor(() => has('review.requested'), { what: 'review' });
+  fs.writeFileSync(path.join(repo.dir, 'NOTES.md'), 'mine\n');
+  repo.git('add', 'NOTES.md');
+  repo.git('commit', '-q', '-m', 'meanwhile');
+  await room.handle({ cmd: 'approve', task: 't1' });
+  assert.equal(has('task.done').result, 'ok');
+  assert.match(has('agent.error', e => /^Not merged/.test(e.message)).message, /cw\/t1-add-a-greeting-file/);
+  assert.throws(() => repo.git('show', 'main:hello.txt'), 'main keeps the user\'s own commit only');
+  assert.match(repo.git('show', 'cw/t1-add-a-greeting-file:hello.txt'), /Hello from the wizard/);
+});
+
+test('--merge and --open-prs do not go together', () => {
+  assert.throws(() => setup({ room: { merge: true, openPrs: true } }), /do not go together/);
+});
+
+test('--record keeps each turn\'s output as JSON Lines, owner-only', async () => {
+  const lines = [];
+  const { dir, room, has } = setup({ room: { record: true, log: l => lines.push(l) } });
+  room.cast('Add a greeting file');
+  await waitFor(() => has('review.requested'), { what: 'review' });
+  const file = path.join(fs.realpathSync.native(dir), 'tasks', 't1', 'turn-1.ndjson');
+  const recorded = fs.readFileSync(file, 'utf8').trim().split('\n').map(l => JSON.parse(l));
+  assert.deepEqual([recorded[0].type, recorded[0].subtype, recorded.at(-1).type], ['system', 'init', 'result']);
+  if (process.platform !== 'win32') assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+  assert.ok(lines.some(l => l.includes('turn-1.ndjson')), 'the user is told where it is');
 });

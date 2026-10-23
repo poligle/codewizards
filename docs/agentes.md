@@ -42,6 +42,7 @@ CodeWizards es una app local y open source que dirige los CLI oficiales de agent
 - Maqueta v0 del hito 0: sala, grimorio, pizarra y pergamino con agentes simulados. Hito 0 cerrado (tag `v1.0`). Desde v1.2 es la sala de la app, en `apps/room/`.
 - Seguridad del repo y CI: escaneo de secretos, acciones fijadas por SHA y ajustes de GitHub (`auditorias/seguridad.md`).
 - Paso 1 (producto y marca) hecho en v1.1: `auditorias/producto.md`.
+- Primera prueba real de `codewizards serve` (23/10/2026): Pol, en NixOS, con Claude Code 2.1.223 de nixpkgs; un «hello world» en C++ de punta a punta. Mejoras en v1.2.2: modelo real, `--merge`, `--record` y la clave de API fuera por defecto.
 - Paso 2 (arquitectura y software, fase A) hecho en v1.2: núcleo local en `apps/core/` (`codewizards demo`, `serve` y `doctor`), contrato v1 en `packages/contract/`, CI con prueba de humo en Chromium y Pages solo con la demo. Detalle en `docs/arquitectura.md` y `auditorias/software.md`.
 
 ### Decisiones de Pol (no se cambian sin preguntarle)
@@ -70,6 +71,12 @@ Decididas en el paso 2 (22/10/2026; detalle en `auditorias/software.md` §4):
 - En Windows nativo, los magos no tienen Bash (el sandbox de Claude Code exige WSL2).
 - GitHub Pages con un workflow propio que publica solo la demo.
 - Las entregas de los agentes van como parche de git (`git am`), no copiando ficheros.
+
+Decididas el 23/10/2026, tras la primera prueba real de `serve` (`auditorias/software.md` §11):
+
+- Al aprobar, el cambio queda en la rama de la tarea; `--merge` lo integra en la rama del usuario solo si puede hacerlo por avance rápido (fast-forward), y nunca lo fuerza.
+- CodeWizards no pasa `ANTHROPIC_API_KEY` ni `ANTHROPIC_AUTH_TOKEN` a Claude Code para que pague el plan; `--use-api-key` las mantiene.
+- Interfaz (paso 5): la sala debe ocupar gran parte de la pantalla, y desde la interfaz se debe poder ver el directorio del repo con sus archivos.
 
 ### Estilo vigente (GBC)
 
@@ -278,6 +285,8 @@ Actúa como Diseñador Senior de UI/UX de herramientas para desarrolladores con 
 3. Legibilidad: el código, siempre en una fuente legible aunque el marco sea retro; decidir si el CRT cubre solo la sala o toda la pantalla.
 4. Accesibilidad: WCAG 2.2 AA en los paneles, gremios distinguibles sin color, movimiento reducido (sin parpadeo CRT) y uso completo con teclado.
 5. Pantallas: escritorio primero; en móvil, consultar y aprobar.
+6. Peticiones de Pol (23/10/2026): la sala tiene que ocupar gran parte de la pantalla, con los paneles a su alrededor o encima, sin perder el escalado entero. Desde la interfaz se tiene que poder ver el directorio del repo con sus archivos; el núcleo lo daría en solo lectura y con el mismo token que la sala, y el paso 2 lo añade cuando este paso fije qué se muestra.
+7. Lo que dejó a medias el paso 2: el comentario al rechazar, el botón «Detener» y la nota de la pizarra sobre dónde quedó el cambio aprobado (rama, merge o PR); una vista de revisión cómoda del diff (cabeceras de git, líneas largas); y distinguir una orden denegada por las reglas de un error del mago.
 
 Criterios: cada decisión con una captura o una medida; prueba con 3–5 desarrolladores y tareas concretas.
 
@@ -322,7 +331,7 @@ Los riesgos mayores son los términos de los proveedores y el consumo de las cue
 - **Términos de los proveedores**: cada CLI, con sus condiciones; Anthropic exige su binario sin modificar y sus términos comerciales, y prohíbe intermediar credenciales.
 - **Marcas de terceros**: nombres de fantasía, el fabricante como dato, emblemas propios y aviso de no afiliación. El paso 7 cierra los nombres y el paso 8 busca la marca CodeWizards.
 - **Consumo**: un bucle de agentes agota el límite del plan del usuario; topes por tarea y por sala desde la primera llamada real (provisionales en `docs/arquitectura.md` §10).
-- **Modo headless de Claude Code**: Anthropic pausó, sin descartarlo, que `claude -p` con suscripción gaste un crédito aparte, y anuncia que `--bare`, que no usa la sesión de la suscripción, será el modo por defecto de `-p`. El adaptador no lo usa y hay que comprobarlo con cada versión (paso 9); si llega, la alternativa es la sesión interactiva con hooks (`auditorias/software.md` §3).
+- **Modo headless de Claude Code**: Anthropic pausó, sin descartarlo, que `claude -p` con suscripción gaste un crédito aparte; desde el 7/10/2026 los planes Max y Team incluyen créditos de API que cubren `claude -p` solo con clave de API, y con la sesión del plan sigue gastando los límites del plan. También anuncia que `--bare`, que no usa la sesión de la suscripción, será el modo por defecto de `-p`. El adaptador no lo usa y hay que comprobarlo con cada versión (paso 9); si llega, la alternativa es la sesión interactiva con hooks (`auditorias/software.md` §3).
 - **Seguridad**: el código que escriben los agentes nunca se ejecuta sin aislamiento.
 - **Alcance**: la sala es lo vistoso, pero el valor está en el control; la maqueta tiene que probar las dos cosas.
 - **Legibilidad**: el estilo GBC no puede volver ilegibles el código ni los costes.

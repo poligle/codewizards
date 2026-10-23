@@ -9,12 +9,13 @@ const MAX_LINE = 16 * 1024 * 1024;
 
 /**
  * @param {{bin: string, args: string[], cwd: string, env?: NodeJS.ProcessEnv, prompt: string,
- *   timeoutMs?: number, onMessage?: (msg: any) => void}} o
+ *   timeoutMs?: number, onMessage?: (msg: any) => void, onLine?: (line: string) => void}} o
+ *   `onLine` receives each JSON line as printed (for `--record`); `onMessage`, the parsed message.
  * @returns {{child: import('node:child_process').ChildProcess, stop: () => void,
  *   done: Promise<{code: number|null, signal: string|null, killedFor: null|'timeout'|'cancel',
  *   overflow: boolean, stderrTail: string}>}}
  */
-export function runClaude({ bin, args, cwd, env = process.env, prompt, timeoutMs = 30 * 60000, onMessage = () => {} }) {
+export function runClaude({ bin, args, cwd, env = process.env, prompt, timeoutMs = 30 * 60000, onMessage = () => {}, onLine = null }) {
   const [cmd, pre] = command(bin);
   const child = spawnTracked(cmd, [...pre, ...args], { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });
   let buf = '', stderr = '', killedFor = null, overflow = false;
@@ -22,6 +23,7 @@ export function runClaude({ bin, args, cwd, env = process.env, prompt, timeoutMs
   const line = raw => {
     const l = raw.replace(ANSI, '').trim();
     if (!l.startsWith('{')) return;
+    if (onLine) { try { onLine(l); } catch { /* recording is best effort */ } }
     let msg;
     try { msg = JSON.parse(l); } catch { return; }
     try { onMessage(msg); } catch { /* the caller's bug must not kill the stream */ }

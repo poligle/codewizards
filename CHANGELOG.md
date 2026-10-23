@@ -2,6 +2,20 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.2.2] · 2026-10-23 · After the first real run
+
+The first `codewizards serve` with a real Claude Code (2.1.223) worked end to end. This release makes clear where approved work goes and who pays.
+
+### Added
+- `--merge`: approving also fast-forwards your branch to the task branch. It is never forced: if your branch moved, the change stays on its own branch and the scroll says so.
+- `--record`: keeps each turn's raw Claude Code output, with known secret formats masked, next to the room's log, to replace the synthetic test recordings with real ones.
+- A "Workflow" section in the README: the copy, the wizard's limits, the blackboard, approve, reject or stop, and who pays.
+
+### Changed
+- The wizard walks in when Claude Code starts and carries the model it really uses; the blackboard and the scroll show it.
+- After approval the blackboard says where the change went: its branch and the `git merge` that brings it in, the fast-forward, or the draft pull request.
+- `serve` does not pass `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` to Claude Code, so your plan pays; `--use-api-key` keeps them, and `doctor` tells you when they are set.
+
 ## [1.2.1] · 2026-10-23 · Fixes after the first CI run
 
 ### Fixed
@@ -70,6 +84,7 @@ Step 1 of milestone 1. The mockup is the same as in v1.0.
 ### Fixed
 - The mockup no longer freezes on its first frame in real browsers.
 
+[1.2.2]: https://github.com/poligle/codewizards/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/poligle/codewizards/compare/v1.2...v1.2.1
 [1.2]: https://github.com/poligle/codewizards/compare/v1.1...v1.2
 [1.1]: https://github.com/poligle/codewizards/compare/v1.0...v1.1

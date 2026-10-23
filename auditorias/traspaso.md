@@ -106,3 +106,21 @@
 - Encargos para pasos siguientes: (paso 9) → valorar un paquete Nix (`nix run`) además del de npm.
 - Preguntas abiertas: si Windows sigue en rojo, hace falta el log de su job.
 - Pruebas para Pol: las de `auditorias/software.md` §10.
+
+## Paso 2 · Primera prueba real y mejoras (A) · 23/10/2026
+- Cambios (detalle en `auditorias/software.md` §11):
+  - El mago entra cuando Claude Code arranca, con su modelo real, que la pizarra y el pergamino muestran.
+  - La pizarra dice dónde quedó el cambio aprobado (rama, `git merge`, PR).
+  - `--merge`: avance rápido de la rama del usuario, que nunca se fuerza.
+  - `--record`: salida real de cada turno, con los secretos enmascarados.
+  - `serve` no pasa `ANTHROPIC_API_KEY` ni `ANTHROPIC_AUTH_TOKEN` salvo con `--use-api-key`, y `doctor` lo avisa.
+  - README con la sección «Workflow». Versión 1.2.2.
+- Archivos tocados: `apps/core/src/agents/claude-code/env.js` (nuevo), `runner.js`, `apps/core/src/rooms/claude-room.js`, `apps/core/src/git.js`, `apps/core/src/cli.js`, `apps/room/src/ui.js`, `apps/room/src/style.css`, tests del núcleo (`env.test.js` nuevo, `claude-room.test.js`, `cli.test.js`), `tools/smoke.mjs`, `README.md`, `CHANGELOG.md`, `docs/agentes.md`, `docs/arquitectura.md`, `auditorias/software.md`, este traspaso, `package.json`, `package-lock.json`, `COMMIT_MSG.txt` y `TAG_MSG.txt`.
+- Decisiones de Pol: «adelante» a `--merge`, al modelo real, a `--record` y a la clave de API fuera por defecto; el flujo, explicado en el README; para el paso 5, que la sala ocupe gran parte de la pantalla y ver el directorio del repo desde la interfaz.
+- Encargos para pasos siguientes:
+  - (paso 5) → las dos peticiones de interfaz de Pol y lo que quedó a medias (`docs/agentes.md`, prompt del paso 5, puntos 6 y 7).
+  - (paso 3) → contar el mínimo de unos 24k tokens de entrada por tarea de Claude Code.
+  - (paso 2 o paso 9) → listado de solo lectura del repo para el explorador de archivos, cuando el paso 5 lo concrete.
+  - (Pol) → grabar con `--record` y pasar una grabación revisada para los tests.
+- Preguntas abiertas: las de antes (npm, `command.run`, titular del copyright).
+- Pruebas para Pol: las de `auditorias/software.md` §11.

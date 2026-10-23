@@ -15,7 +15,7 @@
 
 CodeWizards is an open-source local app, in development, that turns the AI coding agents you already use into a tower of pixel-art wizards in the style of the Game Boy Color. A small process on your computer drives the official agent CLIs with your own accounts and opens the room in your browser, so your work spends the plan limits or free quotas you already have instead of pay-per-token credit. Each project is a room, each agent is a wizard, and every action is a spell you can see, approve and audit.
 
-> **Status: v1.2.1.** The room now runs on a local core: `codewizards demo` with simulated wizards, and an experimental `codewizards serve` that drives your own Claude Code on a repository. It is not on npm yet ([changelog](CHANGELOG.md)).
+> **Status: v1.2.2.** The room now runs on a local core: `codewizards demo` with simulated wizards, and an experimental `codewizards serve` that drives your own Claude Code on a repository. It is not on npm yet ([changelog](CHANGELOG.md)).
 > [Try the demo](https://poligle.github.io/codewizards/): simulated agents, interface still in Spanish.
 
 ## How it will work
@@ -55,7 +55,22 @@ node apps/core/bin/codewizards.js doctor               # checks node, git, gh an
 node apps/core/bin/codewizards.js serve --repo PATH    # experimental: your Claude Code on PATH
 ```
 
-The room opens at `http://127.0.0.1:PORT/#token=…`; keep that address to yourself. With `serve`, each task works in its own branch and git worktree, and nothing is committed until you approve it. Add `--open-prs` to push the branch and open a draft pull request with your own `gh`. Caps, sandbox and data folders are described in [`docs/arquitectura.md`](docs/arquitectura.md) (in Spanish).
+The room opens at `http://127.0.0.1:PORT/#token=…`; keep that address to yourself. Caps, sandbox and data folders are described in [`docs/arquitectura.md`](docs/arquitectura.md) (in Spanish).
+
+## Workflow
+
+What happens when you cast a spell in `codewizards serve --repo PATH`:
+
+1. **A copy for the wizard.** CodeWizards creates the branch `cw/t1-<name>` from your current commit and a separate working copy of it (a git worktree) in its own data folder. Your checkout is not touched while the wizard works.
+2. **The wizard works.** Your Claude Code runs in that copy, signed in with your own account. It can read and edit files. It can only run `git status`, `git diff`, `git log` and the command you allow with `--test-command`, inside Claude Code's sandbox. It cannot push or reach the network. Anything denied shows up in the scroll.
+3. **The blackboard.** When it finishes, you see the real diff of the copy against your commit, and the model that did it.
+4. **You decide.**
+   - **Reject** with a comment: the same Claude Code session picks it up again in the same copy.
+   - **Approve**: the change is committed to `cw/t1-<name>` and the copy is removed. Your branch does not move: the blackboard shows the `git merge cw/t1-<name>` that brings it in. Start `serve` with `--merge` to fast-forward your branch automatically (never forced: if your branch moved, the change stays on its own branch), or with `--open-prs` to push the branch and open a draft pull request with your own `gh`.
+   - **Stop**: the wizard is stopped; its branch stays for you to look at.
+5. **Who pays.** Your Claude plan, whose usage limits Claude Code shares with your chats. If `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` is set, CodeWizards leaves it out so the plan pays; `--use-api-key` bills the API instead. If you turned on extra usage in your Claude account, work past the plan's limit is billed at API rates.
+
+Leftovers are ordinary git: `git branch -D cw/t1-<name>` and `git worktree prune`. `--record` keeps each turn's raw output, with known secret formats masked, next to the room's log, to turn real runs into test recordings.
 
 ## Repository layout
 

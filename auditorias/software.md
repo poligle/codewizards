@@ -1,6 +1,6 @@
 # Arquitectura y software · paso 2 (fase A), ronda 1
 
-22/10/2026 · Estado: entregado para revisión de Pol · Versión v1.2, corregida en v1.2.1 (23/10/2026, §10). La arquitectura resultante está en `docs/arquitectura.md`.
+22/10/2026 · Estado: entregado para revisión de Pol · Versión v1.2, corregida en v1.2.1 (§10) y ampliada en v1.2.2 tras la primera prueba real (§11), ambas el 23/10/2026. La arquitectura resultante está en `docs/arquitectura.md`.
 
 ## 0. En pocas líneas
 
@@ -209,3 +209,49 @@ Después:
 2. En Actions → pages, «Run workflow».
 3. Abrir `https://poligle.github.io/codewizards/`.
 4. Confirmar que la CI queda en verde en los tres sistemas; si Windows sigue en rojo, pásame su log.
+
+## 11. Primera prueba real y mejoras (23/10/2026, v1.2.2)
+
+Con v1.2.1 la CI y Pages quedaron en verde en los tres sistemas. Pol probó `codewizards serve` en NixOS con Claude Code 2.1.223 de nixpkgs. Pidió un «hello world» en C++ y salió de punta a punta: mago, `code.write`, diff en la pizarra, aprobación y commit en `cw/t1-haz-un-hello-world-en-c`, en unos 17 s. El traductor, escrito solo con la documentación, leyó la salida real sin cambios.
+
+Lo que enseñó la prueba:
+
+| # | Hallazgo | Arreglo |
+| --- | --- | --- |
+| 1 | Pol no encontraba `hello.cpp`: estaba en la rama de la tarea, no en su checkout, y la sala no lo decía | La pizarra dice, al aprobar, en qué rama quedó el cambio y el `git merge` que lo trae. El README explica el flujo completo («Workflow»). `--merge` opcional: avance rápido (fast-forward) de la rama del usuario, que nunca se fuerza |
+| 2 | No se sabía qué modelo había trabajado (la sala decía `default`) | El mago entra cuando Claude Code arranca y lleva el modelo de `system/init`; la pizarra y el pergamino lo muestran |
+| 3 | Quién paga: Claude Code prefiere una clave de API del entorno a la sesión del plan | `serve` no pasa `ANTHROPIC_API_KEY` ni `ANTHROPIC_AUTH_TOKEN` salvo con `--use-api-key`, y avisa; `doctor` informa |
+| 4 | Las grabaciones de los tests son sintéticas | `--record` guarda la salida real de cada turno con los secretos enmascarados, para sustituirlas |
+| 5 | El mago quiso compilar y ejecutar (`g++ … && ./hello`) y las reglas se lo denegaron; la sala lo pinta como error | Comportamiento correcto. Distinguirlo de un error real es encargo del paso 5 y del contrato v2 |
+| 6 | Unos 23.600 tokens de entrada para un «hello world» | Es el prompt de sistema y las herramientas de Claude Code: un mínimo por tarea que el paso 3 tiene que contar |
+| 7 | El sandbox no se ejercitó: Bash no llegó a ejecutarse | El paquete de nixpkgs añade `bubblewrap` y `socat` a su PATH en Linux. Queda pendiente una prueba con `git log`, que está permitido |
+
+Peticiones de interfaz de Pol, que pasan al paso 5 (`docs/agentes.md`): que la sala ocupe gran parte de la pantalla, y ver el directorio del repo con sus archivos desde la interfaz. Para lo segundo, el núcleo daría un listado de solo lectura con el mismo token que la sala, cuando el paso 5 fije qué se muestra.
+
+Contexto actualizado sobre la facturación (consultado el 23/10/2026): desde el 7/10/2026 los planes Max y Team incluyen créditos de API que cubren `claude -p` solo con una clave de API; con la sesión del plan, `claude -p` sigue gastando los límites del plan (Centro de ayuda de Claude, «Monthly API credits for Max and Team plans» y «Use the Claude Agent SDK with your Claude plan»).
+
+Validación de v1.2.2:
+
+- `npm test`: 62 tests (56 del núcleo y 6 del contrato) y 3142 comprobaciones de la sala, también con `TMPDIR` tras un enlace.
+- Prueba de humo: 28/28.
+- actionlint: 0 problemas. zizmor: el hallazgo bajo aceptado.
+- gitleaks: sin fugas.
+- Sin verificar con el Claude Code real: `--merge`, `--record`, el modelo real en la pizarra y el aviso de la clave de API.
+
+Pruebas para Pol:
+
+```sh
+git am paso-2-real.patch
+nix develop
+npm ci --ignore-scripts && npm test
+node apps/core/bin/codewizards.js doctor
+node apps/core/bin/codewizards.js serve --repo /tmp/prueba --merge --record
+git push && git tag -a v1.2.2 -F TAG_MSG.txt && git push origin v1.2.2
+```
+
+Para `serve`, `claude` tiene que estar en el PATH (dentro de `nix shell nixpkgs#claude-code`). En la sala, un hechizo y aprobar. Después:
+
+1. Comprobar que el modelo aparece en la pizarra.
+2. Comprobar que el archivo ya está en `/tmp/prueba` (`--merge`).
+3. Comprobar que existe `~/.local/share/codewizards/rooms/prueba-*/tasks/t1/turn-1.ndjson`.
+4. Lanzar el hechizo «Dime cuántos commits hay usando git log», que ejercita el sandbox.

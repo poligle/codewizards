@@ -183,6 +183,9 @@ async function claudeRoom(browser) {
     await page.click('#approve');
     const done = await page.waitForSelector('#tasks .st-done', { timeout: 30000 }).then(() => true, () => false);
     check(done && /Hello from the wizard/.test(git('show', 'cw/t1-add-a-greeting-file:hello.txt')), 'D serve: approval commits to the task branch');
+    const note = await page.textContent('#deliv');
+    check(/guardado en la rama cw\/t1-add-a-greeting-file/.test(note) && /git merge cw\/t1-add-a-greeting-file/.test(note), 'D serve: the blackboard says where the change went and how to bring it in');
+    check(/claude-sonnet-5-5/.test(note), 'D serve: the blackboard shows the model Claude Code reported');
     check(git('rev-list', '--count', 'main').trim() === '1', 'D serve: main does not move');
     await page.locator('.tv').screenshot({ path: path.join(OUT, 'claude_code_sala.png') });
     await page.screenshot({ path: path.join(OUT, 'claude_code_pantalla.png') });

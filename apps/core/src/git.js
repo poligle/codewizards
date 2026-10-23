@@ -50,6 +50,12 @@ export async function commitAll(wt, message) {
   return true;
 }
 
+/** Brings a task branch into the branch checked out in the user's repo, only as a fast-forward:
+ *  git itself refuses if the branch moved meanwhile or if it would overwrite local changes. */
+export async function mergeFastForward(repo, branch) {
+  await git(repo, ['merge', '--ff-only', '--quiet', branch]);
+}
+
 export async function pushBranch(wt, branch) {
   await git(wt, ['push', '-q', '-u', 'origin', branch], { timeoutMs: 120000 });
 }

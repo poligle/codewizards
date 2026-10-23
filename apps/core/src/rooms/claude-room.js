@@ -1,13 +1,15 @@
 // A room bound to one git repository where Claude Code does the work (milestone 3 material).
 // One spell = one task for now (the Archmage's split arrives with step 3). Each task gets a branch
-// and a worktree; the wizard's turn runs headless; the diff goes to the blackboard; approval
-// commits it (and, with --open-prs, pushes and opens a draft PR with the user's own `gh`);
-// a rejection resumes the same Claude Code session with the reviewer's comment.
+// and a worktree; the wizard walks in when Claude Code starts and reports its real model; the diff
+// goes to the blackboard; approval commits it to the task branch (with --merge, also brings it into
+// the user's branch as a fast-forward; with --open-prs, pushes and opens a draft PR with the user's
+// own `gh`); a rejection resumes the same Claude Code session with the reviewer's comment.
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { addWorktree, branchName, commitAll, currentBranch, diffAgainst, head, openPr, pushBranch, removeWorktree } from '../git.js';
+import { addWorktree, branchName, commitAll, currentBranch, diffAgainst, head, mergeFastForward, openPr, pushBranch, removeWorktree } from '../git.js';
 import { ensureDir } from '../paths.js';
+import { redact } from '../redact.js';
 import { buildPolicy, claudeArgs, systemNote } from '../agents/claude-code/policy.js';
 import { ClaudeTranslator } from '../agents/claude-code/translate.js';
 import { runClaude } from '../agents/claude-code/runner.js';
@@ -30,11 +32,14 @@ export class ClaudeRoom {
   /**
    * @param {{store: import('../store.js').EventStore, repo: string, dir: string, bin: string,
    *   policy?: ReturnType<typeof buildPolicy>, caps?: Partial<typeof DEFAULT_CAPS>, account?: string,
-   *   model?: string|null, rank?: 'aprendiz'|'sabio', openPrs?: boolean, env?: NodeJS.ProcessEnv,
-   *   now?: () => number}} o
+   *   model?: string|null, rank?: 'aprendiz'|'sabio', openPrs?: boolean, merge?: boolean, record?: boolean,
+   *   env?: NodeJS.ProcessEnv, now?: () => number, log?: (line: string) => void}} o
+   *   `env` is what Claude Code gets (see agents/claude-code/env.js); `record` keeps each turn's
+   *   output, secrets masked, in tasks/<task>/turn-<n>.ndjson for test recordings.
    */
-  constructor({ store, repo, dir, bin, policy = buildPolicy(), caps = {}, account = 'claude-code', model = null, rank = 'sabio', openPrs = false, env = process.env, now = () => Date.now() }) {
-    Object.assign(this, { store, repo, dir: realDir(dir), bin, policy, account, model, rank, openPrs, env, now });
+  constructor({ store, repo, dir, bin, policy = buildPolicy(), caps = {}, account = 'claude-code', model = null, rank = 'sabio', openPrs = false, merge = false, record = false, env = process.env, now = () => Date.now(), log = () => {} }) {
+    if (merge && openPrs) throw new Error('--merge and --open-prs do not go together: pick one');
+    Object.assign(this, { store, repo, dir: realDir(dir), bin, policy, account, model, rank, openPrs, merge, record, env, now, log });
     this.caps = { ...DEFAULT_CAPS, ...caps };
     this.tasks = new Map();
     this.queue = [];
@@ -79,7 +84,8 @@ export class ClaudeRoom {
     const title = short(text, 120) || 'Untitled spell';
     this.emit({ t: 'task.created', task: id, title, estimate: null });
     const task = {
-      id, title, prompt: String(text), state: 'queued', agent: null, sessionId: randomUUID(), branch: null, wt: null, base: null, baseBranch: null, run: null,
+      id, title, prompt: String(text), state: 'queued', agent: null, summoned: false, model: null, turns: 0,
+      sessionId: randomUUID(), branch: null, wt: null, base: null, baseBranch: null, run: null,
     };
     this.tasks.set(id, task);
     if (this.tokensUsed >= this.caps.roomTokens) {
@@ -117,14 +123,27 @@ export class ClaudeRoom {
 
   async prepare(task) {
     task.agent = 'a' + (++this.agentSeq);
-    this.emit({ t: 'agent.summoned', agent: task.agent, guild: 'anthropic', rank: this.rank, model: this.model || 'default', account: this.account });
     task.base = await head(this.repo);
     task.baseBranch = await currentBranch(this.repo);
     task.branch = branchName(task.id, task.title);
     task.wt = path.join(this.dir, 'worktrees', task.id);
     ensureDir(path.dirname(task.wt));
     await addWorktree(this.repo, task.wt, task.branch, task.base);
+  }
+
+  // The wizard walks in when Claude Code starts, with the model it really uses (system/init).
+  summon(task, model) {
+    task.summoned = true;
+    task.model = String(model || this.model || 'default').slice(0, 80);
+    this.emit({ t: 'agent.summoned', agent: task.agent, guild: 'anthropic', rank: this.rank, model: task.model, account: this.account });
     this.emit({ t: 'agent.assigned', agent: task.agent, task: task.id });
+  }
+
+  recorder(task) {
+    if (!this.record) return null;
+    const file = path.join(ensureDir(path.join(this.dir, 'tasks', task.id)), `turn-${task.turns}.ndjson`);
+    this.log(`Recording ${task.id}, turn ${task.turns}: ${file}`);
+    return line => fs.appendFileSync(file, redact(line) + '\n', { mode: 0o600 });
   }
 
   settingsFile(task) {
@@ -136,14 +155,19 @@ export class ClaudeRoom {
 
   async turn(task, prompt, resume) {
     task.state = 'running';
+    task.turns++;
     const tr = new ClaudeTranslator({ agent: task.agent, task: task.id, cwd: task.wt, account: this.account });
     const args = claudeArgs({
       sessionId: task.sessionId, resume, policy: this.policy, model: this.model, maxTurns: this.caps.maxTurns,
       maxBudgetUsd: this.caps.maxBudgetUsd, settingsFile: this.settingsFile(task), note: systemNote(task.branch),
     });
     const run = runClaude({
-      bin: this.bin, args, cwd: task.wt, env: this.env, prompt, timeoutMs: this.caps.timeoutMs,
-      onMessage: msg => { for (const d of tr.push(msg)) this.emit(d); },
+      bin: this.bin, args, cwd: task.wt, env: this.env, prompt, timeoutMs: this.caps.timeoutMs, onLine: this.recorder(task),
+      onMessage: msg => {
+        const drafts = tr.push(msg);
+        if (!task.summoned && (tr.session || drafts.length)) this.summon(task, tr.model);
+        for (const d of drafts) this.emit(d);
+      },
     });
     task.run = run;
     const exit = await run.done;
@@ -169,14 +193,15 @@ export class ClaudeRoom {
     try {
       await commitAll(task.wt, `${task.title}\n\nCast in CodeWizards with Claude Code and approved on the blackboard.`);
       const changed = (await diffAgainst(task.wt, task.base)).trim().length > 0;
-      let pr = null;
+      let pr = null, result = changed ? 'ok' : 'no-changes';
+      if (changed && this.merge) result = await this.mergeIn(task);
       if (changed && this.openPrs) {
         await pushBranch(task.wt, task.branch);
         const quoted = task.prompt.slice(0, 1500).replace(/\n/g, '\n> ');
         pr = await openPr(task.wt, { branch: task.branch, base: task.baseBranch, title: task.title, body: `Cast in CodeWizards and approved on the blackboard.\n\nSpell:\n\n> ${quoted}` });
       }
       task.state = 'done';
-      this.emit({ t: 'task.done', agent: task.agent, task: id, result: changed ? 'ok' : 'no-changes', branch: task.branch, ...(pr ? { pr: pr.slice(0, 500) } : {}) });
+      this.emit({ t: 'task.done', agent: task.agent, task: id, result, branch: task.branch, ...(pr ? { pr: pr.slice(0, 500) } : {}) });
       this.emit({ t: 'agent.idle', agent: task.agent });
       await removeWorktree(this.repo, task.wt).catch(() => {});
     } catch (err) {
@@ -184,6 +209,19 @@ export class ClaudeRoom {
       this.emit({ t: 'agent.error', agent: task.agent, message: `Approval did not finish: ${message(err)}` });
       this.emit({ t: 'review.requested', agent: task.agent, task: id });
     }
+  }
+
+  // --merge: fast-forward the user's branch to the task branch, or say why not (the change stays
+  // on its branch either way).
+  async mergeIn(task) {
+    const now = await currentBranch(this.repo);
+    let why = null;
+    if (!task.baseBranch || now !== task.baseBranch) why = `your checkout is on ${now || 'a detached HEAD'}, the task started from ${task.baseBranch || 'a detached HEAD'}`;
+    else {
+      try { await mergeFastForward(this.repo, task.branch); return 'merged'; } catch (err) { why = message(err); }
+    }
+    this.emit({ t: 'agent.error', agent: task.agent, message: `Not merged (${why}). The change is on ${task.branch}.`.slice(0, 2000) });
+    return 'ok';
   }
 
   reject(id, comment) {
@@ -204,16 +242,17 @@ export class ClaudeRoom {
     this.cancelled(task, 'user');
   }
 
+  // Only a wizard that walked in is named (a CLI that never started has no wizard in the room).
   fail(task, reason, msg) {
     task.state = 'failed';
-    this.emit({ t: 'task.failed', task: task.id, ...(task.agent ? { agent: task.agent } : {}), reason, message: String(msg).slice(0, 2000) });
-    if (task.agent) this.emit({ t: 'agent.idle', agent: task.agent });
+    this.emit({ t: 'task.failed', task: task.id, ...(task.summoned ? { agent: task.agent } : {}), reason, message: String(msg).slice(0, 2000) });
+    if (task.summoned) this.emit({ t: 'agent.idle', agent: task.agent });
   }
 
   cancelled(task, by) {
     task.state = 'cancelled';
-    this.emit({ t: 'task.cancelled', task: task.id, ...(task.agent ? { agent: task.agent } : {}), by });
-    if (task.agent) this.emit({ t: 'agent.idle', agent: task.agent });
+    this.emit({ t: 'task.cancelled', task: task.id, ...(task.summoned ? { agent: task.agent } : {}), by });
+    if (task.summoned) this.emit({ t: 'agent.idle', agent: task.agent });
   }
 
   async shutdown() {

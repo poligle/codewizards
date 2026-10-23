@@ -15,6 +15,7 @@ import { DemoRoom } from './rooms/demo-room.js';
 import { ClaudeRoom, DEFAULT_CAPS } from './rooms/claude-room.js';
 import { buildPolicy } from './agents/claude-code/policy.js';
 import { checkClaude } from './agents/claude-code/check.js';
+import { claudeEnv } from './agents/claude-code/env.js';
 
 export const HELP = `CodeWizards ${VERSION}: your coding agents as a tower of pixel-art wizards.
 
@@ -22,15 +23,18 @@ Usage
   codewizards demo   [--port N] [--no-open] [--log] [--json]
   codewizards serve  --repo PATH [--port N] [--no-open] [--json] [--model NAME] [--rank aprendiz|sabio]
                      [--test-command CMD] [--max-turns N] [--timeout-min N] [--max-agents N]
-                     [--max-tasks N] [--room-tokens N] [--max-budget-usd N] [--open-prs] [--no-sandbox]
+                     [--max-tasks N] [--room-tokens N] [--max-budget-usd N] [--merge | --open-prs]
+                     [--record] [--use-api-key] [--no-sandbox]
   codewizards doctor
   codewizards --version | --help
 
   demo    The room with simulated wizards: no agent CLI, no account, no network.
-  serve   Experimental (milestone 3). Claude Code works on the repository at PATH, each task in its
-          own branch and git worktree. Nothing is committed until you approve it on the blackboard;
-          --open-prs then pushes the branch and opens a draft pull request with your own gh.
-          It spends your Claude plan or API key.
+  serve   Experimental (milestone 3). Claude Code works on a copy of the repository at PATH (a git
+          worktree per task); your checkout is not touched. Approving on the blackboard commits the
+          change to the task's branch, cw/<task>-<name>; bring it in with git merge, or start
+          serve with --merge (fast-forward into your branch) or --open-prs (draft pull request).
+          It spends your Claude plan: ANTHROPIC_API_KEY is not passed on unless --use-api-key.
+          --record keeps each turn's output (secrets masked) next to the room's log.
   doctor  Checks node, git, gh and claude without reading any credentials.
 
 The room opens at http://127.0.0.1:PORT/#token=...: keep that address to yourself.
@@ -41,6 +45,7 @@ const FLAGS = {
   '--port': 'int', '--model': 'str', '--rank': 'str', '--test-command': 'str', '--max-turns': 'int', '--timeout-min': 'int',
   '--max-agents': 'int', '--max-tasks': 'int', '--room-tokens': 'int', '--max-budget-usd': 'num', '--repo': 'str',
   '--no-open': 'bool', '--log': 'bool', '--json': 'bool', '--open-prs': 'bool', '--no-sandbox': 'bool',
+  '--merge': 'bool', '--record': 'bool', '--use-api-key': 'bool',
 };
 
 export function parseArgs(argv) {
@@ -104,8 +109,10 @@ export function roomIdFor(repo) {
 
 async function serve(opts) {
   if (!opts.repo) throw new Error('serve needs --repo PATH (a git repository)');
+  if (opts.merge && opts['open-prs']) throw new Error('--merge and --open-prs do not go together: pick one');
   const repo = await repoRoot(path.resolve(opts.repo)).catch(() => { throw new Error(`${opts.repo} is not a git repository`); });
-  const claude = await checkClaude();
+  const keys = claudeEnv(process.env, { useApiKey: !!opts['use-api-key'] });
+  const claude = await checkClaude({ env: keys.env });
   if (!claude.ok) {
     const why = {
       'not-found': 'Claude Code is not installed: see https://code.claude.com/docs (CodeWizards runs your own copy).',
@@ -128,12 +135,20 @@ async function serve(opts) {
     ...(opts['room-tokens'] ? { roomTokens: opts['room-tokens'] } : {}),
     ...(opts['max-budget-usd'] ? { maxBudgetUsd: opts['max-budget-usd'] } : {}),
   };
+  const say = line => { if (!opts.json) process.stdout.write(line + '\n'); };
   const room = new ClaudeRoom({
-    store, repo, dir, bin: claude.bin, policy, caps, model: opts.model || null, rank: opts.rank || 'sabio', openPrs: !!opts['open-prs'],
+    store, repo, dir, bin: claude.bin, policy, caps, model: opts.model || null, rank: opts.rank || 'sabio',
+    openPrs: !!opts['open-prs'], merge: !!opts.merge, record: !!opts.record, env: keys.env, log: say,
   });
   if (!opts.json) {
     const c = { ...DEFAULT_CAPS, ...caps };
+    const approved = opts.merge ? 'committed to its cw/ branch and fast-forwarded into your branch (--merge)'
+      : opts['open-prs'] ? 'committed to its cw/ branch, pushed, and opened as a draft pull request (--open-prs)'
+        : 'committed to its cw/ branch; bring it in with `git merge` (or use --merge / --open-prs)';
+    const billing = keys.removed.length ? `${keys.removed.join(' and ')} set: not passed to Claude Code, so your plan pays (--use-api-key to bill the API).\n`
+      : keys.found.length ? `WARNING: --use-api-key: Claude Code bills ${keys.found.join(' and ')} per token, not your plan.\n` : '';
     process.stdout.write(`Claude Code ${claude.version} · repository ${repo}\n` +
+      `An approved change is ${approved}.\n` + billing +
       `Caps: ${c.maxAgents} wizards at a time, ${c.maxTasks} tasks, ${c.maxTurns} turns and ${c.timeoutMs / 60000} min per task, ${c.roomTokens} tokens per room.\n` +
       (policy.bash ? (policy.sandboxed ? 'Bash runs in Claude Code\'s sandbox (required to start).\n' : 'WARNING: --no-sandbox: Bash runs without Claude Code\'s sandbox.\n')
         : 'Native Windows: wizards get no Bash (the sandbox needs WSL2).\n'));
@@ -150,7 +165,8 @@ async function doctor() {
   line('git', !!g && g.code === 0, g && g.code === 0 ? g.stdout.trim() : 'not found (needed by `serve`)');
   const gh = which('gh') ? await run('gh', ['--version'], { timeoutMs: 10000 }) : null;
   line('gh', !!gh && gh.code === 0, gh && gh.code === 0 ? gh.stdout.split('\n')[0].trim() : 'not found (needed only by --open-prs)');
-  const c = await checkClaude();
+  const keys = claudeEnv(process.env);
+  const c = await checkClaude({ env: keys.env });
   const text = c.ok ? `${c.version}, signed in` : {
     'not-found': 'not found: install Claude Code to use `serve`',
     'windows-shim': 'found claude.cmd: install the native claude.exe',
@@ -158,6 +174,7 @@ async function doctor() {
     'signed-out': `${c.version}, not signed in: run \`claude\` and sign in`,
   }[c.problem];
   line('claude', c.ok, text);
+  if (keys.found.length) process.stdout.write(`note    ${keys.found.join(' and ')} set: serve leaves it out so your plan pays (--use-api-key keeps it)\n`);
   process.stdout.write(`data    ${dataDir()}\n`);
   return major >= 22 && !!g && g.code === 0 ? 0 : 1;
 }

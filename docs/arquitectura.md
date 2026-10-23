@@ -102,7 +102,8 @@ Un adaptador lanza un CLI oficial **sin modificar**, traduce su salida a borrado
   | `result` | `tokens.used` (input = entrada + escritura de caché; cache = lectura de caché), un `agent.error` por permiso denegado, y el desenlace del turno |
   | `result` con `error_max_turns`, `error_max_budget_usd` o `error_during_execution` | `task.failed` (`max_turns`, `budget`, `error`) |
 
-- La sala añade `agent.summoned`, `agent.assigned`, `artifact.present` (el `git diff` real del worktree), `review.*`, `task.*` y `agent.idle`.
+- La sala añade `agent.summoned` y `agent.assigned` cuando Claude Code arranca (`system/init`), con el modelo que de verdad usa, y después `artifact.present` (el `git diff` real del worktree), `review.*`, `task.*` y `agent.idle`. Un CLI que no llega a arrancar no mete a ningún mago en la sala.
+- `--record` guarda cada turno tal cual lo imprime el CLI, con los secretos conocidos enmascarados, en `tasks/<tarea>/turn-<n>.ndjson`: así las grabaciones reales sustituyen a las sintéticas de los tests.
 - Versiones: `system/init` trae `capabilities` en las versiones recientes; el adaptador lo guarda para detectar funciones en lugar de comparar números de versión.
 - Riesgos conocidos (detalle y fuentes en `auditorias/software.md` §2):
   - Anthropic anuncia que `--bare` será el modo por defecto de `-p` y que ese modo no usa la sesión de la suscripción.
@@ -118,6 +119,7 @@ Un adaptador lanza un CLI oficial **sin modificar**, traduce su salida a borrado
 - Para saber si hay sesión usa `claude auth status` y se queda solo con el código de salida. El JSON, que puede llevar el correo, se descarta.
 - Sin sesión, `serve` y `doctor` piden al usuario que ejecute `claude` e inicie sesión él mismo. Las claves de API opcionales se configuran en cada CLI, no en CodeWizards.
 - `git` y `gh` usan las credenciales que el usuario ya tenga.
+- Quién paga. Claude Code prefiere una clave de API del entorno a la sesión del plan, y la clave se cobra por token. Por eso `serve` le pasa el entorno sin `ANTHROPIC_API_KEY` ni `ANTHROPIC_AUTH_TOKEN` (solo mira los nombres, nunca los valores), y lo avisa al arrancar; `--use-api-key` las mantiene. `doctor` dice si están definidas. Si el usuario activó el uso extra en su cuenta, lo que pase del límite del plan se cobra a tarifa de API; eso se decide en la cuenta, no en CodeWizards. Un `apiKeyHelper` en la configuración de Claude Code no se detecta.
 - Pendiente de Pol: aceptar los términos comerciales de Anthropic antes de distribuir la primera versión que ejecute Claude Code (§12 y `auditorias/software.md` §5).
 
 ## 7. Ejecución del código de los agentes
@@ -143,7 +145,9 @@ Capas, de fuera adentro:
 1. Hechizo → tarea `tN` → rama `cw/tN-<slug>` desde el HEAD actual, en `<datos>/rooms/<sala>/worktrees/tN`.
 2. Turno de Claude Code → diff contra la base → pizarra (`artifact.present`, `review.requested`).
 3. **Aprobar** → commit en la rama con la identidad git del usuario.
-   - Con `--open-prs`, además, `git push` y `gh pr create --draft`, y la URL del PR viaja en `task.done`.
+   - Por defecto, la rama del usuario no se mueve. La pizarra dice dónde quedó el cambio y el `git merge` que lo trae.
+   - Con `--merge`, además, la rama del usuario avanza hasta la de la tarea (`git merge --ff-only`) y `task.done` lleva `result: merged`. Nunca se fuerza: si el usuario cambió de rama o la suya avanzó entretanto, el cambio se queda en su rama y un `agent.error` lo explica.
+   - Con `--open-prs`, en su lugar, `git push` y `gh pr create --draft`, y la URL del PR viaja en `task.done`. `--merge` y `--open-prs` no van juntos.
    - Después se quita el worktree; la rama queda.
 4. **Rechazar** → el comentario vuelve a la misma sesión (`--resume`) en el mismo worktree.
 5. Si una tarea falla o se cancela, su rama y su worktree quedan para inspeccionarlos (`git worktree prune` limpia lo que borres a mano).
@@ -156,7 +160,7 @@ Capas, de fuera adentro:
 | macOS | `~/Library/Application Support/CodeWizards` |
 | Windows | `%LOCALAPPDATA%\CodeWizards` |
 
-Dentro: `rooms/<sala>/events.jsonl` (permisos 0600), `rooms/<sala>/worktrees/` y `rooms/<sala>/tasks/<tarea>/claude-settings.json`.
+Dentro: `rooms/<sala>/events.jsonl` (permisos 0600), `rooms/<sala>/worktrees/` y `rooms/<sala>/tasks/<tarea>/claude-settings.json`; con `--record`, también `rooms/<sala>/tasks/<tarea>/turn-<n>.ndjson` (0600). Ojo: esas grabaciones incluyen lo que el mago leyó de los ficheros, así que se revisan antes de compartirlas.
 
 - La sala de un repo se llama `<nombre>-<8 hex del hash de su ruta>`.
 - La demo no guarda nada salvo con `--log`.
@@ -278,3 +282,6 @@ Antes de decidir, hay que verificar el coste de las firmas (Apple Developer ID c
 | 6 | Entregas como parche de git, no copiando ficheros | Aceptada por Pol (paso 2) |
 | 7 | JavaScript sin paso de build, con módulos ES en el núcleo y scripts clásicos en la sala (para que funcione desde `file://`) | Paso 2 |
 | 8 | Comprobación de tipos con JSDoc y `tsc` | Pendiente: no se hizo en este paso |
+| 9 | El mago entra cuando Claude Code arranca, con su modelo real | Paso 2, tras la primera prueba real |
+| 10 | `--merge` opcional y solo por avance rápido; por defecto, el cambio se queda en su rama | Aceptada por Pol (23/10/2026) |
+| 11 | Las claves de API del entorno no llegan a Claude Code salvo con `--use-api-key` | Aceptada por Pol (23/10/2026) |
