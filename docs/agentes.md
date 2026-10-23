@@ -92,6 +92,13 @@ Decididas el 23/10/2026, en el paso 3 (`auditorias/orquestacion.md` §3):
 - La extensión de VS Code, como segunda vía tras el hito 3; Firefox (y con él Zen) en la prueba de humo.
 - Pendiente: crear y abrir salas desde la interfaz (sobre un repo existente o uno nuevo, eligiendo la ruta), y publicar en npm con una guía paso a paso.
 
+Decididas el 23/10/2026, tras probar la v1.3.0 (`auditorias/orquestacion.md` §10):
+
+- Al abrir una sala, la sala no vuelve a animar el pasado: se reconstruye del registro y solo anima lo nuevo.
+- Panel de tareas en tres apartados: en curso (pendientes), hechas (historial) y por hacer (un editor de notas).
+- Distribución en el navegador: la sala grande en el centro con el grimorio debajo, y un panel a cada lado que se puede estrechar o ensanchar.
+- Modelo y esfuerzo se eligen: por rango en `ranks.json` (versiones fijadas: `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5`, con esfuerzo bajo, medio y alto) y por hechizo en el grimorio.
+
 ### Estilo vigente (GBC)
 
 | Regla | Valor |
@@ -123,7 +130,7 @@ Formato: JSON por WebSocket, `{"v":2,"t":"<tipo>","seq":<n>,"ts":<ms>,"room":"<i
 | --- | --- | --- |
 | `room.opened` | proyecto, gremio dominante | Se encienden las antorchas; estandarte del gremio |
 | `task.created` | id, título, coste estimado (o `null`); rango y motivo del Archimago (opcionales) | El Archimago lo anota en su grimorio |
-| `agent.summoned` | gremio, rango, modelo, cuenta | Se abre la puerta y entra caminando |
+| `agent.summoned` | gremio, rango, modelo, cuenta, esfuerzo (opcional) | Se abre la puerta y entra caminando |
 | `agent.assigned` | tarea | Camina a la estación que toque |
 | `context.read` | ficheros, tokens de entrada (opcional) | Lee en la librería, con el bastón sobre los tomos |
 | `code.write` | fichero, diff parcial | Escribe en la mesa; suben runas |
@@ -147,7 +154,8 @@ Reglas:
 - Un evento con un `seq` ya visto se ignora: repetir el registro o reconectarse no tiene efectos dobles.
 - La sala tolera huecos: si llega `code.write` de un agente que no ha visto, el mago entra por la puerta y va a la mesa.
 - Los gremios son el fabricante del modelo (`anthropic`, `openai`, `google`, `deepseek`, `qwen`, `meta`); solo se ven los de las cuentas conectadas, y uno desconocido se pinta con una paleta neutra.
-- Los rangos son `aprendiz`, `joven`, `sabio` y `archimago`.
+- Los rangos son `aprendiz`, `joven`, `sabio` y `archimago`; el esfuerzo, `low`, `medium`, `high`, `xhigh` o `max` (el de Claude Code).
+- Al conectar, el núcleo manda el registro y después `{"ctl":"live"}`: lo anterior a esa marca reconstruye la sala sin animarla.
 - `account` es un identificador local y opaco: nunca un correo ni una credencial.
 - El estado de la sala se reconstruye reproduciendo el registro (event sourcing).
 - Cambiar el contrato exige el «adelante» de Pol y sube la versión `v`. Historia:

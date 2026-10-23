@@ -74,6 +74,7 @@ La tabla está en `docs/agentes.md` («Contrato de eventos v2») y la verdad eje
 - `ts` es la hora del hecho en milisegundos de época. El pergamino la muestra relativa al primer evento.
 - La sala ignora un evento con `seq` ya visto, así que reconectarse o reproducir el registro no duplica nada. Al conectar, el cliente envía `{"cmd":"hello","since":<último seq>}` y recibe lo que le falta.
 - Los huecos se toleran: un evento de trabajo de un agente que la sala no ha visto lo hace entrar por la puerta.
+- Al conectar (o reconectar), el núcleo manda lo que el cliente no tiene y después `{"ctl":"live"}`. Lo anterior a esa marca la sala lo aplica sin animarlo: las tareas terminadas van a «Hechas», los magos que siguen trabajando aparecen en su estación (`world.place`) y el resto no entra. Así abrir una sala con historia no vuelve a escenificarla.
 - Un gremio desconocido se pinta con la paleta neutra `unknown` (los grises del muro, ya dentro de la paleta GBC).
 - `account` es un identificador local y opaco (`claude-code`, `demo`): nunca un correo ni una credencial. El saludo del núcleo (`ctl: hello`) dice qué cuentas hay conectadas; la sala solo muestra sus gremios.
 - v2 solo añade a v1: el núcleo valida `v` 1 y 2, así que los registros antiguos se siguen reproduciendo.
@@ -118,7 +119,7 @@ Un adaptador lanza un CLI oficial **sin modificar**, traduce su salida a borrado
   - No está verificado si `--max-budget-usd` corta con suscripción.
   - El texto que marca «límite de uso agotado» es una heurística sin verificar.
 
-**El Archimago** (`apps/core/src/router/`, detalle en `auditorias/orquestacion.md` §4): elige el rango con reglas sin modelo o toma el que eligió el usuario, mira la cuota (baja un rango por encima del 80 % de la ventana de 5 h; espera por encima del 97 % o si está agotada) y da el modelo, los turnos, la nota de sistema y la estimación de `ranks.json`.
+**El Archimago** (`apps/core/src/router/`, detalle en `auditorias/orquestacion.md` §4): elige el rango con reglas sin modelo o toma el que eligió el usuario, mira la cuota (baja un rango por encima del 80 % de la ventana de 5 h; espera por encima del 97 % o si está agotada) y da el modelo, el esfuerzo, los turnos, la nota de sistema y la estimación de `ranks.json`. El grimorio puede elegir modelo (uno de la tabla) y esfuerzo por hechizo; el esfuerzo va con `--effort` y la sala quita `CLAUDE_CODE_EFFORT_LEVEL` del entorno de ese turno, porque Claude Code le da prioridad sobre la opción.
 
 **Siguientes CLI (hito 4)**: Codex y el CLI de Google. Cada uno con su carpeta en `agents/`, su traductor puro y sus grabaciones; no se han estudiado todavía en detalle.
 
@@ -171,7 +172,7 @@ Capas, de fuera adentro:
 | macOS | `~/Library/Application Support/CodeWizards` |
 | Windows | `%LOCALAPPDATA%\CodeWizards` |
 
-Dentro: `rooms/<sala>/events.jsonl` (permisos 0600), `rooms/<sala>/worktrees/` y `rooms/<sala>/tasks/<tarea>/claude-settings.json`; con `--record`, también `rooms/<sala>/tasks/<tarea>/turn-<n>.ndjson` (0600). Ojo: esas grabaciones incluyen lo que el mago leyó de los ficheros, así que se revisan antes de compartirlas.
+Dentro: `rooms/<sala>/events.jsonl` (permisos 0600), `rooms/<sala>/notes.md` (las notas de «Por hacer», 0600), `rooms/<sala>/worktrees/` y `rooms/<sala>/tasks/<tarea>/claude-settings.json`; con `--record`, también `rooms/<sala>/tasks/<tarea>/turn-<n>.ndjson` (0600). Ojo: esas grabaciones incluyen lo que el mago leyó de los ficheros, así que se revisan antes de compartirlas.
 
 - La sala de un repo se llama `<nombre>-<8 hex del hash de su ruta>`.
 - La demo no guarda nada salvo con `--log`.

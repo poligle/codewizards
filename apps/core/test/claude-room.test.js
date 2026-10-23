@@ -44,7 +44,8 @@ test('cast → wizard works in a worktree → blackboard → approve → commit 
   const run = runs()[0];
   assert.equal(run.prompt, 'Add a greeting file');
   assert.ok(run.args.includes('dontAsk') && run.args.includes('--settings'));
-  assert.deepEqual([run.args[run.args.indexOf('--model') + 1], run.args[run.args.indexOf('--max-turns') + 1]], ['sonnet', '30'], 'model and turns come from the rank table');
+  assert.deepEqual([run.args[run.args.indexOf('--model') + 1], run.args[run.args.indexOf('--effort') + 1], run.args[run.args.indexOf('--max-turns') + 1]],
+    ['claude-sonnet-5-5', 'medium', '30'], 'model, effort and turns come from the rank table');
   assert.match(run.args[run.args.indexOf('--append-system-prompt') + 1], /keep the diff focused/, 'with the rank\'s note');
   await room.handle({ cmd: 'approve', task: 't1' });
   const done = has('task.done');
@@ -114,7 +115,7 @@ test('the Archmage: your choice wins, and a used-up window makes the wizard wait
   await waitFor(() => a.has('review.requested'), { what: 'review' });
   assert.equal(a.has('task.created').reason, 'chosen by you');
   const r = a.runs()[0];
-  assert.deepEqual([r.args[r.args.indexOf('--model') + 1], r.args[r.args.indexOf('--max-turns') + 1]], ['haiku', '15']);
+  assert.deepEqual([r.args[r.args.indexOf('--model') + 1], r.args[r.args.indexOf('--effort') + 1], r.args[r.args.indexOf('--max-turns') + 1]], ['claude-haiku-5-5', 'low', '15']);
   const p = setup({ caps: { quotaWaitMs: 300 } });
   p.room.quota.five_hour = { status: 'exhausted', utilization: 1, resets_at: null };
   p.room.cast('Add a greeting file');
@@ -167,7 +168,10 @@ test('stop cancels a running wizard; outside the demo there is no auto-approval'
   const c = await waitFor(() => s.has('task.cancelled'), { what: 'cancelled' });
   assert.equal(c.by, 'user');
   assert.ok(!s.has('review.approved'));
-  assert.deepEqual(s.room.hello(), { mode: 'claude-code', autoApprove: false, merge: false, accounts: [{ id: 'claude-code', guild: 'anthropic', label: 'Claude Code' }] });
+  const h = s.room.hello();
+  assert.deepEqual([h.mode, h.autoApprove, h.merge, h.accounts], ['claude-code', false, false, [{ id: 'claude-code', guild: 'anthropic', label: 'Claude Code' }]]);
+  assert.deepEqual(h.ranks.joven, { label: 'Mago Joven', model: 'claude-sonnet-5-5', effort: 'medium' });
+  assert.deepEqual(h.models, ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5']);
 });
 
 test('a restarted room continues the ids of its log', async () => {
@@ -218,4 +222,27 @@ test('--record keeps each turn\'s output as JSON Lines, owner-only', async () =>
   assert.deepEqual([recorded[0].type, recorded[0].subtype, recorded.at(-1).type], ['system', 'init', 'result']);
   if (process.platform !== 'win32') assert.equal(fs.statSync(file).mode & 0o777, 0o600);
   assert.ok(lines.some(l => l.includes('turn-1.ndjson')), 'the user is told where it is');
+});
+
+test('the spell book picks model and effort per spell; the user\'s effort variable cannot override it', async () => {
+  const a = setup({ env: { CLAUDE_CODE_EFFORT_LEVEL: 'low' } });
+  a.room.handle({ cmd: 'cast', text: 'Add a greeting file', rank: 'aprendiz', model: 'claude-opus-5-5', effort: 'max' });
+  await waitFor(() => a.has('review.requested'), { what: 'review' });
+  const r = a.runs()[0];
+  assert.deepEqual([r.args[r.args.indexOf('--model') + 1], r.args[r.args.indexOf('--effort') + 1]], ['claude-opus-5-5', 'max']);
+  assert.match(a.has('task.created').reason, /model chosen by you · effort chosen by you/);
+  assert.equal(a.has('agent.summoned').effort, 'max');
+  const b = setup();
+  b.room.cast('Add a greeting file', { model: 'gpt-9000' });
+  await waitFor(() => b.has('review.requested'), { what: 'review' });
+  assert.equal(b.runs()[0].args[b.runs()[0].args.indexOf('--model') + 1], 'claude-sonnet-5-5', 'a model outside the table is ignored');
+});
+
+test('«Por hacer»: the room\'s notes are kept next to its log', async () => {
+  const { room, dir } = setup();
+  await room.handle({ cmd: 'notes', text: '- add a dark mode\n- fix the login' });
+  assert.equal(room.hello().notes, '- add a dark mode\n- fix the login');
+  const again = new ClaudeRoom({ store: new EventStore({ room: 'test-room' }), repo: room.repo, dir, bin: FAKE_CLAUDE });
+  assert.match(again.hello().notes, /fix the login/);
+  if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(fs.realpathSync.native(dir), 'notes.md')).mode & 0o777, 0o600);
 });

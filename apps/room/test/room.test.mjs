@@ -165,5 +165,20 @@ let log1;
   ok(left.join() === 'q1', `the room is told when a wizard walks out (${left.join()})`);
 }
 
+// 8) rebuilding the room from a log: wizards straight at their station, removed at once
+{
+  const w = new World(5);
+  const a = w.place('p1', 'anthropic', 'joven', 'board', '!');
+  ok(M.STATIONS.board.some(s => Math.hypot(s.x - a.x, s.y - a.y) < 0.01) && a.pose === 'idle', 'place() puts a wizard at its station without walking');
+  const b = w.place('p2', 'anthropic', 'aprendiz', 'rest', 'z');
+  for (let t = 0; t < 30; t += 0.05) w.update(0.05);
+  ok(w.wizards.has('p1') && w.wizards.has('p2') && Math.hypot(b.x - a.x, b.y - a.y) > 0.5, 'and they stay there, in different places, until something happens');
+  w.remove('p1');
+  ok(!w.wizards.has('p1'), 'remove() takes a wizard out at once');
+  w.handle({ v: 2, t: 'code.write', seq: 1, ts: T0, room: 'r', agent: 'p2', file: 'a.js', diff: '+x' });
+  for (let t = 0; t < 20; t += 0.05) w.update(0.05);
+  ok(M.STATIONS.table.some(s => Math.hypot(s.x - b.x, s.y - b.y) < 0.01), 'a placed wizard picks up live events as usual');
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 process.exit(fails ? 1 : 0);

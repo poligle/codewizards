@@ -2,6 +2,21 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.3.1] · 2026-10-23 · Opening a room, models and effort, a new layout
+
+### Fixed
+- Opening a room on an existing log no longer brings every past wizard in to walk out again: the room rebuilds itself at once from the log, puts the wizards still at work at their stations, and only animates what happens from then on.
+- `codewizards` really is on the PATH inside `nix develop` (the script is named codewizards.js; the shell now links it under its real name).
+
+### Added
+- Tasks panel: «En curso», «Hechas» (the history, where finished tasks go when their wizard walks out) and «Por hacer», a notes editor kept per room (next to the room's log; in the demo, in the browser) with a button that sends the selected line to the spell book.
+- Model and effort per spell: the spell book shows each rank's model and effort and lets you pick both; `--effort` sets the default. Claude Code's reasoning effort (low, medium, high, xhigh, max) goes with `--effort`, and a `CLAUDE_CODE_EFFORT_LEVEL` in your environment no longer overrides it.
+- Layout: the room large in the middle with the spell book under it, and a panel on each side that you can make wider or narrower by dragging its edge (remembered in the browser).
+
+### Changed
+- The rank table pins model versions: Apprentice `claude-haiku-5-5` (low effort), Young Mage `claude-sonnet-5-5` (medium), Grand Sage `claude-opus-5-5` (high). Aliases such as `opus` still work in your own `ranks.json`.
+- Event contract v2 gains an optional `effort` in `agent.summoned`.
+
 ## [1.3.0] · 2026-10-23 · The Archmage and the quota
 
 Step 3 of milestone 1 (orchestration and tokens).
@@ -107,6 +122,7 @@ Step 1 of milestone 1. The mockup is the same as in v1.0.
 ### Fixed
 - The mockup no longer freezes on its first frame in real browsers.
 
+[1.3.1]: https://github.com/poligle/codewizards/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/poligle/codewizards/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/poligle/codewizards/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/poligle/codewizards/compare/v1.2...v1.2.1

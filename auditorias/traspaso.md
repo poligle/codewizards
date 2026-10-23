@@ -155,3 +155,15 @@
   - (paso 7) → los textos nuevos, en inglés.
 - Preguntas abiertas: si `opus` está en el plan Pro (lo dirá el piloto); el titular del copyright y la versión de `docs/agentes.md` en Claude Docs, como antes.
 - Pruebas para Pol: las de `auditorias/orquestacion.md` §9.
+
+## Paso 3 · Tras probar la v1.3.0 (A) · 23/10/2026
+- Cambios (detalle en `auditorias/orquestacion.md` §10):
+  - La sala se reconstruye del registro sin animar el pasado (marca `ctl: live`).
+  - Tareas en «En curso», «Hechas» y «Por hacer» (notas por sala).
+  - Sala grande con el grimorio debajo y paneles laterales redimensionables.
+  - Modelo y esfuerzo por rango (versiones fijadas) y por hechizo.
+  - `codewizards` en el PATH de `nix develop`, ahora de verdad.
+  - Versión 1.3.1.
+- Decisiones de Pol: en `docs/agentes.md`, «Decididas el 23/10/2026, tras probar la v1.3.0».
+- Encargos: (paso 5) pulir la nueva distribución, «Hechas» y «Por hacer»; el resto, como en la entrada anterior.
+- Pruebas para Pol: las de `auditorias/orquestacion.md` §9, más reabrir una sala con historia.

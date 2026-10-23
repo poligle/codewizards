@@ -28,6 +28,7 @@
         try { msg = JSON.parse(e.data); } catch (err) { return; }
         if (!msg || typeof msg !== 'object') return;
         if (msg.ctl === 'hello') { h.onHello(msg); return; }
+        if (msg.ctl === 'live') { if (h.onLive) h.onLive(msg); return; }
         if (msg.ctl === 'error') { if (h.onError) h.onError(String(msg.message)); else G.console.warn('codewizards:', String(msg.message)); return; }
         if (typeof msg.t !== 'string') return;
         if (typeof msg.seq === 'number' && msg.seq > lastSeq) lastSeq = msg.seq;
@@ -45,7 +46,12 @@
     }
     open();
     return {
-      cast: (text, rank) => send(rank && rank !== 'auto' ? { cmd: 'cast', text, rank } : { cmd: 'cast', text }),
+      cast: (text, choice) => {
+        const c = { cmd: 'cast', text };
+        for (const k of ['rank', 'model', 'effort']) if (choice && choice[k] && choice[k] !== 'auto') c[k] = choice[k];
+        send(c);
+      },
+      notes: text => send({ cmd: 'notes', text }),
       merge: task => send({ cmd: 'merge', task }),
       approve: task => send({ cmd: 'approve', task }),
       reject: (task, comment) => send({ cmd: 'reject', task, comment: comment || '' }),

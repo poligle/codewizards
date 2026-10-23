@@ -55,7 +55,9 @@ test('v2 adds the Young Mage, the router\'s choice, quota windows, commands and 
     { t: 'command.denied', agent: 'a1', tool: 'Bash', command: 'git push' },
     { t: 'task.merged', task: 't1', branch: 'cw/t1-x' },
     { t: 'agent.blocked', agent: 'a1', reason: 'quota', detail: 'five_hour', until: 1761150000000 },
+    { t: 'agent.summoned', agent: 'a1', guild: 'anthropic', rank: 'joven', model: 'claude-sonnet-5-5', account: 'x', effort: 'medium' },
   ]);
+  assert.match(validate({ ...base, t: 'agent.summoned', agent: 'a1', guild: 'anthropic', rank: 'joven', model: 'm', account: 'x', effort: 'ultra' }).join(), /effort: not one of/);
   assert.match(validate({ ...base, t: 'quota.updated', account: 'x', status: 'ok', utilization: 1.5 }).join(), /utilization: above 1/);
   assert.match(validate({ ...base, t: 'command.run', agent: 'a1', command: 'x', failed: 'no' }).join(), /failed: not a boolean/);
   assert.match(validate({ ...base, t: 'task.created', task: 't1', title: 'x', estimate: null, rank: 'emperor' }).join(), /rank: not one of/);

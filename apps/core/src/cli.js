@@ -25,7 +25,7 @@ Usage
   codewizards serve  --repo PATH [--port N] [--no-open] [--json] [--model NAME] [--rank aprendiz|joven|sabio]
                      [--test-command CMD] [--max-turns N] [--timeout-min N] [--max-agents N]
                      [--max-tasks N] [--room-tokens N] [--max-budget-usd N] [--merge | --open-prs]
-                     [--record] [--use-api-key] [--no-sandbox] [--ranks FILE]
+                     [--record] [--use-api-key] [--no-sandbox] [--ranks FILE] [--effort LEVEL]
   codewizards doctor
   codewizards --version | --help
 
@@ -36,8 +36,9 @@ Usage
           serve with --merge (fast-forward into your branch) or --open-prs (draft pull request).
           It spends your Claude plan: ANTHROPIC_API_KEY is not passed on unless --use-api-key.
           --record keeps each turn's output (secrets masked) next to the room's log.
-          The Archmage picks each spell's rank and model from a table (ranks.json); --rank or
-          --model force one for every spell, and --ranks points to another table.
+          The Archmage picks each spell's rank, model and effort from a table (ranks.json);
+          --rank, --model and --effort (low, medium, high, xhigh, max) set the default for every
+          spell, the spell book can choose per spell, and --ranks points to another table.
   doctor  Checks node, git, gh and claude without reading any credentials.
 
 The room opens at http://127.0.0.1:PORT/#token=...: keep that address to yourself.
@@ -48,7 +49,7 @@ const FLAGS = {
   '--port': 'int', '--model': 'str', '--rank': 'str', '--test-command': 'str', '--max-turns': 'int', '--timeout-min': 'int',
   '--max-agents': 'int', '--max-tasks': 'int', '--room-tokens': 'int', '--max-budget-usd': 'num', '--repo': 'str',
   '--no-open': 'bool', '--log': 'bool', '--json': 'bool', '--open-prs': 'bool', '--no-sandbox': 'bool',
-  '--merge': 'bool', '--record': 'bool', '--use-api-key': 'bool', '--ranks': 'str',
+  '--merge': 'bool', '--record': 'bool', '--use-api-key': 'bool', '--ranks': 'str', '--effort': 'str',
 };
 
 export function parseArgs(argv) {
@@ -141,7 +142,7 @@ async function serve(opts) {
   };
   const say = line => { if (!opts.json) process.stdout.write(line + '\n'); };
   const room = new ClaudeRoom({
-    store, repo, dir, bin: claude.bin, policy, caps, ranks: ranks.table, model: opts.model || null, rank: opts.rank || null,
+    store, repo, dir, bin: claude.bin, policy, caps, ranks: ranks.table, model: opts.model || null, effort: opts.effort || null, rank: opts.rank || null,
     openPrs: !!opts['open-prs'], merge: !!opts.merge, record: !!opts.record, env: keys.env, log: say,
   });
   if (!opts.json) {
@@ -153,7 +154,7 @@ async function serve(opts) {
       : keys.found.length ? `WARNING: --use-api-key: Claude Code bills ${keys.found.join(' and ')} per token, not your plan.\n` : '';
     process.stdout.write(`Claude Code ${claude.version} · repository ${repo}\n` +
       `An approved change is ${approved}.\n` + billing +
-      `Archmage: ${['aprendiz', 'joven', 'sabio'].map(r => `${ranks.table.ranks[r].label} → ${opts.model || ranks.table.ranks[r].model}`).join(', ')}` +
+      `Archmage: ${['aprendiz', 'joven', 'sabio'].map(r => `${ranks.table.ranks[r].label} → ${opts.model || ranks.table.ranks[r].model} (${opts.effort || ranks.table.ranks[r].effort || 'default'} effort)`).join(', ')}` +
       `${ranks.file ? ` (from ${ranks.file})` : ''}${opts.rank ? `; every spell goes to ${opts.rank}` : ''}.\n` +
       `Caps: ${c.maxAgents} wizards at a time, ${c.maxTasks} tasks, ${c.maxTurns ? `${c.maxTurns} turns` : 'the turns of each rank'} and ${c.timeoutMs / 60000} min per task, ${c.roomTokens} tokens per room.\n` +
       (policy.bash ? (policy.sandboxed ? 'Bash runs in Claude Code\'s sandbox (required to start).\n' : 'WARNING: --no-sandbox: Bash runs without Claude Code\'s sandbox.\n')

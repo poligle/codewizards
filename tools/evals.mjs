@@ -123,7 +123,7 @@ async function runOne(task, name, config, base) {
   if (config.noNote) for (const r of Object.keys(table.ranks)) table.ranks[r].note = '';
   const env = { ...base.env, ...(base.oracle ? { FAKE_CLAUDE_SCENARIO: 'oracle', FAKE_CLAUDE_ORACLE: path.join(task.dir, 'solution'), FAKE_CLAUDE_DELAY_MS: '1' } : {}) };
   const room = new ClaudeRoom({
-    store, repo, dir: data, bin: base.bin, ranks: table, model: config.model || null, rank: config.rank || null, record: true, env,
+    store, repo, dir: data, bin: base.bin, ranks: table, model: config.model || null, effort: config.effort || null, rank: config.rank || null, record: true, env,
     policy: buildPolicy({ testCommand: task.testCommand }), caps: { maxAgents: 1, timeoutMs: 15 * 60000, maxWaits: 0 },
   });
   const quotaBefore = base.quota;
@@ -151,7 +151,7 @@ async function runOne(task, name, config, base) {
   const created = store.events.find(e => e.t === 'task.created') || {};
   const summoned = store.events.find(e => e.t === 'agent.summoned') || {};
   return {
-    at: new Date().toISOString(), config: name, task: task.id, difficulty: task.difficulty, rank: created.rank, model: summoned.model || null,
+    at: new Date().toISOString(), config: name, task: task.id, difficulty: task.difficulty, rank: created.rank, model: summoned.model || null, effort: summoned.effort || null,
     outcome, pass: check.pass, input: sum('input'), output: sum('output'), cache: sum('cache'),
     cost_usd: Math.round(used.reduce((a, e) => a + (e.cost_usd || 0), 0) * 10000) / 10000,
     turns, seconds: Math.round((Date.now() - t0) / 1000),

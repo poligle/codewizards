@@ -48,8 +48,11 @@ test('arguments: headless stream-json, dontAsk, caps, settings file; the prompt 
   assert.equal(r[r.indexOf('--max-budget-usd') + 1], '2');
 });
 
-test('arguments refuse odd model names and session ids', () => {
+test('arguments refuse odd model names, effort levels and session ids', () => {
   const policy = buildPolicy({ platform: 'linux' });
+  const e = claudeArgs({ sessionId: SESSION, policy, effort: 'xhigh' });
+  assert.equal(e[e.indexOf('--effort') + 1], 'xhigh');
+  assert.throws(() => claudeArgs({ sessionId: SESSION, policy, effort: 'ultra' }), /effort/);
   assert.throws(() => claudeArgs({ sessionId: SESSION, policy, model: 'sonnet; rm' }), /model/);
   assert.throws(() => claudeArgs({ sessionId: 'nope', policy }), /UUID/);
 });

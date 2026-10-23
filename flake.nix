@@ -13,8 +13,12 @@
         pkgs.git
       ];
       # `codewizards` on the PATH inside the shell (run `npm ci --ignore-scripts` once for its ws).
+      # The script is codewizards.js: a link named codewizards in a fresh folder puts it on the PATH
+      # under its real name, and keeps working after a cd.
       onPath = ''
-        export PATH="$PWD/apps/core/bin:$PATH"
+        cw_bin="$(mktemp -d)"
+        ln -s "$PWD/apps/core/bin/codewizards.js" "$cw_bin/codewizards"
+        export PATH="$cw_bin:$PATH"
       '';
     in
     {

@@ -76,8 +76,9 @@ async function castAndFinish(page, label) {
   }, null, { timeout: 90000 }).then(() => true, () => false);
   const c = await logged(page);
   check(done, `${label}: a spell completes (every task done)${done ? '' : ` ${c.created} created, ${c.done} done`}`);
-  const gone = await page.waitForFunction(() => document.querySelectorAll('#tasks li').length === 0, null, { timeout: 60000 }).then(() => true, () => false);
-  check(gone, `${label}: finished tasks leave the list when their wizard walks out`);
+  const gone = await page.waitForFunction(() => document.querySelectorAll('#tasks li').length === 0
+    && document.querySelectorAll('#history li').length >= 3, null, { timeout: 60000 }).then(() => true, () => false);
+  check(gone, `${label}: finished tasks move to «Hechas» when their wizard walks out`);
 }
 
 async function crtShots(page, prefix) {
@@ -99,6 +100,19 @@ async function staticDemo(browser) {
   check((await page.locator('#rank option').count()) === 4, 'A static: the spell book lets you choose the rank or leave it to the Archmage');
   await castAndFinish(page, 'A static');
   check((await page.evaluate(() => getComputedStyle(document.getElementById('screen')).getPropertyValue('--px'))).trim() === '3px', 'A static: room at ×3 on a 1440 × 900 screen');
+  // The side panels can be made narrower, and the room grows into the space.
+  const box = await page.locator('#split-left').boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + 40);
+  await page.mouse.down();
+  await page.mouse.move(box.x - 60, box.y + 40, { steps: 5 });
+  await page.mouse.up();
+  const leftW = Math.round((await page.locator('#left').boundingBox()).width);
+  check(leftW < 260, `A static: dragging the edge makes the tasks panel narrower (${leftW} px)`);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.waitForTimeout(300);
+  const big = Number((await page.evaluate(() => getComputedStyle(document.getElementById('screen')).getPropertyValue('--px'))).trim().replace('px', ''));
+  check(big >= 4, `A static: on a 1920 × 1080 screen the room is at ×${big} (×4 or more)`);
+  await page.setViewportSize({ width: 1440, height: 900 });
   // An unknown guild and a repeated event must not freeze the room (v1.1 froze on the first).
   const t0 = await page.evaluate(() => window.__sims[0].t);
   await page.evaluate(() => {
@@ -159,6 +173,15 @@ async function liveRoom(browser) {
     check(!page.url().includes('token'), 'C live: the token left the address bar');
     await castAndFinish(page, 'C live');
     check((await page.request.get(origin + '/package.json')).status() === 404, 'C live: only the room files are served');
+    await page.fill('#notes', '- add a dark mode\n- fix the login');
+    await page.waitForTimeout(1200);
+    const done = (await logged(page)).done;
+    await page.goto(info.url.split('#')[0] + '#token=' + token);
+    await page.waitForFunction(() => /Conectado/.test(document.getElementById('hint').textContent), null, { timeout: 10000 });
+    await page.waitForTimeout(300);
+    const after = await page.evaluate(() => ({ now: document.querySelectorAll('#tasks li').length, hist: document.querySelectorAll('#history li').length }));
+    check(after.now === 0 && after.hist === done, `C live: reopening the room rebuilds it at once: ${after.hist} tasks in «Hechas», none walking in again`);
+    check((await page.inputValue('#notes')).includes('fix the login'), 'C live: «Por hacer» keeps its notes across reloads');
     await crtShots(page, 'local');
     check(w.errors.length === 0, `C live: no page or console errors ${w.errors.join(' | ')}`);
     check(w.external.length === 0, `C live: every request stays on ${origin} ${w.external.join(' ')}`);
@@ -205,6 +228,8 @@ async function claudeRoom(browser) {
     check(await page.isVisible('#stop'), 'D serve: the stop button is there for real wizards');
     await page.fill('#spell-text', 'Add a greeting file');
     await page.selectOption('#rank', 'aprendiz');
+    check((await page.locator('#model option').count()) === 4, 'D serve: the spell book offers the table\'s models');
+    await page.selectOption('#effort', 'high');
     await page.click('button.cast');
     const review = await page.waitForSelector('#tasks .st-review', { timeout: 30000 }).then(() => true, () => false);
     check(review, 'D serve: the wizard\'s change reaches the blackboard');
@@ -217,7 +242,7 @@ async function claudeRoom(browser) {
     check(/guardado en la rama cw\/t1-add-a-greeting-file/.test(note) && /git merge cw\/t1-add-a-greeting-file/.test(note), 'D serve: the blackboard says where the change went and how to bring it in');
     check(/claude-sonnet-5-5/.test(note), 'D serve: the blackboard shows the model Claude Code reported');
     check(git('rev-list', '--count', 'main').trim() === '1', 'D serve: main does not move');
-    check(/Aprendiz/.test(note), 'D serve: the rank you chose is the one that worked');
+    check(/Aprendiz/.test(note) && /esfuerzo alto/.test(note), 'D serve: the rank and the effort you chose are the ones that worked');
     await page.click('[data-merge]');
     const merged = await page.waitForFunction(() => [...document.querySelectorAll('#log li b')].some(b => b.textContent === 'task.merged'), null, { timeout: 15000 }).then(() => true, () => false);
     check(merged && /Hello from the wizard/.test(git('show', 'main:hello.txt')), `D serve: the merge button brings the change into your branch${merged ? '' : ` (${await page.textContent('#hint')})`}`);

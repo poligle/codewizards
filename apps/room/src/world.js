@@ -139,6 +139,30 @@
       return nw;
     }
 
+    // Puts a wizard straight at a station, without walking in or animating: how the room rebuilds
+    // what is still going on when it opens on an existing log.
+    place(id, guild, rank, station, emote) {
+      let w = this.wizards.get(id);
+      if (!w) {
+        w = new Wizard({ id, guild: guild || 'unknown', rank: rank || 'aprendiz', x: ENTRY.x, y: ENTRY.y, dir: 'SE' });
+        this.wizards.set(id, w);
+      }
+      const s = this.claim(w, station);
+      Object.assign(w, { x: s.x, y: s.y, dir: s.dir, path: [], cur: null, pose: 'idle', mood: null, gone: false });
+      w.actions.length = 0;
+      w.actions.push({ type: 'wait', emote: emote || null });
+      return w;
+    }
+
+    // Takes a wizard out at once (no walk to the door).
+    remove(id) {
+      const w = this.wizards.get(id);
+      if (!w) return;
+      this.release(w);
+      this.wizards.delete(id);
+      if (this.selected === id) this.selected = null;
+    }
+
     // Applies one event. Returns false when it was a repeat (same or older `seq`) and was ignored.
     handle(ev) {
       if (typeof ev.seq === 'number') {

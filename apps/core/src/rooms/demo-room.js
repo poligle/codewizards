@@ -28,12 +28,18 @@ export class DemoRoom {
       store.append(draft);                        // the store owns seq and room
     });
     this.speed = 1;
+    this.notes = '';
     this.last = performance.now();
     this.timer = tickMs > 0 ? setInterval(() => this.tick(), tickMs) : null;
   }
 
   get mode() { return 'demo'; }
-  hello() { return { mode: 'demo', autoApprove: true, merge: false, accounts: [{ id: 'demo', guild: 'anthropic', label: 'Demo' }] }; }
+  hello() {
+    return {
+      mode: 'demo', autoApprove: true, merge: false, accounts: [{ id: 'demo', guild: 'anthropic', label: 'Demo' }],
+      ranks: this.sim.ranks(), models: [], efforts: ['low', 'medium', 'high', 'xhigh', 'max'], notes: this.notes,
+    };
+  }
 
   tick() {
     const now = performance.now();
@@ -49,7 +55,8 @@ export class DemoRoom {
 
   async handle(cmd) {
     switch (cmd.cmd) {
-      case 'cast': this.sim.cast(cmd.text, cmd.rank); break;
+      case 'cast': this.sim.cast(cmd.text, { rank: cmd.rank, effort: cmd.effort }); break;
+      case 'notes': this.notes = String(cmd.text).slice(0, 64 * 1024); break;
       case 'approve': this.sim.approve(cmd.task); break;
       case 'reject': this.sim.reject(cmd.task, cmd.comment); break;
       case 'auto': this.sim.setAuto(cmd.on); break;

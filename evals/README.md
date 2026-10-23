@@ -45,7 +45,7 @@ Cada tarea arranca con unos 24.000 tokens de entrada, que son el prompt de siste
 
 El piloto es de 6 tareas × 3 configuraciones, es decir, 18 ejecuciones. En Pro puede llevarse una buena parte de la ventana de 5 h. Por eso conviene lanzarlo en una ventana en la que no uses Claude para otra cosa, y con `--stop-at` como red.
 
-La configuración `opus` puede fallar en Pro: no está claro que el plan incluya Opus en Claude Code. Si falla, quítala o ponle `sonnet` al Gran Sabio en tu `ranks.json`.
+Las configuraciones fijan versión y esfuerzo: `haiku` (Haiku 5.5, bajo), `sonnet` (Sonnet 5.5, medio), `opus` (Opus 5.5, alto) y `sonnet-low` (Sonnet 5.5, bajo, para ver si el esfuerzo importa en tareas pequeñas). `opus` puede fallar en Pro: no está claro que el plan incluya Opus en Claude Code. Si falla, quítala o ponle `claude-sonnet-5-5` al Gran Sabio en tu `ranks.json`.
 
 ## Cómo leer el resumen
 

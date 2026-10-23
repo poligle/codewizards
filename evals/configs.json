@@ -1,10 +1,35 @@
 {
-  "about": "Configurations the eval runner compares (node tools/evals.mjs --configs a,b). model forces a Claude Code model for every task; rank forces a rank (and so its turns and note); router lets the Archmage decide; noNote drops the ranks' system notes.",
+  "about": "Configurations the eval runner compares (node tools/evals.mjs --configs a,b). model forces a Claude Code model for every task and effort its reasoning effort (low, medium, high, xhigh, max); rank forces a rank (and so its turns, note and effort); router lets the Archmage decide; noNote drops the ranks' system notes.",
   "configs": {
-    "haiku": { "about": "Every task with haiku", "model": "haiku" },
-    "sonnet": { "about": "Every task with sonnet (the baseline)", "model": "sonnet" },
-    "opus": { "about": "Every task with opus (may not be in a Pro plan)", "model": "opus" },
-    "archimago": { "about": "The Archmage's rules pick rank and model (ranks.json)", "router": true },
-    "sonnet-sin-nota": { "about": "sonnet without the ranks' system notes: do the notes help?", "model": "sonnet", "noNote": true }
+    "haiku": {
+      "about": "Every task with Haiku 5.5, low effort",
+      "model": "claude-haiku-5-5",
+      "effort": "low"
+    },
+    "sonnet": {
+      "about": "Every task with Sonnet 5.5, medium effort (the baseline)",
+      "model": "claude-sonnet-5-5",
+      "effort": "medium"
+    },
+    "opus": {
+      "about": "Every task with Opus 5.5, high effort (may not be in a Pro plan)",
+      "model": "claude-opus-5-5",
+      "effort": "high"
+    },
+    "sonnet-low": {
+      "about": "Sonnet 5.5 with low effort: does effort matter on small tasks?",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    "archimago": {
+      "about": "The Archmage's rules pick rank, model and effort (ranks.json)",
+      "router": true
+    },
+    "sonnet-sin-nota": {
+      "about": "Sonnet 5.5 without the ranks' system notes: do the notes help?",
+      "model": "claude-sonnet-5-5",
+      "effort": "medium",
+      "noNote": true
+    }
   }
 }

@@ -21,6 +21,8 @@ const FILES = new Map([
 ]);
 const TASK = /^t\d{1,6}$/;
 const RANK = new Set(['auto', 'aprendiz', 'joven', 'sabio']);
+const EFFORT = new Set(['auto', 'low', 'medium', 'high', 'xhigh', 'max']);
+const MODEL = /^[A-Za-z0-9._[\]-]{1,80}$/;
 
 export const newToken = () => crypto.randomBytes(24).toString('base64url');
 
@@ -38,8 +40,14 @@ export function sanitize(m) {
     case 'cast': {
       if (!(str(m.text, 4000) && m.text.trim())) return null;
       if (m.rank !== undefined && !RANK.has(m.rank)) return null;
-      return { cmd: 'cast', text: m.text, ...(m.rank && m.rank !== 'auto' ? { rank: m.rank } : {}) };
+      if (m.effort !== undefined && !EFFORT.has(m.effort)) return null;
+      if (m.model !== undefined && m.model !== 'auto' && !(typeof m.model === 'string' && MODEL.test(m.model))) return null;
+      return {
+        cmd: 'cast', text: m.text, ...(m.rank && m.rank !== 'auto' ? { rank: m.rank } : {}),
+        ...(m.model && m.model !== 'auto' ? { model: m.model } : {}), ...(m.effort && m.effort !== 'auto' ? { effort: m.effort } : {}),
+      };
     }
+    case 'notes': return str(m.text, 64 * 1024) ? { cmd: 'notes', text: m.text } : null;
     case 'approve':
     case 'merge':
     case 'stop': return typeof m.task === 'string' && TASK.test(m.task) ? { cmd: m.cmd, task: m.task } : null;
@@ -118,7 +126,10 @@ export function startServer({ room, store, port = 0, token = newToken() }) {
       const cmd = sanitize(m);
       if (!cmd) { out({ ctl: 'error', message: 'unknown or malformed command' }); return; }
       if (cmd.cmd === 'hello') {
+        // What happened before this moment comes first, then `live`: the room rebuilds itself from the
+        // log without animating it, and only what follows is shown as it happens.
         for (const ev of store.since(cmd.since)) out(ev);
+        out({ ctl: 'live', seq: store.seq });
         subscribed = true;
         return;
       }

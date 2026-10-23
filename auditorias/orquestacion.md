@@ -1,6 +1,6 @@
 # Orquestación y tokens · paso 3, ronda 1
 
-23/10/2026 · Estado: entregado para revisión de Pol · Versión v1.3.0. Antes, el cierre del paso 2 (v1.2.1 y v1.2.2) está en `auditorias/software.md` §10 y §11.
+23/10/2026 · Estado: entregado para revisión de Pol · Versión v1.3.0, ampliada en v1.3.1 (§10). Antes, el cierre del paso 2 (v1.2.1 y v1.2.2) está en `auditorias/software.md` §10 y §11.
 
 ## 0. En pocas líneas
 
@@ -220,3 +220,40 @@ Las reglas son prudentes: nunca dan menos rango del necesario, pero casi todo ca
    ```
 
    Pásame el `.md` que deja en `evals/results/`.
+
+## 10. Tras probar la v1.3.0 (23/10/2026, v1.3.1)
+
+Pol probó la v1.3.0:
+- La CI y la release automática funcionaron.
+- `codewizards` no aparecía en el PATH.
+- Al abrir una sala con historia, entraban todos los magos de tareas anteriores a hacer la animación y volver a salir.
+
+Además pidió:
+- un panel de tareas pendientes, hechas (historial) y por hacer (un editor de notas);
+- la sala grande en el centro, el grimorio debajo y un panel redimensionable a cada lado;
+- saber qué versión de cada modelo y qué esfuerzo usa cada rango, y poder elegirlos.
+
+| # | Problema o petición | Arreglo |
+| --- | --- | --- |
+| 1 | `codewizards: orden no encontrada` dentro de `nix develop` | El script se llama `codewizards.js`: la carpeta en el PATH no ofrecía `codewizards`. El shell ahora crea un enlace con ese nombre en una carpeta temporal. Probado con el mismo hook en bash; sin evaluar en Nix aquí |
+| 2 | Al abrir la sala, el pasado se escenificaba otra vez | El núcleo marca el final del registro (`ctl: live`). Lo anterior se aplica sin animar: lo terminado va a «Hechas» y los magos que siguen trabajando aparecen en su sitio |
+| 3 | Pendientes, historial y por hacer | «En curso», «Hechas» y «Por hacer». Las notas se guardan junto al registro de la sala (`notes.md`), y «Al grimorio» pasa una línea al hechizo |
+| 4 | Distribución | Sala grande en el centro, grimorio debajo, paneles laterales redimensionables (se recuerda el ancho). En 1920 × 1080 la sala sale a ×5 |
+| 5 | ¿Qué modelos y qué esfuerzo? | Versiones fijadas en la tabla: `claude-haiku-5-5` con esfuerzo bajo, `claude-sonnet-5-5` con medio y `claude-opus-5-5` con alto. El grimorio permite elegir modelo y esfuerzo por hechizo. El esfuerzo va con `--effort`, y se quita `CLAUDE_CODE_EFFORT_LEVEL` del entorno porque Claude Code le daría prioridad |
+
+Sobre los cuatro rangos: trabajan tres (Aprendiz, Mago Joven y Gran Sabio), cada uno con su modelo. El cuarto, el Archimago, es quien reparte, y en v1 son reglas, no un modelo.
+
+Fuentes del esfuerzo:
+- [wmedia, «Claude Code effort» (comprobado en 2.1.220)](https://wmedia.es/es/tips/claude-code-effort-no-es-el-que-crees): valores `low`, `medium`, `high`, `xhigh` y `max`; la variable de entorno manda sobre `--effort`.
+- [Mejba, «Claude Code Effort Levels»](https://www.mejba.me/blog/claude-code-effort-levels): el esfuerzo por defecto es medio.
+
+Ambas son fuentes secundarias.
+
+Validación de v1.3.1:
+- `npm test`: 80 tests y 5147 comprobaciones de la sala.
+- Los 20 evals, válidos.
+- Prueba de humo: 39/39, que incluye estrechar un panel, la sala a ×4 o más en 1920 × 1080, la reapertura de una sala sin animar el pasado, las notas al recargar y el esfuerzo elegido.
+
+Sin verificar con el Claude Code real:
+- que `claude-opus-5-5` funcione en Pro;
+- los cinco niveles de esfuerzo.

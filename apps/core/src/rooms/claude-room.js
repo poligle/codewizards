@@ -14,7 +14,7 @@ import { redact } from '../redact.js';
 import { buildPolicy, claudeArgs, systemNote } from '../agents/claude-code/policy.js';
 import { ClaudeTranslator } from '../agents/claude-code/translate.js';
 import { runClaude } from '../agents/claude-code/runner.js';
-import { defaultRanks, WORKER_RANKS } from '../router/config.js';
+import { defaultRanks, WORKER_RANKS, EFFORTS } from '../router/config.js';
 import { route } from '../router/router.js';
 
 // Provisional caps; the evals calibrate them. maxTurns null: each rank's own (ranks.json).
@@ -23,6 +23,7 @@ export const DEFAULT_CAPS = Object.freeze({
   quotaWaitMs: 30 * 60000, maxWaits: 3,
 });
 const CONTINUE = 'The usage limit has reset. Continue the task where you left off.';
+const NOTES_MAX = 64 * 1024;
 
 const short = (s, n) => {
   const t = String(s).replace(/\s+/g, ' ').trim();
@@ -37,16 +38,18 @@ export class ClaudeRoom {
   /**
    * @param {{store: import('../store.js').EventStore, repo: string, dir: string, bin: string,
    *   policy?: ReturnType<typeof buildPolicy>, caps?: Partial<typeof DEFAULT_CAPS>, ranks?: any, account?: string,
-   *   model?: string|null, rank?: string|null, openPrs?: boolean, merge?: boolean, record?: boolean,
+   *   model?: string|null, effort?: string|null, rank?: string|null, openPrs?: boolean, merge?: boolean, record?: boolean,
    *   env?: NodeJS.ProcessEnv, now?: () => number, log?: (line: string) => void}} o
-   *   `ranks`: the Archmage's table (router/config.js); `model` and `rank` force one for every spell.
+   *   `ranks`: the Archmage's table (router/config.js); `rank`, `model` and `effort` are the defaults for
+   *   every spell (from the command line), over the table; a choice in the spell book wins over both.
    *   `env` is what Claude Code gets (agents/claude-code/env.js); `record` keeps each turn's output,
    *   secrets masked, in tasks/<task>/turn-<n>.ndjson.
    */
-  constructor({ store, repo, dir, bin, policy = buildPolicy(), caps = {}, ranks = null, account = 'claude-code', model = null, rank = null, openPrs = false, merge = false, record = false, env = process.env, now = () => Date.now(), log = () => {} }) {
+  constructor({ store, repo, dir, bin, policy = buildPolicy(), caps = {}, ranks = null, account = 'claude-code', model = null, effort = null, rank = null, openPrs = false, merge = false, record = false, env = process.env, now = () => Date.now(), log = () => {} }) {
     if (merge && openPrs) throw new Error('--merge and --open-prs do not go together: pick one');
     if (rank && !WORKER_RANKS.includes(rank)) throw new Error('--rank must be aprendiz, joven or sabio');
-    Object.assign(this, { store, repo, dir: realDir(dir), bin, policy, account, model, openPrs, merge, record, env, now, log });
+    if (effort && !EFFORTS.includes(effort)) throw new Error(`--effort must be one of ${EFFORTS.join(', ')}`);
+    Object.assign(this, { store, repo, dir: realDir(dir), bin, policy, account, model, effort, openPrs, merge, record, env, now, log });
     this.forcedRank = rank;
     this.ranks = ranks || defaultRanks();
     this.caps = { ...DEFAULT_CAPS, ...caps };
@@ -77,7 +80,27 @@ export class ClaudeRoom {
 
   get mode() { return 'claude-code'; }
   hello() {
-    return { mode: 'claude-code', autoApprove: false, merge: this.merge, accounts: [{ id: this.account, guild: 'anthropic', label: 'Claude Code' }] };
+    const ranks = Object.fromEntries(WORKER_RANKS.map(r => [r, {
+      label: this.ranks.ranks[r].label, model: this.model || this.ranks.ranks[r].model, effort: this.effort || this.ranks.ranks[r].effort || null,
+    }]));
+    return {
+      mode: 'claude-code', autoApprove: false, merge: this.merge, accounts: [{ id: this.account, guild: 'anthropic', label: 'Claude Code' }],
+      ranks, models: this.models(), efforts: [...EFFORTS], notes: this.readNotes(),
+    };
+  }
+
+  /** The models a spell may ask for: the table's, and the one given with --model. */
+  models() {
+    return [...new Set([...WORKER_RANKS.map(r => this.ranks.ranks[r].model), ...(this.model ? [this.model] : [])])];
+  }
+
+  // The room's "to do" notes: a plain file next to its log, the user's own scratchpad.
+  readNotes() {
+    try { return fs.readFileSync(path.join(this.dir, 'notes.md'), 'utf8').slice(0, NOTES_MAX); } catch { return ''; }
+  }
+  writeNotes(text) {
+    ensureDir(this.dir);
+    fs.writeFileSync(path.join(this.dir, 'notes.md'), String(text).slice(0, NOTES_MAX), { mode: 0o600 });
   }
 
   emit(draft) {
@@ -88,7 +111,8 @@ export class ClaudeRoom {
 
   async handle(cmd) {
     switch (cmd.cmd) {
-      case 'cast': return this.cast(cmd.text, cmd.rank);
+      case 'cast': return this.cast(cmd.text, { rank: cmd.rank, model: cmd.model, effort: cmd.effort });
+      case 'notes': return this.writeNotes(cmd.text);
       case 'approve': return this.approve(cmd.task);
       case 'reject': return this.reject(cmd.task, cmd.comment);
       case 'stop': return this.stop(cmd.task);
@@ -97,19 +121,24 @@ export class ClaudeRoom {
     }
   }
 
-  cast(text, rank = null) {
+  /** @param {string|{rank?: string|null, model?: string|null, effort?: string|null}|null} choice what the spell book chose */
+  cast(text, choice = null) {
     if (this.closing) return null;
+    const c = typeof choice === 'string' ? { rank: choice } : (choice || {});
     if (!this.opened) {
       this.opened = true;
       this.emit({ t: 'room.opened', project: path.basename(this.repo).slice(0, 120), guild: 'anthropic' });
     }
     const id = 't' + (++this.taskSeq);
     const title = short(text, 120) || 'Untitled spell';
-    const plan = route({ text: String(text), override: rank || this.forcedRank, table: this.ranks, quota: this.quota, history: this.history });
+    const plan = route({
+      text: String(text), override: c.rank || this.forcedRank, model: c.model || this.model, effort: c.effort || this.effort,
+      table: this.ranks, quota: this.quota, history: this.history, extraModels: this.model ? [this.model] : [],
+    });
     this.emit({ t: 'task.created', task: id, title, estimate: plan.estimate, rank: plan.rank, reason: plan.reason.slice(0, 200) });
     const task = {
       id, title, prompt: String(text), state: 'queued', agent: null, summoned: false, prepared: false, model: null, turns: 0, waits: 0, timer: null,
-      rank: plan.rank, plannedModel: this.model || plan.model, maxTurns: this.caps.maxTurns ? Math.min(this.caps.maxTurns, plan.maxTurns) : plan.maxTurns,
+      rank: plan.rank, plannedModel: plan.model, effort: plan.effort, maxTurns: this.caps.maxTurns ? Math.min(this.caps.maxTurns, plan.maxTurns) : plan.maxTurns,
       note: plan.note, sessionId: randomUUID(), branch: null, wt: null, base: null, baseBranch: null, run: null, result: null,
     };
     this.tasks.set(id, task);
@@ -167,7 +196,7 @@ export class ClaudeRoom {
   summon(task, model) {
     task.summoned = true;
     task.model = String(model || task.plannedModel || 'default').slice(0, 80);
-    this.emit({ t: 'agent.summoned', agent: task.agent, guild: 'anthropic', rank: task.rank, model: task.model, account: this.account });
+    this.emit({ t: 'agent.summoned', agent: task.agent, guild: 'anthropic', rank: task.rank, model: task.model, account: this.account, ...(task.effort ? { effort: task.effort } : {}) });
     this.emit({ t: 'agent.assigned', agent: task.agent, task: task.id });
   }
 
@@ -190,11 +219,13 @@ export class ClaudeRoom {
     task.turns++;
     const tr = new ClaudeTranslator({ agent: task.agent, task: task.id, cwd: task.wt, account: this.account });
     const args = claudeArgs({
-      sessionId: task.sessionId, resume, policy: this.policy, model: this.model || task.plannedModel, maxTurns: task.maxTurns,
+      sessionId: task.sessionId, resume, policy: this.policy, model: task.plannedModel, effort: task.effort, maxTurns: task.maxTurns,
       maxBudgetUsd: this.caps.maxBudgetUsd, settingsFile: this.settingsFile(task), note: `${systemNote(task.branch)} ${task.note}`.trim(),
     });
+    // The effort we pass must win: Claude Code lets CLAUDE_CODE_EFFORT_LEVEL override --effort.
+    const env = task.effort ? Object.fromEntries(Object.entries(this.env).filter(([k]) => k.toUpperCase() !== 'CLAUDE_CODE_EFFORT_LEVEL')) : this.env;
     const run = runClaude({
-      bin: this.bin, args, cwd: task.wt, env: this.env, prompt, timeoutMs: this.caps.timeoutMs, onLine: this.recorder(task),
+      bin: this.bin, args, cwd: task.wt, env, prompt, timeoutMs: this.caps.timeoutMs, onLine: this.recorder(task),
       onMessage: msg => {
         const drafts = tr.push(msg);
         if (!task.summoned && (tr.session || drafts.length)) this.summon(task, tr.model);

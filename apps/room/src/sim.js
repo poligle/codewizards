@@ -20,6 +20,8 @@
   const RESET = 5 * 3600 * 1000;
   const ORDERS = { 3: ['read', 'code', 'test'], 4: ['read', 'code', 'test', 'docs'], 5: ['read', 'design', 'code', 'test', 'docs'] };
   const MODEL = { aprendiz: 'haiku (simulado)', joven: 'sonnet (simulado)', sabio: 'opus (simulado)' };
+  const EFFORT = { aprendiz: 'low', joven: 'medium', sabio: 'high' };
+  const LABEL = { aprendiz: 'Aprendiz', joven: 'Mago Joven', sabio: 'Gran Sabio' };
   const STOP = new Set(['un', 'una', 'unos', 'unas', 'el', 'la', 'los', 'las', 'de', 'del', 'a', 'al', 'en', 'y', 'o', 'para', 'con', 'por', 'que', 'mi', 'su', 'the', 'an', 'to', 'of', 'and', 'for', 'in', 'on', 'add', 'make']);
 
   function slugify(s) {
@@ -79,7 +81,16 @@
       this.t += dt;
       while (this.q.length && this.q[0].t <= this.t) this.q.shift().fn();
     }
-    cast(spell, rank) {
+    // What the spell book shows for each rank in the demo.
+    ranks() {
+      const out = {};
+      for (const r of RANKS) out[r] = { label: LABEL[r], model: MODEL[r], effort: EFFORT[r] };
+      return out;
+    }
+    cast(spell, choice) {
+      const c = typeof choice === 'string' ? { rank: choice } : (choice || {});
+      const rank = c.rank;
+      this.effortChoice = ['low', 'medium', 'high', 'xhigh', 'max'].indexOf(c.effort) >= 0 ? c.effort : null;
       spell = (spell || '').trim() || 'Hechizo sin nombre';
       if (!this.opened) { this.opened = true; this.emit('room.opened', { project: 'demo', guild: GUILD }); }
       const slug = slugify(spell);
@@ -96,7 +107,8 @@
       const task = { id, kind, agent, rank, file: p.file.replace('{slug}', slug), diff: diffFor(kind, slug, spell), state: 'created', estimate, erred: false };
       this.tasks.set(id, task);
       this.emit('task.created', { task: id, title: p.title + (kind === 'read' ? ': ' + short(spell) : ''), estimate, rank, reason: forced ? 'elegido por ti' : 'plan simulado: ' + kind });
-      this.at(0.6, () => this.emit('agent.summoned', { agent, guild: GUILD, rank, model: MODEL[rank], account: this.account }));
+      const effort = this.effortChoice || EFFORT[rank];
+      this.at(0.6, () => this.emit('agent.summoned', { agent, guild: GUILD, rank, model: MODEL[rank], account: this.account, effort }));
       this.at(2.8, () => { task.state = 'assigned'; this.emit('agent.assigned', { agent, task: id }); });
       this.at(4.2, () => {
         task.state = 'reading';

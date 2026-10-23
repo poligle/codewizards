@@ -3,7 +3,7 @@
 // note and token estimate for the task. It costs no tokens. A model-based Archmage only comes in if
 // an eval shows that it routes better than these rules by more than it costs (docs: §5 of
 // auditorias/orquestacion.md).
-import { WORKER_RANKS } from './config.js';
+import { WORKER_RANKS, EFFORTS } from './config.js';
 
 const FILE = /(?:^|[\s`'"(])[\w./-]+\.(?:js|mjs|cjs|ts|tsx|jsx|py|go|rs|java|rb|php|c|h|cc|cpp|hpp|cs|swift|kt|md|json|ya?ml|toml|css|html|sh|sql)\b/gi;
 const lower = r => (r === 'sabio' ? 'joven' : 'aprendiz');
@@ -30,12 +30,13 @@ export function estimate(rank, table, history = {}) {
 }
 
 /**
- * @param {{text: string, override?: string|null, table: any, quota?: Record<string, {status: string, utilization: number|null, resets_at: number|null}>,
- *   history?: Record<string, number[]>}} o
- * @returns {{rank: string, model: string, maxTurns: number, note: string, estimate: number, reason: string,
+ * @param {{text: string, override?: string|null, model?: string|null, effort?: string|null, table: any,
+ *   quota?: Record<string, {status: string, utilization: number|null, resets_at: number|null}>, history?: Record<string, number[]>}} o
+ *   `model` and `effort`: the user's choice for this spell (a model of the table, an effort level), over the rank's.
+ * @returns {{rank: string, model: string, effort: string|null, maxTurns: number, note: string, estimate: number, reason: string,
  *   wait: null|{until: number|null, reason: string}}}
  */
-export function route({ text, override = null, table, quota = {}, history = {} }) {
+export function route({ text, override = null, model = null, effort = null, table, quota = {}, history = {}, extraModels = [] }) {
   let { rank, reason } = override && WORKER_RANKS.includes(override)
     ? { rank: override, reason: 'chosen by you' } : classify(text, table);
   const q = quota.five_hour || null;
@@ -48,5 +49,10 @@ export function route({ text, override = null, table, quota = {}, history = {} }
     reason += ` · 5-hour window at ${Math.round(used * 100)} %: one rank down`;
   }
   const r = table.ranks[rank];
-  return { rank, model: r.model, maxTurns: r.maxTurns, note: r.note, estimate: estimate(rank, table, history), reason, wait };
+  const models = [...WORKER_RANKS.map(k => table.ranks[k].model), ...extraModels];
+  const m = model && models.includes(model) ? model : r.model;
+  const e = effort && EFFORTS.includes(effort) ? effort : (r.effort || null);
+  if (m !== r.model) reason += ` · model chosen by you`;
+  if (effort && e === effort && effort !== r.effort) reason += ` · effort chosen by you`;
+  return { rank, model: m, effort: e, maxTurns: r.maxTurns, note: r.note, estimate: estimate(rank, table, history), reason, wait };
 }

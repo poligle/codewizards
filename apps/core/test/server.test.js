@@ -85,7 +85,9 @@ test('hello replays the log; commands drive the room; events follow the contract
     const a = connect(srv);
     await a.opened;
     await waitFor(() => a.msgs.some(m => m.ctl === 'hello'), { what: 'hello' });
-    assert.deepEqual(a.msgs[0], { ctl: 'hello', room: 'demo', version: a.msgs[0].version, mode: 'demo', autoApprove: true, merge: false, accounts: [{ id: 'demo', guild: 'anthropic', label: 'Demo' }] });
+    const h = a.msgs[0];
+    assert.deepEqual([h.ctl, h.room, h.mode, h.autoApprove, h.merge, h.accounts], ['hello', 'demo', 'demo', true, false, [{ id: 'demo', guild: 'anthropic', label: 'Demo' }]]);
+    assert.deepEqual(Object.keys(h.ranks), ['aprendiz', 'joven', 'sabio']);
     a.ws.send(JSON.stringify({ cmd: 'hello', since: 0 }));
     a.ws.send(JSON.stringify({ cmd: 'auto', on: true }));
     a.ws.send(JSON.stringify({ cmd: 'cast', text: 'Add a dark mode' }));
@@ -101,8 +103,10 @@ test('hello replays the log; commands drive the room; events follow the contract
     const b = connect(srv);
     await b.opened;
     b.ws.send(JSON.stringify({ cmd: 'hello', since: 10 }));
-    await waitFor(() => b.msgs.filter(m => m.t).length === store.seq - 10, { what: 'replay since 10' });
+    await waitFor(() => b.msgs.some(m => m.ctl === 'live'), { what: 'replay since 10, then live' });
+    assert.equal(b.msgs.filter(m => m.t).length, store.seq - 10);
     assert.equal(b.msgs.find(m => m.t).seq, 11);
+    assert.deepEqual(b.msgs.at(-1), { ctl: 'live', seq: store.seq }, 'the replay ends with the live mark');
     // malformed and unknown commands get an error, never a crash
     a.ws.send('not json');
     a.ws.send(JSON.stringify({ cmd: 'rm -rf' }));
@@ -119,6 +123,12 @@ test('sanitize accepts the known commands and nothing else', () => {
   assert.deepEqual(sanitize({ cmd: 'cast', text: 'x', rank: 'auto' }), { cmd: 'cast', text: 'x' });
   assert.equal(sanitize({ cmd: 'cast', text: 'x', rank: 'emperor' }), null);
   assert.deepEqual(sanitize({ cmd: 'merge', task: 't3' }), { cmd: 'merge', task: 't3' });
+  assert.deepEqual(sanitize({ cmd: 'cast', text: 'x', model: 'claude-opus-5-5', effort: 'max' }), { cmd: 'cast', text: 'x', model: 'claude-opus-5-5', effort: 'max' });
+  assert.deepEqual(sanitize({ cmd: 'cast', text: 'x', model: 'auto', effort: 'auto' }), { cmd: 'cast', text: 'x' });
+  assert.equal(sanitize({ cmd: 'cast', text: 'x', effort: 'ultra' }), null);
+  assert.equal(sanitize({ cmd: 'cast', text: 'x', model: 'a b' }), null);
+  assert.deepEqual(sanitize({ cmd: 'notes', text: 'todo' }), { cmd: 'notes', text: 'todo' });
+  assert.equal(sanitize({ cmd: 'notes', text: 'x'.repeat(70000) }), null);
   assert.equal(sanitize({ cmd: 'cast', text: '   ' }), null);
   assert.equal(sanitize({ cmd: 'cast', text: 'x'.repeat(4001) }), null);
   assert.deepEqual(sanitize({ cmd: 'reject', task: 't12' }), { cmd: 'reject', task: 't12', comment: '' });

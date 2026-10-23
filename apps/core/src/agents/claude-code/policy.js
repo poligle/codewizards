@@ -44,10 +44,10 @@ export function systemNote(branch) {
 
 /**
  * Arguments for one headless turn. The prompt is not here: it goes in through stdin.
- * @param {{sessionId: string, resume?: boolean, policy: ReturnType<typeof buildPolicy>, model?: string|null,
+ * @param {{sessionId: string, resume?: boolean, policy: ReturnType<typeof buildPolicy>, model?: string|null, effort?: string|null,
  *   maxTurns?: number, maxBudgetUsd?: number|null, settingsFile?: string|null, note?: string|null}} o
  */
-export function claudeArgs({ sessionId, resume = false, policy, model = null, maxTurns = 40, maxBudgetUsd = null, settingsFile = null, note = null }) {
+export function claudeArgs({ sessionId, resume = false, policy, model = null, effort = null, maxTurns = 40, maxBudgetUsd = null, settingsFile = null, note = null }) {
   if (!/^[0-9a-f-]{36}$/i.test(sessionId)) throw new Error('session id must be a UUID');
   const a = ['-p', '--output-format', 'stream-json', '--verbose'];
   a.push(resume ? '--resume' : '--session-id', sessionId);
@@ -60,6 +60,10 @@ export function claudeArgs({ sessionId, resume = false, policy, model = null, ma
   if (model) {
     if (!MODEL.test(model)) throw new Error('--model: unexpected characters');
     a.push('--model', model);
+  }
+  if (effort) {
+    if (!['low', 'medium', 'high', 'xhigh', 'max'].includes(effort)) throw new Error('--effort: low, medium, high, xhigh or max');
+    a.push('--effort', effort);
   }
   if (settingsFile) a.push('--settings', settingsFile);
   if (note) a.push('--append-system-prompt', note);

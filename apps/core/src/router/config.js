@@ -6,7 +6,8 @@ import path from 'node:path';
 import { configDir } from '../paths.js';
 
 export const WORKER_RANKS = Object.freeze(['aprendiz', 'joven', 'sabio']);
-const MODEL = /^[A-Za-z0-9._[\]-]{1,80}$/;
+export const EFFORTS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
+export const MODEL = /^[A-Za-z0-9._[\]-]{1,80}$/;
 
 export function defaultRanks() {
   return JSON.parse(fs.readFileSync(new URL('./ranks.default.json', import.meta.url), 'utf8'));
@@ -26,6 +27,7 @@ export function checkRanks(t) {
     const x = t.ranks && t.ranks[r];
     if (!x) bad(`missing rank ${r}`);
     if (typeof x.model !== 'string' || !MODEL.test(x.model)) bad(`${r}.model must be a Claude Code alias or model id`);
+    if (x.effort !== undefined && !EFFORTS.includes(x.effort)) bad(`${r}.effort must be one of ${EFFORTS.join(', ')}`);
     if (!Number.isSafeInteger(x.maxTurns) || x.maxTurns < 1 || x.maxTurns > 200) bad(`${r}.maxTurns must be 1–200`);
     if (!Number.isSafeInteger(x.estimate) || x.estimate < 0) bad(`${r}.estimate must be a whole number of tokens`);
     if (typeof x.note !== 'string' || x.note.length > 2000) bad(`${r}.note must be text (up to 2000 characters)`);

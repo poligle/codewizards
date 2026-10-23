@@ -10,8 +10,9 @@ import { tmp } from './helpers.js';
 
 const table = defaultRanks();
 
-test('no model name is fixed in the code: the table is data, with Claude Code aliases', () => {
-  assert.deepEqual(['aprendiz', 'joven', 'sabio'].map(r => table.ranks[r].model), ['haiku', 'sonnet', 'opus']);
+test('no model name is fixed in the code: the table is data, with pinned model ids and an effort', () => {
+  assert.deepEqual(['aprendiz', 'joven', 'sabio'].map(r => [table.ranks[r].model, table.ranks[r].effort]),
+    [['claude-haiku-5-5', 'low'], ['claude-sonnet-5-5', 'medium'], ['claude-opus-5-5', 'high']]);
   const src = ['router.js', 'config.js'].map(f => fs.readFileSync(new URL(`../src/router/${f}`, import.meta.url), 'utf8')).join('\n');
   assert.doesNotMatch(src, /\b(haiku|sonnet|opus)\b|claude-[a-z]+-\d/, 'model names live only in ranks.default.json');
 });
@@ -62,4 +63,13 @@ test('config folder per system', () => {
   assert.equal(configDir({ XDG_CONFIG_HOME: '/x' }, 'linux'), path.join('/x', 'codewizards'));
   assert.match(configDir({ APPDATA: 'C:\\Users\\a\\AppData\\Roaming' }, 'win32'), /CodeWizards$/);
   assert.match(configDir({}, 'darwin'), /Library.Application Support.CodeWizards$/);
+});
+
+test('model and effort: the user\'s choice when it is valid, the rank\'s otherwise', () => {
+  const r = route({ text: 'add a toggle', model: 'claude-haiku-5-5', effort: 'xhigh', table });
+  assert.deepEqual([r.rank, r.model, r.effort], ['joven', 'claude-haiku-5-5', 'xhigh']);
+  const bad = route({ text: 'add a toggle', model: 'nope', effort: 'ultra', table });
+  assert.deepEqual([bad.model, bad.effort], ['claude-sonnet-5-5', 'medium']);
+  assert.equal(route({ text: 'x', model: 'my-model', extraModels: ['my-model'], table }).model, 'my-model', 'one given with --model');
+  assert.throws(() => checkRanks({ ...table, ranks: { ...table.ranks, sabio: { ...table.ranks.sabio, effort: 'ultra' } } }), /sabio.effort/);
 });

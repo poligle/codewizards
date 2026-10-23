@@ -14,6 +14,8 @@ export const BLOCK_REASONS = Object.freeze(['permission', 'quota', 'auth', 'user
 export const FAIL_REASONS = Object.freeze(['max_turns', 'budget', 'timeout', 'quota', 'auth', 'cap', 'error']);
 export const QUOTA_STATUS = Object.freeze(['ok', 'limited', 'exhausted', 'unknown']);
 export const CANCEL_BY = Object.freeze(['user', 'cap']);
+// Claude Code's reasoning effort levels (`--effort`).
+export const EFFORTS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/;
 const SLUG = /^[a-z0-9][a-z0-9-]{0,31}$/;
@@ -38,7 +40,7 @@ export const EVENTS = Object.freeze({
     task: id, title: str(200), estimate: { type: 'number', min: 0, nullable: true }, rank: opt(rank), reason: opt(str(200)),
   },
   'agent.summoned': {
-    agent: id, guild: { type: 'string', pattern: SLUG }, rank, model: str(80), account: str(64),
+    agent: id, guild: { type: 'string', pattern: SLUG }, rank, model: str(80), account: str(64), effort: opt({ type: 'string', enum: EFFORTS }),
   },
   'agent.assigned': { agent: id, task: id },
   'context.read': { agent: id, files: { type: 'array', max: 200, items: str(512) }, tokens_in: opt(Object.assign({ nullable: true }, int0)) },
