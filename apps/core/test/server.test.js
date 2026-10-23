@@ -128,6 +128,10 @@ test('sanitize accepts the known commands and nothing else', () => {
   assert.equal(sanitize({ cmd: 'cast', text: 'x', effort: 'ultra' }), null);
   assert.equal(sanitize({ cmd: 'cast', text: 'x', model: 'a b' }), null);
   assert.deepEqual(sanitize({ cmd: 'notes', text: 'todo' }), { cmd: 'notes', text: 'todo' });
+  assert.deepEqual(sanitize({ cmd: 'files' }), { cmd: 'files' });
+  assert.deepEqual(sanitize({ cmd: 'file', path: 'src/a.js' }), { cmd: 'file', path: 'src/a.js' });
+  assert.equal(sanitize({ cmd: 'file', path: 'a\0b' }), null);
+  assert.equal(sanitize({ cmd: 'file', path: '' }), null);
   assert.equal(sanitize({ cmd: 'notes', text: 'x'.repeat(70000) }), null);
   assert.equal(sanitize({ cmd: 'cast', text: '   ' }), null);
   assert.equal(sanitize({ cmd: 'cast', text: 'x'.repeat(4001) }), null);

@@ -245,6 +245,14 @@ async function claudeRoom(browser) {
     check(/claude-sonnet-5-5/.test(note), 'D serve: the blackboard shows the model Claude Code reported');
     check(git('rev-list', '--count', 'main').trim() === '1', 'D serve: main does not move');
     check(/Aprendiz/.test(note) && /esfuerzo alto/.test(note), 'D serve: the rank and the effort you chose are the ones that worked');
+    check(await page.locator('#deliv .dfile summary').filter({ hasText: 'hello.txt' }).count() === 1, 'D serve: the diff is shown file by file, with its counts');
+    check(/elegido por ti/.test(note), 'D serve: the Archmage\'s reason reads in Spanish');
+    await page.click('#files-box summary');
+    await page.waitForSelector('#files [data-file="README.md"]', { timeout: 10000 });
+    await page.click('#files [data-file="README.md"]');
+    await page.waitForSelector('#deliv pre.code', { timeout: 10000 });
+    check(/# demo/.test(await page.textContent('#deliv pre.code')), 'D serve: the file explorer opens a committed file, read-only, on the blackboard');
+    await page.click('#back');
     await page.click('[data-merge]');
     const merged = await page.waitForFunction(() => [...document.querySelectorAll('#log li b')].some(b => b.textContent === 'task.merged'), null, { timeout: 15000 }).then(() => true, () => false);
     check(merged && /Hello from the wizard/.test(git('show', 'main:hello.txt')), `D serve: the merge button brings the change into your branch${merged ? '' : ` (${await page.textContent('#hint')})`}`);

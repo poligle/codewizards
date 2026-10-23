@@ -48,6 +48,8 @@ export function sanitize(m) {
       };
     }
     case 'notes': return str(m.text, 64 * 1024) ? { cmd: 'notes', text: m.text } : null;
+    case 'files': return { cmd: 'files' };
+    case 'file': return str(m.path, 1024) && m.path && !m.path.includes('\0') ? { cmd: 'file', path: m.path } : null;
     case 'approve':
     case 'merge':
     case 'stop': return typeof m.task === 'string' && TASK.test(m.task) ? { cmd: m.cmd, task: m.task } : null;
@@ -131,6 +133,12 @@ export function startServer({ room, store, port = 0, token = newToken() }) {
         for (const ev of store.since(cmd.since)) out(ev);
         out({ ctl: 'live', seq: store.seq });
         subscribed = true;
+        return;
+      }
+      if (cmd.cmd === 'files' || cmd.cmd === 'file') {
+        Promise.resolve().then(() => (room.query ? room.query(cmd) : null))
+          .then(r => out(r || { ctl: 'error', message: 'this room has no files to show' }))
+          .catch(err => out({ ctl: 'error', message: String((err && err.message) || err).slice(0, 300) }));
         return;
       }
       Promise.resolve().then(() => room.handle(cmd)).catch(err => out({ ctl: 'error', message: String((err && err.message) || err).slice(0, 300) }));

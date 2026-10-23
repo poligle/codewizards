@@ -40,7 +40,19 @@
     health: h => 'Salud del proyecto: ' + h + ' %',
     outside: n => n === 1 ? '1 mago espera fuera' : n + ' magos esperan fuera',
     hourglass: s => 'la ventana de 5 h se renueva en ' + s,
+    back: 'Volver a la tarea',
+    binary: 'Fichero binario: no se muestra.',
+    tooBig: kb => 'Fichero grande (' + kb + ' KB): no se muestra entero.',
+    loading: 'Cargando…',
   };
+  // The Archmage's reasons come from the core in English; these are the known ones.
+  const REASONS = [
+    [/^default rank/, 'rango por defecto'], [/^chosen by you/, 'elegido por ti'], [/^long spell/, 'hechizo largo'],
+    [/^(\d+) files named/, 'nombra $1 ficheros'], [/^big job: "(.*)"/, 'trabajo grande: «$1»'], [/^small job: "(.*)"/, 'trabajo pequeño: «$1»'],
+    [/ · model chosen by you/, ' · modelo elegido por ti'], [/ · effort chosen by you/, ' · esfuerzo elegido por ti'],
+    [/ · 5-hour window at (\d+) %: one rank down/, ' · ventana de 5 h al $1 %: un rango menos'],
+  ];
+  const es = r => REASONS.reduce((t, [re, out]) => t.replace(re, out), String(r));
   const DEMO_ACCOUNTS = [{ id: 'demo', guild: 'anthropic', label: 'Demo' }];
   const live = !!(CW.net && CW.net.live);
   const world = new CW.World(), view = new CW.Renderer($('room'), A);
@@ -49,7 +61,7 @@
   let speed = 1, selTask = null, crtOn = true, t0 = null, canMerge = false;
   // Opening on an existing log: everything up to the core's `live` mark rebuilds the room at once
   // (no wizard walks in to leave again); only what follows is animated (Pol, 23/10/2026).
-  let replaying = live, modelSeq = 0, lastReset = null, statusT = 1;
+  let replaying = live, modelSeq = 0, lastReset = null, statusT = 1, viewing = null, filesLoaded = false;
 
   const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const kfmt = n => ((Number(n) || 0) / 1000).toFixed(1).replace('.', ',') + 'k';
@@ -133,6 +145,7 @@
   }
 
   function select(id) {
+    viewing = null;
     const prev = selTask;
     selTask = id;
     if (prev) renderTask(prev);
@@ -143,7 +156,33 @@
   }
 
   const ACTIVE = new Set(['created', 'assigned', 'reading', 'writing', 'presenting', 'rejected', 'error', 'blocked']);
+  // A full diff from git, one collapsible block per file with its +/- counts; git's own header
+  // lines (index, modes, ---/+++) are left out. Partial diffs from the wizard stay as they are.
+  function diffHtml(body) {
+    const line = l => '<span class="' + (l.startsWith('@@') ? 'hunk' : l[0] === '+' ? 'add' : l[0] === '-' ? 'del' : 'ctx') + '">' + esc(l) + '</span>';
+    if (!/^diff --git /m.test(body)) return '<pre class="diff">' + String(body).split('\n').map(line).join('\n') + '</pre>';
+    return String(body).split(/^(?=diff --git )/m).filter(Boolean).map(chunk => {
+      const lines = chunk.split('\n'), name = (/ b\/(.+)$/.exec(lines[0]) || [])[1] || lines[0];
+      const body2 = lines.slice(1).filter(l => !/^(index |new file mode|deleted file mode|old mode|new mode|similarity|rename |--- |\+\+\+ )/.test(l));
+      const add = body2.filter(l => l[0] === '+').length, del = body2.filter(l => l[0] === '-').length;
+      return '<details class="dfile" open><summary><code>' + esc(name) + '</code> <span class="n-add">+' + add + '</span> <span class="n-del">−' + del + '</span></summary>' +
+        '<pre class="diff">' + body2.map(line).join('\n') + '</pre></details>';
+    }).join('');
+  }
+
+  function showFile(f) {
+    const box = $('deliv');
+    const lines = f.content ? f.content.replace(/\n$/, '').split('\n') : [];
+    box.innerHTML = '<h3 class="dt"><code>' + esc(f.path) + '</code></h3>' +
+      '<p><button type="button" class="mini" id="back">' + esc(T.back) + '</button></p>' +
+      (f.loading ? '<p class="empty">' + esc(T.loading) + '</p>' : f.binary ? '<p class="empty">' + esc(T.binary) + '</p>'
+        : f.truncated ? '<p class="empty">' + esc(T.tooBig(Math.round(f.size / 1024))) + '</p>'
+          : '<pre class="code">' + lines.map((l, i) => '<span class="ln">' + (i + 1) + '</span>' + esc(l)).join('\n') + '</pre>');
+    $('back').addEventListener('click', () => { viewing = null; showDeliv(); });
+  }
+
   function showDeliv() {
+    if (viewing) { showFile(viewing); return; }
     const box = $('deliv'), t = tasks.get(selTask);
     const canReview = !!(t && t.state === 'review');
     $('approve').disabled = $('reject').disabled = !canReview;
@@ -151,19 +190,16 @@
     if (!t) { box.innerHTML = '<p class="empty">' + esc(tasks.size ? T.choose : T.empty) + '</p>'; return; }
     const st = shownState(t);
     const body = t.diff || t.partial;
-    const lines = body ? String(body).split('\n').map(l => {
-      const k = l.startsWith('@@') ? 'hunk' : l[0] === '+' ? 'add' : l[0] === '-' ? 'del' : 'ctx';
-      return '<span class="' + k + '">' + esc(l) + '</span>';
-    }).join('\n') : '';
+    const lines = body ? diffHtml(body) : '';
     box.innerHTML = '<h3 class="dt">' + esc(t.title) + '</h3><p class="dm">' +
       (t.guild ? emblem(t.guild) + esc(nameOf(t.guild)) + ' · ' + esc(T.ranks[t.rank] || t.rank) + ' · ' : '') +
       (t.model ? '<span class="model">' + esc(t.model) + (t.effort ? ' · ' + esc(T.effortOf(T.efforts[t.effort] || t.effort)) : '') + '</span> · ' : '') +
       (!t.guild && t.rank ? esc(T.ranks[t.rank] || t.rank) + ' · ' : '') +
       '<span class="st st-' + st + '">' + esc(T.states[st]) + '</span>' + (t.file ? ' · <code>' + esc(t.file) + '</code>' : '') + '</p>' +
-      (t.reason ? '<p class="reason">' + esc(T.archmage) + ': ' + esc(T.ranks[t.rank] || t.rank || '') + ' (' + esc(t.reason) + ')</p>' : '') +
+      (t.reason ? '<p class="reason">' + esc(T.archmage) + ': ' + esc(T.ranks[t.rank] || t.rank || '') + ' (' + esc(es(t.reason)) + ')</p>' : '') +
       (t.state === 'waiting' && t.until ? '<p class="done-note wait">' + esc(T.waitUntil(hhmm(t.until))) + '</p>' : '') +
       doneNote(t) +
-      (lines ? '<pre class="diff">' + lines + '</pre>' : '<p class="empty">' + esc(T.nothing) + '</p>');
+      (lines || '<p class="empty">' + esc(T.nothing) + '</p>');
   }
 
   // Where an approved change went (live mode: the core reports the task branch and maybe a PR).
@@ -311,6 +347,7 @@
     if (typeof h.notes === 'string' && doc.activeElement !== $('notes')) $('notes').value = h.notes;
     renderAccounts(Array.isArray(h.accounts) && h.accounts.length ? h.accounts : DEMO_ACCOUNTS);
     canMerge = h.mode !== 'demo' && !h.merge;
+    $('files-box').hidden = h.mode === 'demo';
     $('mode').textContent = T.modes[h.mode] || 'local';
     $('auto').disabled = !h.autoApprove;           // outside the demo nothing goes in without review
     if (!h.autoApprove) $('auto').checked = false;
@@ -323,15 +360,37 @@
 
   function onError(msg) { $('hint').textContent = msg; }
 
+  // The file explorer: the tree of what is committed on your branch; a file opens on the blackboard.
+  function renderFiles(list) {
+    const root = {};
+    for (const p of list) { let n = root; const parts = p.split('/'); parts.forEach((part, i) => { if (i === parts.length - 1) (n['\0'] ||= []).push(p); else n = n[part] ||= {}; }); }
+    const html = n => Object.keys(n).filter(k => k !== '\0').sort().map(d => '<details><summary>' + esc(d) + '/</summary>' + html(n[d]) + '</details>').join('') +
+      (n['\0'] || []).sort().map(p => '<button type="button" class="fbtn" data-file="' + esc(p) + '">' + esc(p.split('/').pop()) + '</button>').join('');
+    $('files').innerHTML = html(root) || '<p class="empty">—</p>';
+  }
+  function onFiles(msg) {
+    if (msg.ctl === 'files') { filesLoaded = true; renderFiles(msg.files || []); return; }
+    viewing = msg;
+    showDeliv();
+  }
+  $('files-box').addEventListener('toggle', () => { if ($('files-box').open && !filesLoaded) { $('files').textContent = T.loading; bus.files(); } });
+  $('files').addEventListener('click', e => {
+    const b = e.target.closest('[data-file]');
+    if (!b) return;
+    viewing = { path: b.getAttribute('data-file'), loading: true };
+    showDeliv();
+    bus.file(viewing.path);
+  });
+
   if (!live) { renderAccounts(DEMO_ACCOUNTS); describeRanks(sim.ranks(), []); }
-  const bus = live ? CW.net.connect({ onEvent, onHello, onStatus, onError, onLive }) : (() => {
+  const bus = live ? CW.net.connect({ onEvent, onHello, onStatus, onError, onLive, onFiles }) : (() => {
     sim.on(onEvent);
     let saved = '';
     try { saved = G.localStorage.getItem('cw-notes') || ''; } catch (e) { /* sin almacenamiento */ }
     $('notes').value = saved;
     return {
       cast: (text, choice) => sim.cast(text, choice), approve: id => sim.approve(id), reject: (id, c) => sim.reject(id, c),
-      stop: () => {}, merge: () => {}, auto: on => sim.setAuto(on), speed: () => {},
+      stop: () => {}, merge: () => {}, auto: on => sim.setAuto(on), speed: () => {}, files: () => {}, file: () => {},
       notes: text => { try { G.localStorage.setItem('cw-notes', text); } catch (e) { /* sin almacenamiento */ } },
     };
   })();
@@ -366,6 +425,10 @@
     bus.cast(text, { rank: $('rank').value, model: $('model').value, effort: $('effort').value });
     if (!live) $('hint').textContent = T.hint;
   });
+  // Ctrl/Cmd + Enter casts from the spell box (keyboard use, step 5).
+  $('spell-text').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('spell').requestSubmit(); }
+  });
   doc.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => {
     speed = Number(b.dataset.speed);
     bus.speed(speed);
@@ -380,7 +443,11 @@
     $('comment').value = '';
   });
 
-  try { if (G.localStorage.getItem('cw-crt') === '0') crtOn = false; } catch (e) { /* sin almacenamiento */ }
+  // CRT: remembered; off by default for people who ask their system for reduced motion.
+  try {
+    const saved = G.localStorage.getItem('cw-crt');
+    if (saved === '0' || (saved === null && G.matchMedia && G.matchMedia('(prefers-reduced-motion: reduce)').matches)) crtOn = false;
+  } catch (e) { /* sin almacenamiento */ }
   function applyCrt() {
     $('screen').classList.toggle('crt', crtOn);
     $('crt').setAttribute('aria-pressed', crtOn ? 'true' : 'false');

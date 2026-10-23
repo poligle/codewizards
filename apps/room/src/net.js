@@ -29,6 +29,7 @@
         if (!msg || typeof msg !== 'object') return;
         if (msg.ctl === 'hello') { h.onHello(msg); return; }
         if (msg.ctl === 'live') { if (h.onLive) h.onLive(msg); return; }
+        if (msg.ctl === 'files' || msg.ctl === 'file') { if (h.onFiles) h.onFiles(msg); return; }
         if (msg.ctl === 'error') { if (h.onError) h.onError(String(msg.message)); else G.console.warn('codewizards:', String(msg.message)); return; }
         if (typeof msg.t !== 'string') return;
         if (typeof msg.seq === 'number' && msg.seq > lastSeq) lastSeq = msg.seq;
@@ -52,6 +53,8 @@
         send(c);
       },
       notes: text => send({ cmd: 'notes', text }),
+      files: () => send({ cmd: 'files' }),
+      file: path => send({ cmd: 'file', path }),
       merge: task => send({ cmd: 'merge', task }),
       approve: task => send({ cmd: 'approve', task }),
       reject: (task, comment) => send({ cmd: 'reject', task, comment: comment || '' }),

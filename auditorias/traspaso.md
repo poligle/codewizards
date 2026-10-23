@@ -196,3 +196,18 @@
   - (Pol) → actualizar Claude Code si quiere fijar los modelos 5.5.
 - Preguntas abiertas: si Pro incluye Opus (lo dirá la primera tarea de Gran Sabio con el alias).
 - Pruebas para Pol: las de `auditorias/simulacion.md` §6.
+
+## Paso 5 · UI/UX, ronda 1 · 23/10/2026
+- Pol da por validado el paso 4 (aún sin push: el parche del paso 5 va encima del suyo).
+- Cambios (detalle en `auditorias/uiux.md`):
+  - Explorador de archivos de solo lectura, que el núcleo lee con git.
+  - Diff por fichero con sus cuentas.
+  - Motivos del Archimago en español.
+  - Ctrl + Intro para lanzar.
+  - CRT apagado con movimiento reducido.
+  - Versión 1.5.0.
+- Encargos:
+  - (paso 5, ronda 2) → «La Torre»: fundar y entrar en salas, con el núcleo multisala.
+  - (paso 5, ronda 2) → auditoría WCAG 2.2 AA y prueba con 3 a 5 desarrolladores.
+  - (paso 6) → lo ya apuntado en su prompt.
+- Pruebas para Pol: las de `auditorias/uiux.md` §4.

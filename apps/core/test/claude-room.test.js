@@ -247,3 +247,14 @@ test('«Por hacer»: the room\'s notes are kept next to its log', async () => {
   assert.match(again.hello().notes, /fix the login/);
   if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(fs.realpathSync.native(dir), 'notes.md')).mode & 0o777, 0o600);
 });
+
+test('the read-only file explorer lists what git has committed and reads only those files', async () => {
+  const { room } = setup();
+  const files = await room.query({ cmd: 'files' });
+  assert.deepEqual(files, { ctl: 'files', files: ['README.md', 'src/app.js'] });
+  const f = await room.query({ cmd: 'file', path: 'README.md' });
+  assert.deepEqual([f.ctl, f.path, f.content, f.binary, f.truncated], ['file', 'README.md', '# demo\n', false, false]);
+  for (const bad of ['../../etc/passwd', '/etc/passwd', 'HEAD:README.md', 'nope.txt']) {
+    await assert.rejects(room.query({ cmd: 'file', path: bad }), /not in the repository/, bad);
+  }
+});

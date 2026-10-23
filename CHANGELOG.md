@@ -2,6 +2,19 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.5.0] · 2026-10-23 · Files, a better diff, keyboard
+
+Step 5 of milestone 1 (UI/UX), round 1.
+
+### Added
+- A read-only file explorer: the tree of what is committed on your branch; a file opens on the blackboard with line numbers. The core reads it through git, only paths git lists, with the room's token.
+- Ctrl or Cmd + Enter casts the spell.
+
+### Changed
+- The diff on the blackboard comes file by file, each with its added and removed lines, without git's internal header lines, and long lines scroll instead of wrapping.
+- The Archmage's reasons read in Spanish in the room.
+- With reduced motion asked by the system, the CRT starts off and its animations stop.
+
 ## [1.4.0] · 2026-10-23 · How the wizards behave
 
 Step 4 of milestone 1 (simulation and behaviour).
@@ -146,6 +159,7 @@ Step 1 of milestone 1. The mockup is the same as in v1.0.
 ### Fixed
 - The mockup no longer freezes on its first frame in real browsers.
 
+[1.5.0]: https://github.com/poligle/codewizards/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/poligle/codewizards/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/poligle/codewizards/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/poligle/codewizards/compare/v1.3.0...v1.3.1

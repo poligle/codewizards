@@ -14,6 +14,20 @@ export async function git(cwd, args, opts = {}) {
 
 export async function repoRoot(dir) { return (await git(dir, ['rev-parse', '--show-toplevel'])).trim(); }
 
+/** The files committed at `ref` (read-only explorer). */
+export async function listFiles(dir, ref = 'HEAD', max = 5000) {
+  return (await git(dir, ['ls-tree', '-r', '--name-only', '-z', ref])).split('\0').filter(Boolean).slice(0, max);
+}
+
+/** One committed file, read through git (never the filesystem): text up to `max` bytes, or binary. */
+export async function showFile(dir, ref, file, max = 200 * 1024) {
+  const size = Number((await git(dir, ['cat-file', '-s', `${ref}:${file}`])).trim());
+  if (size > max) return { size, binary: false, truncated: true, content: '' };
+  const content = await git(dir, ['show', `${ref}:${file}`]);
+  const binary = content.slice(0, 8000).includes('\0');
+  return { size, binary, truncated: false, content: binary ? '' : content };
+}
+
 /** The repository's first commit, or null when it has no commits yet. */
 export async function rootCommit(dir) {
   const r = await run('git', ['rev-list', '--max-parents=0', 'HEAD'], { cwd: dir });

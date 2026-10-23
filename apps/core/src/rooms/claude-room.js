@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { addWorktree, branchName, commitAll, currentBranch, diffAgainst, head, mergeFastForward, openPr, pushBranch, removeWorktree } from '../git.js';
+import { addWorktree, branchName, commitAll, currentBranch, diffAgainst, head, listFiles, mergeFastForward, openPr, pushBranch, removeWorktree, showFile } from '../git.js';
 import { ensureDir } from '../paths.js';
 import { redact } from '../redact.js';
 import { buildPolicy, claudeArgs, systemNote } from '../agents/claude-code/policy.js';
@@ -87,6 +87,15 @@ export class ClaudeRoom {
       mode: 'claude-code', autoApprove: false, merge: this.merge, accounts: [{ id: this.account, guild: 'anthropic', label: 'Claude Code' }],
       ranks, models: this.models(), efforts: [...EFFORTS], notes: this.readNotes(),
     };
+  }
+
+  // The read-only file explorer (step 5): what is committed on the user's current branch, read
+  // through git, only paths that git lists. Answers go to the asking client only.
+  async query(cmd) {
+    const files = await listFiles(this.repo);
+    if (cmd.cmd === 'files') return { ctl: 'files', files };
+    if (!files.includes(cmd.path)) throw new Error('that file is not in the repository');
+    return { ctl: 'file', path: cmd.path, ...(await showFile(this.repo, 'HEAD', cmd.path)) };
   }
 
   /** The models a spell may ask for: the table's, and the one given with --model. */
