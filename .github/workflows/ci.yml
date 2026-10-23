@@ -8,8 +8,8 @@ on:
 permissions:
   contents: read
 
-# Actions are pinned to full commit SHAs (immutable); Dependabot keeps the SHA
-# and the version comment up to date. The secret scan lives in secrets.yml.
+# Actions are pinned to full commit SHAs (immutable); Dependabot keeps the SHA and the version
+# comment up to date. The secret scan lives in secrets.yml and the demo deploy in pages.yml.
 
 jobs:
   art:
@@ -26,11 +26,11 @@ jobs:
           cache: pip
           cache-dependency-path: codewizards-art/04_source/requirements.txt
       - run: pip install -r codewizards-art/04_source/requirements.txt
-      - name: Validate assets
+      - name: Validate assets (and no orphans)
         run: python3 codewizards-art/04_source/gen/check.py
 
-  mockup:
-    name: Mockup
+  room:
+    name: Room
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -47,8 +47,63 @@ jobs:
           cache-dependency-path: codewizards-art/04_source/requirements.txt
       - run: pip install -r codewizards-art/04_source/requirements.txt
       - name: JavaScript syntax
-        run: for f in apps/maqueta/src/*.js; do node --check "$f"; done
-      - name: Logic and event contract v0
-        run: node apps/maqueta/test/maqueta.test.mjs
-      - name: maqueta.html is up to date
-        run: python3 apps/maqueta/build.py --check
+        run: for f in apps/room/src/*.js; do node --check "$f"; done
+      - name: Room logic and event contract v1
+        run: node apps/room/test/room.test.mjs
+      - name: assets.gen.js is up to date
+        run: python3 apps/room/build.py --check
+
+  core:
+    name: Core (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Core, contract and room tests
+        run: npm test
+
+  smoke:
+    name: Smoke (Chromium, installed package)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Pack the app and install it as a user would
+        run: |
+          npm pack --silent
+          mkdir -p "$RUNNER_TEMP/app"
+          # Outside the lockfile on purpose: this is what a user's install resolves (ws is pinned
+          # exactly). zizmor reports it as adhoc-packages (low); accepted in auditorias/software.md.
+          npm install --prefix "$RUNNER_TEMP/app" --ignore-scripts --no-audit --no-fund ./codewizards-*.tgz
+          "$RUNNER_TEMP/app/node_modules/.bin/codewizards" --version
+      - name: Smoke test (static demo, phone, and the installed core)
+        run: node tools/smoke.mjs --bin "$RUNNER_TEMP/app/node_modules/codewizards/apps/core/bin/codewizards.js"
+      - name: Screenshots and the test package
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: smoke
+          path: |
+            tools/smoke/out/
+            codewizards-*.tgz
+          retention-days: 14

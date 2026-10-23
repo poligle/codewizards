@@ -2,6 +2,32 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.2] · 2026-10-22 · Architecture and the local core
+
+Step 2 of milestone 1 (architecture and software, phase A). The room runs on a local core.
+
+### Added
+- Local core (`apps/core/`): the `codewizards` command with `demo` (simulated wizards, no account, no network), `serve --repo PATH` (experimental: your own Claude Code works in a branch and git worktree per task, and nothing is committed until you approve it; `--open-prs` pushes and opens a draft pull request with your own `gh`) and `doctor`.
+- Local server on 127.0.0.1 only: per-run token, Host and Origin checks, a strict Content-Security-Policy and whitelisted commands.
+- Claude Code adapter: headless `stream-json`, the spell through stdin, `dontAsk` permissions, Bash only inside Claude Code's sandbox (none on native Windows), and caps on turns, time, wizards and tokens.
+- Event log in JSON Lines with owner-only permissions, masking of known secret formats, and replay on reconnect.
+- Event contract v1 as code (`packages/contract/`), with its validator.
+- Tests for the core with a fake Claude Code and synthetic recordings; a browser smoke test (Playwright, Chromium) on the installed package; a Pages workflow that publishes only the room demo; Dependabot for npm.
+- Architecture document (`docs/arquitectura.md`), step report (`auditorias/software.md`) and third-party licenses (`licenses/`), in Spanish except the last.
+
+### Changed
+- Event contract v1: a sequence number per room (replaying the log never doubles anything), timestamps in epoch milliseconds, the account in `agent.summoned` and `tokens.used`, `cost_usd`, guilds named after model makers (`google`), and new events for blocked wizards, quota, failed and cancelled tasks.
+- The mockup became the room (`apps/room/`): the page loads its scripts as files and `build.py` exports the art to `src/assets.gen.js`. The old Pages address redirects to the demo.
+- The room takes in agents it has not seen, paints unknown guilds in a neutral palette, offers a comment box for rejections and a stop button for real wizards.
+- README: a local app, how to run it, layout and conventions. Deliveries now come as git patches.
+
+### Fixed
+- The room froze on a guild it did not know.
+- The v1.1 cleanup had not reached git; its files are gone now, and the art check fails on orphan files.
+
+### Removed
+- The self-contained `apps/maqueta/maqueta.html`.
+
 ## [1.1] · 2026-10-22 · Product and brand
 
 Step 1 of milestone 1. The mockup is the same as in v1.0.
@@ -34,5 +60,6 @@ Step 1 of milestone 1. The mockup is the same as in v1.0.
 ### Fixed
 - The mockup no longer freezes on its first frame in real browsers.
 
+[1.2]: https://github.com/poligle/codewizards/compare/v1.1...v1.2
 [1.1]: https://github.com/poligle/codewizards/compare/v1.0...v1.1
 [1.0]: https://github.com/poligle/codewizards/tree/v1.0

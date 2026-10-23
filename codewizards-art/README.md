@@ -12,9 +12,11 @@ Pixel art painted pixel by pixel by code (no generative image models) and retouc
 - `palettes/`: `gbc_escenario.gpl` and `gbc_gremio_<guild>.gpl` (load them in Aseprite).
 - `meta.json`: size, frames, milliseconds, palette and anchor of every asset.
 - `preview/`: HTML demo with the CRT toggle.
-- `04_source/gen/`: generator (`gbc.py`, `build.py`, with the helpers `core.py` and `font.py`), validator (`check.py`) and the demo template.
+- `04_source/gen/`: generator (`gbc.py`, `build.py`, with the helpers `core.py` and `font.py`), validator (`check.py`, which also fails on files missing from `meta.json`) and the demo template.
 
-The first round, in SNES style, was retired in v1.1; it lives in tag `v1.0` under `codewizards-art/legacy/snes-ronda1/`.
+The first round, in SNES style, was retired in v1.1 (the removal reached git in v1.2); it lives in tag `v1.0` under `codewizards-art/legacy/snes-ronda1/`.
+
+The room uses this art through `apps/room/build.py`, which exports it to `apps/room/src/assets.gen.js` with the contract's guild ids (`google` uses the `gemini` palette until step 6 renames it).
 
 ## Style rules
 | Rule | Value |

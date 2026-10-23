@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>CodeWizards</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1>CodeWizards <span id="mode">demo</span></h1>
+  <div class="ctrls">
+    <div class="seg" role="group" aria-label="Velocidad de la simulación">
+      <button type="button" data-speed="1" aria-pressed="true">×1</button><button type="button" data-speed="2" aria-pressed="false">×2</button><button type="button" data-speed="4" aria-pressed="false">×4</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="auto"> Aprobar solo</label>
+    <button type="button" class="switch" id="crt" aria-pressed="true"><span class="knob" aria-hidden="true"></span>CRT</button>
+  </div>
+</header>
+<main class="layout">
+  <section class="panel grim" aria-labelledby="h-grim">
+    <h2 id="h-grim">Grimorio</h2>
+    <form id="spell">
+      <label for="spell-text">Hechizo</label>
+      <textarea id="spell-text" rows="3">Añade un modo oscuro a la página de ajustes</textarea>
+      <button type="submit" class="cast">Lanzar</button>
+    </form>
+    <h3>Tareas</h3>
+    <ol id="tasks" class="tasks"></ol>
+    <h3>Maná por gremio</h3>
+    <ul id="mana" class="mana"></ul>
+  </section>
+  <section class="panel sala" aria-label="Sala">
+    <div class="tv"><div class="screen crt" id="screen">
+      <canvas id="room" width="208" height="152" role="img" aria-label="Sala de la torre: los magos entran, leen, escriben y presentan"></canvas>
+      <canvas id="bloom" class="fx" width="208" height="152" aria-hidden="true"></canvas>
+      <div class="fx mask"></div><div class="fx scan"></div><div class="fx vig"></div>
+    </div></div>
+    <p class="hint" id="hint">Escribe un hechizo y pulsa «Lanzar». Datos simulados: no se llama a ninguna API.</p>
+  </section>
+  <section class="panel piz" aria-labelledby="h-piz">
+    <h2 id="h-piz">Pizarra</h2>
+    <div id="deliv" class="deliv"></div>
+    <label for="comment" class="cm">Comentario para el mago si rechazas</label>
+    <textarea id="comment" rows="2" maxlength="2000"></textarea>
+    <div class="review"><button type="button" id="approve" class="ok" disabled>Aprobar</button><button type="button" id="reject" class="no" disabled>Rechazar</button><button type="button" id="stop" class="halt" disabled hidden>Detener</button></div>
+    <h3>Pergamino</h3>
+    <ol id="log" class="log" aria-label="Registro de eventos"></ol>
+  </section>
+</main>
+<p id="live" class="sr-only" aria-live="polite"></p>
+<script src="assets.gen.js"></script>
+<script src="world.js"></script>
+<script src="sim.js"></script>
+<script src="render.js"></script>
+<script src="net.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

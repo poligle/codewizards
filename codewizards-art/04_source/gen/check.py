@@ -3,6 +3,8 @@
 Comprueba cada asset de meta.json: PNG indexado, alfa de 1 bit (solo el índice 0 transparente),
 colores en RGB555, colores dentro de su paleta, <= 16 colores en el escenario (salvo la sala base),
 <= 6 colores en los sprites de gremio (2 paletas de 3), nombres según la convención y tamaños.
+También falla ante huérfanos: ficheros de arte que no están en meta.json, paletas que build.py no
+genera o una carpeta legacy/ (lo retirado vive en los tags, no en el árbol).
 """
 import os
 import re
@@ -21,12 +23,30 @@ EXEMPT = {'Room_Base_01.png'}
 NAME = re.compile(r'^[A-Z][A-Za-z0-9]+(_[A-Za-z0-9]+)*\.png$')
 
 
+def orphans(meta):
+    """Ficheros de arte fuera de meta.json, paletas que build.py no genera y restos de legacy/."""
+    errs = []
+    if os.path.isdir(os.path.join(ART, 'legacy')):
+        errs.append('legacy/: lo retirado vive en su tag (v1.0), no en el árbol')
+    for sub in ('01_tiles', '02_characters', '03_effects'):
+        for root, _, files in os.walk(os.path.join(ART, sub)):
+            for f in sorted(files):
+                rel = os.path.relpath(os.path.join(root, f), ART).replace(os.sep, '/')
+                if rel not in meta:
+                    errs.append(f'{rel}: no está en meta.json (huérfano)')
+    expected = {'gbc_escenario.gpl'} | {f'gbc_gremio_{g}.gpl' for g in G.GUILDS}
+    for f in sorted(os.listdir(os.path.join(ART, 'palettes'))):
+        if f not in expected:
+            errs.append(f'palettes/{f}: build.py no genera esta paleta (huérfana)')
+    return errs
+
+
 def main():
     meta = json.load(open(os.path.join(ART, 'meta.json'), encoding='utf-8'))['assets']
     allowed = {G.SCENE.name: {h2rgb(h) for h in G.SCENE.hex}}
     for g in G.GUILDS:
         allowed[G.GP[g].name] = {h2rgb(h) for h in G.GP[g].hex}
-    errs = []
+    errs = orphans(meta)
     for rel, m in sorted(meta.items()):
         p = os.path.join(ART, rel)
         name = os.path.basename(rel)

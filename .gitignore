@@ -10,16 +10,15 @@ __pycache__/
 venv/
 .pytest_cache/
 
-# Web (para cuando llegue la maqueta / frontend)
+# Node
 node_modules/
 dist/
 build/
 .cache/
 .vite/
-
-# Cloudflare / Wrangler
-.wrangler/
-.dev.vars
+# Paquete de prueba (npm pack) y capturas de la prueba de humo
+codewizards-*.tgz
+tools/smoke/out/
 
 # Secretos: la clave de la API nunca va al repo
 .env

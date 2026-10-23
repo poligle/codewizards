@@ -10,7 +10,7 @@ Este documento es el `docs/agentes.md` de CodeWizards: contexto común, protocol
 2. La maqueta (hito 0) se hace en el Proyecto de claude.ai. Los agentes especializados (hito 1) trabajan después, cada uno en un chat nuevo y con el repo en el estado que dejó el anterior.
 3. Cada agente arranca con el mensaje de abajo, cambiando rol, paso y ronda.
 4. Cada agente presenta su propuesta y espera el «adelante» de Pol antes de tocar código o arte.
-5. Al terminar, Pol revisa el informe en `auditorias/`, los cambios, `COMMIT_MSG.txt` y la entrada en `auditorias/traspaso.md`.
+5. Al terminar, Pol revisa el informe en `auditorias/`, los cambios, `COMMIT_MSG.txt` y la entrada en `auditorias/traspaso.md`, y aplica la entrega con `git am` (va como parche de git para que también lleguen los borrados).
 
 Mensaje de arranque para cada agente:
 
@@ -39,9 +39,10 @@ CodeWizards es una app local y open source que dirige los CLI oficiales de agent
 - Concepto de partida en `docs/concepto/contexto_general.md` (v3.2), anterior al estilo GBC y a la app local; donde choque con este plan, manda el plan.
 - Ronda 1 de arte (SNES) y sus documentos: retirados en v1.1; siguen en el tag `v1.0`, en `codewizards-art/legacy/snes-ronda1/`.
 - Arte de la Fase 1 en estilo GBC: 64 assets en `codewizards-art/`, validados con `check.py`.
-- Maqueta v0 del hito 0 en `apps/maqueta/`: sala, grimorio, pizarra y pergamino con agentes simulados que emiten el contrato de eventos v0. Hito 0 cerrado (tag `v1.0`).
+- Maqueta v0 del hito 0: sala, grimorio, pizarra y pergamino con agentes simulados. Hito 0 cerrado (tag `v1.0`). Desde v1.2 es la sala de la app, en `apps/room/`.
 - Seguridad del repo y CI: escaneo de secretos, acciones fijadas por SHA y ajustes de GitHub (`auditorias/seguridad.md`).
 - Paso 1 (producto y marca) hecho en v1.1: `auditorias/producto.md`.
+- Paso 2 (arquitectura y software, fase A) hecho en v1.2: núcleo local en `apps/core/` (`codewizards demo`, `serve` y `doctor`), contrato v1 en `packages/contract/`, CI con prueba de humo en Chromium y Pages solo con la demo. Detalle en `docs/arquitectura.md` y `auditorias/software.md`.
 
 ### Decisiones de Pol (no se cambian sin preguntarle)
 
@@ -61,6 +62,15 @@ Decididas en el paso 1 (22/10/2026; detalle en `auditorias/producto.md` §8):
 - Los agentes trabajan en repos de GitHub, con ramas y PR.
 - 6 gremios, uno por fabricante (Anthropic, OpenAI, Google, DeepSeek, Qwen y Meta), con nombre de fantasía y el fabricante como dato. Copilot deja de ser gremio; puede volver como cuenta.
 
+Decididas en el paso 2 (22/10/2026; detalle en `auditorias/software.md` §4):
+
+- Empaquetado en dos fases: proceso local en Node con la sala en el navegador (paquete npm `codewizards`) hasta el hito 4; la app de escritorio se decide en el hito 5.
+- Contrato de eventos v1.
+- Términos comerciales de Anthropic: Pol los acepta antes del hito 3 y escribe a Anthropic para confirmar el caso (pendiente).
+- En Windows nativo, los magos no tienen Bash (el sandbox de Claude Code exige WSL2).
+- GitHub Pages con un workflow propio que publica solo la demo.
+- Las entregas de los agentes van como parche de git (`git am`), no copiando ficheros.
+
 ### Estilo vigente (GBC)
 
 | Regla | Valor |
@@ -78,38 +88,44 @@ Decididas en el paso 1 (22/10/2026; detalle en `auditorias/producto.md` §8):
 ### Cómo se construye
 
 - **Maqueta**: una página HTML con canvas, con datos simulados.
-- **Producto**: app local (el empaquetado lo decide el paso 2) que lanza los CLI oficiales sin modificar, con un adaptador por CLI que traduce su salida al contrato de eventos. La sala sigue siendo web, como la maqueta. Registro de eventos local; ramas y PR con el `git` y el `gh` del usuario. Sin backend propio: la página de descarga de `codewizards.app` es estática.
+- **Producto**: proceso local en Node (`apps/core/`) que lanza los CLI oficiales sin modificar, con un adaptador por CLI que traduce su salida al contrato de eventos, y sirve la sala (`apps/room/`) al navegador en 127.0.0.1 con token. Registro de eventos local; una rama y un worktree por tarea; commit, push y PR con el `git` y el `gh` del usuario, solo tras aprobar. Sin backend propio: la página de descarga de `codewizards.app` es estática. Arquitectura: `docs/arquitectura.md`.
 - **Agentes**: primero Claude Code, con la cuenta del usuario (su plan de Claude o su clave de API); después Codex, el CLI de Google y otros. Cada CLI se autentica con su propio flujo; CodeWizards nunca ve, guarda ni reenvía credenciales.
 - **Arte**: generador en Python (`codewizards-art/04_source/gen/gbc.py`), PNG indexados y `meta.json` con anclas.
 
-## Contrato de eventos v0
+## Contrato de eventos v1
 
-La sala no sabe de LLM: solo reproduce eventos. La maqueta los simula y los adaptadores de los CLI emitirán los mismos, así que la sala no cambia al conectar los agentes reales.
+La sala no sabe de LLM: solo reproduce eventos. El simulador y los adaptadores de los CLI emiten los mismos, así que la sala no cambia al conectar los agentes reales. La verdad ejecutable es `packages/contract/contract.js`: el núcleo valida cada evento antes de guardarlo o emitirlo.
 
-Formato: JSON por WebSocket, `{"v":0,"t":"<tipo>","ts":<ms>,"room":"<id>","agent":"<id>", …}`.
+Formato: JSON por WebSocket, `{"v":1,"t":"<tipo>","seq":<n>,"ts":<ms>,"room":"<id>","agent":"<id>", …}`. `seq` lo pone el registro del núcleo (1, 2, 3… por sala) y `ts` es la hora del hecho en milisegundos de época.
 
 | Evento | Datos | Qué hace el mago |
 | --- | --- | --- |
 | `room.opened` | proyecto, gremio dominante | Se encienden las antorchas; estandarte del gremio |
-| `task.created` | id, título, coste estimado | El Archimago lo anota en su grimorio |
-| `agent.summoned` | gremio, rango, modelo | Se abre la puerta y entra caminando |
+| `task.created` | id, título, coste estimado (o `null`) | El Archimago lo anota en su grimorio |
+| `agent.summoned` | gremio, rango, modelo, cuenta | Se abre la puerta y entra caminando |
 | `agent.assigned` | tarea | Camina a la estación que toque |
-| `context.read` | ficheros, tokens de entrada | Lee en la librería, con el bastón sobre los tomos |
+| `context.read` | ficheros, tokens de entrada (opcional) | Lee en la librería, con el bastón sobre los tomos |
 | `code.write` | fichero, diff parcial | Escribe en la mesa; suben runas |
 | `artifact.present` | entregable, diff | Señala la pizarra; la tiza resume el entregable |
-| `tokens.used` | entrada, salida, caché, coste | El orbe late; baja el maná del gremio |
+| `tokens.used` | cuenta, entrada, salida, caché, `cost_usd` (o `null`) | El orbe late; baja el maná |
 | `review.requested` | entregable | Espera junto a la pizarra; aviso en el panel |
 | `review.approved` / `review.rejected` | comentario | Celebra / vuelve a la mesa |
 | `agent.error` | mensaje | Confundido: «?» sobre la cabeza y humo gris |
-| `task.done` | resultado | Celebra y descansa o sale por la puerta |
+| `agent.blocked` / `agent.unblocked` | motivo (`permission`, `quota`, `auth`, `user`) | Espera con «!» hasta que se desbloquea |
+| `quota.updated` | cuenta, estado (`ok`, `limited`, `exhausted`, `unknown`), reinicio | Cambia el maná de la cuenta |
+| `task.done` | resultado, rama, PR (opcionales) | Celebra y descansa o sale por la puerta |
+| `task.failed` | motivo (`max_turns`, `budget`, `timeout`, `quota`, `auth`, `cap`, `error`), mensaje | «?», humo y a descansar |
+| `task.cancelled` | quién (`user`, `cap`) | Sale por la puerta |
 | `agent.idle` | — | Descansa en el sillón o medita en la alfombra |
 
 Reglas:
 
-- Cada evento lleva `ts` y se puede repetir sin efectos dobles.
-- La sala tolera huecos: si llega `code.write` sin `agent.assigned`, el mago camina primero a la mesa.
+- Un evento con un `seq` ya visto se ignora: repetir el registro o reconectarse no tiene efectos dobles.
+- La sala tolera huecos: si llega `code.write` de un agente que no ha visto, el mago entra por la puerta y va a la mesa.
+- Los gremios son el fabricante del modelo (`anthropic`, `openai`, `google`, `deepseek`, `qwen`, `meta`); uno desconocido se pinta con una paleta neutra.
+- `account` es un identificador local y opaco: nunca un correo ni una credencial.
 - El estado de la sala se reconstruye reproduciendo el registro (event sourcing).
-- Cambiar el contrato exige el «adelante» de Pol y sube la versión `v`.
+- Cambiar el contrato exige el «adelante» de Pol y sube la versión `v`. Historia: v0 en el hito 0; v1 en el paso 2 (`seq`, `ts` de época, `account`, `cost_usd`, gremios por fabricante y los eventos de bloqueo, cuota, fallo y cancelación).
 
 ## Protocolo común de los agentes
 
@@ -121,7 +137,7 @@ El de BaitSpace, adaptado: lectura, referencias, propuesta, puerta de aprobació
 4. **Puerta de aprobación**: sin el «adelante» de Pol no se tocan el estilo, la marca, el contrato de eventos, el modelo de negocio, la gestión de claves ni sus decisiones. Los arreglos pequeños y evidentes se hacen y se anotan.
 5. **Implementación**: cambios pequeños y revisables; ninguna clave en el repo ni en el navegador; el arte, siempre por el generador; colores nuevos, dentro de las paletas GBC.
 6. **Validación**: tests y `check.py` en verde; la maqueta sin errores de consola; capturas a ×3 con y sin CRT; lo no comprobado se dice.
-7. **Traspaso**: informe en `auditorias/<tema>.md`, cambios con `COMMIT_MSG.txt` y entrada en `auditorias/traspaso.md`; si el paso cierra una versión, también `TAG_MSG.txt` para el tag anotado y una entrada en `CHANGELOG.md`. Idioma: `COMMIT_MSG.txt`, `TAG_MSG.txt`, el changelog y los README, en inglés; el plan, los informes y el traspaso, en español.
+7. **Traspaso**: informe en `auditorias/<tema>.md`, cambios con `COMMIT_MSG.txt` y entrada en `auditorias/traspaso.md`; si el paso cierra una versión, también `TAG_MSG.txt` para el tag anotado y una entrada en `CHANGELOG.md`. La entrega va como parche de git (`git format-patch --binary`, que Pol aplica con `git am`), para que lleguen también los borrados; copiar ficheros encima del repo los pierde (le pasó a v1.1). Idioma: `COMMIT_MSG.txt`, `TAG_MSG.txt`, el changelog y los README, en inglés; el plan, los informes y el traspaso, en español.
 
 ```markdown
 ## Paso <N> · <rol> · <fecha>
@@ -140,8 +156,8 @@ Seis hitos: la maqueta está hecha (v1.0) y ahora toca la especialización; Clau
 | Hito | Qué | Quién | Puerta para pasar al siguiente |
 | --- | --- | --- | --- |
 | 0 · Maqueta | Sala GBC, grimorio y pizarra con agentes simulados | Claude, en el Proyecto (hecho, v1.0) | «Adelante» de Pol a la maqueta |
-| 1 · Especialización | Cada agente pule su parte sobre la maqueta | Agentes de los pasos 1 a 7 (paso 1 hecho, v1.1) | Contrato de eventos estable y maqueta pulida |
-| 2 · App local | Empaquetado, CI con prueba de humo y una primera versión de prueba | Pol y paso 2 | CI en verde y una versión de prueba que se instala y abre la sala |
+| 1 · Especialización | Cada agente pule su parte sobre la maqueta | Agentes de los pasos 1 a 7 (pasos 1 y 2 hechos, v1.1 y v1.2) | Contrato de eventos estable y maqueta pulida |
+| 2 · App local | Empaquetado, CI con prueba de humo y una primera versión de prueba | Pol y paso 2 (núcleo, CI y paquete de prueba en v1.2) | CI en verde y una versión de prueba que se instala y abre la sala |
 | 3 · Claude Code real | Gremio Anthropic real con Claude Code y la cuenta de Pol, con topes de uso | Pasos 2 y 3 | Una tarea real de punta a punta, con su consumo medido |
 | 4 · Más cuentas y reparto | Codex, el CLI de Google y otros; reparto por cuota restante, medido con evals | Paso 3 | Reparto medido sin perder calidad |
 | 5 · Lanzamiento | Página de descarga, plan de lanzamiento y versión publicada | Pasos 8 y 9 | — |
@@ -218,7 +234,7 @@ Actúa como Ingeniero de Software Senior especializado en aplicaciones locales p
 
 1. Repo: `apps/` (la maqueta pasa a ser la sala de la app), `codewizards-art/`, `docs/` y `auditorias/`; lo demás lo propones.
 2. App local: empaquetado para macOS, Linux y Windows (app de escritorio, o un proceso local que abre la sala en el navegador), firma, actualizaciones y qué se descarga desde `codewizards.app`. Comprueba la documentación y las licencias actuales.
-3. Adaptadores: uno por CLI oficial, que lanza el binario sin modificar y traduce su salida (hooks, JSON…) al contrato v0; primero Claude Code. Revisa los términos de cada proveedor (`auditorias/producto.md` §6.1).
+3. Adaptadores: uno por CLI oficial, que lanza el binario sin modificar y traduce su salida (hooks, JSON…) al contrato vigente; primero Claude Code. Revisa los términos de cada proveedor (`auditorias/producto.md` §6.1).
 4. Credenciales: CodeWizards nunca las toca. Cada CLI se autentica con su propio flujo y gestiona sus claves de API opcionales; nada de credenciales en el repo ni en los logs. Tope de uso por tarea y por sala.
 5. Ejecución del código de los agentes: los CLI ejecutan comandos en el ordenador del usuario; decide cómo se limitan (permisos de cada CLI, un worktree por tarea, contenedor opcional).
 6. GitHub: los agentes trabajan en ramas y PR, con el `git` y el `gh` del usuario; la pizarra es la revisión del diff.
@@ -305,7 +321,8 @@ Los riesgos mayores son los términos de los proveedores y el consumo de las cue
 
 - **Términos de los proveedores**: cada CLI, con sus condiciones; Anthropic exige su binario sin modificar y sus términos comerciales, y prohíbe intermediar credenciales.
 - **Marcas de terceros**: nombres de fantasía, el fabricante como dato, emblemas propios y aviso de no afiliación. El paso 7 cierra los nombres y el paso 8 busca la marca CodeWizards.
-- **Consumo**: un bucle de agentes agota el límite del plan del usuario; topes por tarea y por sala desde la primera llamada real.
+- **Consumo**: un bucle de agentes agota el límite del plan del usuario; topes por tarea y por sala desde la primera llamada real (provisionales en `docs/arquitectura.md` §10).
+- **Modo headless de Claude Code**: Anthropic pausó, sin descartarlo, que `claude -p` con suscripción gaste un crédito aparte, y anuncia que `--bare`, que no usa la sesión de la suscripción, será el modo por defecto de `-p`. El adaptador no lo usa y hay que comprobarlo con cada versión (paso 9); si llega, la alternativa es la sesión interactiva con hooks (`auditorias/software.md` §3).
 - **Seguridad**: el código que escriben los agentes nunca se ejecuta sin aislamiento.
 - **Alcance**: la sala es lo vistoso, pero el valor está en el control; la maqueta tiene que probar las dos cosas.
 - **Legibilidad**: el estilo GBC no puede volver ilegibles el código ni los costes.
@@ -318,11 +335,17 @@ Preguntas para Pol:
 - [ ] ¿Qué estados tiene cada rango de mago? Sigue abierta: la cierra el paso 4 con Pol.
 - [x] ¿El gremio Copilot representa la plataforma o al fabricante del modelo? Ninguna de las dos: deja de ser gremio y puede volver como cuenta.
 - [x] Licencia: código MIT y arte CC BY 4.0.
+- [x] ¿App de escritorio o proceso local con la sala en el navegador? Proceso local hasta el hito 4; escritorio en el hito 5 (paso 2).
+- [ ] ¿Aceptas los términos comerciales de Anthropic antes del hito 3? Decidido que sí; pendiente de hacerlo (Pol).
+- [ ] ¿Se publica ya una versión de prueba en npm para reservar el nombre `codewizards`? Recomendación del paso 2: sí, cuando Pol configure *trusted publishing*.
+- [ ] ¿Se añade al contrato un evento `command.run` para auditar cada orden que ejecuta un agente? Recomendación del paso 2: sí, en v2, con la orden ya filtrada de secretos.
 
 ## Documentos de referencia
 
 - `auditorias/producto.md` (paso 1): público, posicionamiento, MVP, modelo de negocio, riesgos, métricas y encargos.
 - `auditorias/seguridad.md`: seguridad del repo y CI.
+- `docs/arquitectura.md` (paso 2): núcleo local, seguridad, adaptadores, credenciales, ejecución, GitHub, datos, topes, pruebas, empaquetado y guías «cómo añadir».
+- `auditorias/software.md` (paso 2): diagnóstico, cambios y validación de la arquitectura.
 - `docs/concepto/contexto_general.md` (v3.2): visión, marca y arquitectura de partida; donde choque con este plan, manda el plan.
 - Ronda SNES (arte, generador y documentos de estilo): en el tag `v1.0`; sus correcciones de geometría están en `auditorias/arte_ronda1_snes.md`.
 - La metodología se adaptó del `agentes.md` de BaitSpace (otro proyecto de Pol; no está en este repo).

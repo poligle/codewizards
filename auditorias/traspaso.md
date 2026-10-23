@@ -1,6 +1,6 @@
 # Traspaso entre pasos
 
-> Nota (22/10/2026, v1.1): la ronda 1 en estilo SNES se retiró del árbol en v1.1 y sigue en el tag `v1.0`, en `codewizards-art/legacy/snes-ronda1/`; las rutas de su entrada se refieren a esa carpeta del tag. `auditorias/arte.md` se fusionó en `auditorias/arte_ronda1_snes.md`. `Chalk_Font_4x6.png` era de la ronda SNES: el arte GBC usa `codewizards-art/03_effects/Pixel_Font_3x5.png`.
+> Nota (22/10/2026, v1.1; corregida en v1.2): la ronda 1 en estilo SNES se retiró del árbol en v1.1, aunque el borrado no llegó a git hasta v1.2, y sigue en el tag `v1.0`, en `codewizards-art/legacy/snes-ronda1/`; las rutas de su entrada se refieren a esa carpeta del tag. `auditorias/arte.md` se fusionó en `auditorias/arte_ronda1_snes.md`. `Chalk_Font_4x6.png` era de la ronda SNES: el arte GBC usa `codewizards-art/03_effects/Pixel_Font_3x5.png`.
 
 ## Paso 6 · Arte (ronda 1, adelantado) · 22/10/2026
 - Cambios: escenario completo de la Fase 1 con la escala corregida, sala base compuesta, estandartes con emblema por gremio, Aprendiz en 7 gremios (idle, walk, read, create, present, rest), efectos (halo, polvo, fuente de tiza), paletas `.gpl`, `meta.json` con anclas, generador y validador.
@@ -75,3 +75,26 @@
   2. Leer `auditorias/producto.md` §0 y §8 y confirmar que las decisiones son las tuyas.
   3. Ver la release v1.1 en GitHub con sus notas.
   4. Comprobar que la maqueta sigue igual en GitHub Pages.
+
+## Paso 2 · Arquitectura y software (A), fase A, ronda 1 · 22/10/2026
+- Cambios (detalle en `auditorias/software.md` §5 y arquitectura en `docs/arquitectura.md`):
+  - Limpieza de v1.1 aplicada: sus 165 borrados no habían llegado a git. `check.py` ahora falla ante huérfanos y ante `legacy/`.
+  - Núcleo local en `apps/core/`: `codewizards demo`, `serve --repo` (experimental, Claude Code del usuario) y `doctor`. Servidor solo en 127.0.0.1 con token, Host, Origin y CSP; registro JSONL con redacción de secretos; adaptador de Claude Code en modo headless, con el hechizo por stdin, permisos `dontAsk`, sandbox obligatorio y topes; rama y worktree por tarea; commit solo al aprobar; `--open-prs` con el `gh` del usuario.
+  - Contrato de eventos v1 en `packages/contract/`: `seq`, `ts` de época, `account`, `cost_usd`, gremios por fabricante y eventos de bloqueo, cuota, fallo y cancelación.
+  - La maqueta pasa a `apps/room/`: scripts en ficheros (`assets.gen.js` generado), modo en vivo (`net.js`), idempotencia, huecos, paleta neutra para gremios desconocidos, comentario al rechazar, botón «Detener» y bucle a prueba de fallos.
+  - CI: jobs `room`, `core` (Linux, macOS y Windows) y `smoke` (Playwright sobre el paquete instalado); `pages.yml` publica solo la demo; Dependabot para npm.
+- Archivos tocados: `apps/room/` (antes `apps/maqueta/`), `apps/core/`, `packages/contract/`, `tools/smoke.mjs`, `package.json`, `package-lock.json`, `.github/`, `.gitignore`, `codewizards-art/04_source/gen/check.py`, `codewizards-art/README.md`, `docs/agentes.md`, `docs/arquitectura.md` (nuevo), `auditorias/software.md` (nuevo), notas en `auditorias/maqueta.md` y `auditorias/seguridad.md`, `licenses/README.md` (nuevo), `README.md`, `CHANGELOG.md`, este traspaso, `COMMIT_MSG.txt` y `TAG_MSG.txt`. Borrados: los de la limpieza de v1.1 y `maqueta.html`.
+- Decisiones de Pol: su «Continuar» tras la propuesta lo tomo como «adelante» a las seis recomendaciones (`auditorias/software.md` §4): proceso local con la sala en el navegador y escritorio en el hito 5; contrato v1; aceptar los términos comerciales de Anthropic antes del hito 3; Windows nativo sin Bash; Pages con workflow propio; entregas como parche de git.
+- Encargos para pasos siguientes (detalle en `auditorias/software.md` §8):
+  - (Pol) → aceptar los términos comerciales de Anthropic y escribir a ventas; Pages a «GitHub Actions»; probar `serve` con su cuenta; grabar salidas reales de Claude Code para los tests.
+  - (paso 3) → el Archimago reparte el hechizo en tareas (hoy, un hechizo es una tarea); calibrar los topes; qué cuota expone Claude Code; tabla rango → modelo para `--model`.
+  - (paso 4) → maná por cuenta con `quota.updated`; comportamiento de `agent.blocked`, `task.failed` y `task.cancelled`.
+  - (paso 5) → comentario de rechazo, «Detener», pantalla de cuentas, vista de revisión del diff y aviso de no afiliación.
+  - (paso 6) → `gemini` pasa a `google` en el arte, fuera Copilot, y quizá un sprite para el gremio desconocido.
+  - (paso 7) → textos de la sala en inglés (objeto `T` de `ui.js`).
+  - (paso 9) → publicar en npm con *trusted publishing* y quitar `private`; workflow de release; comprobar en cada versión de Claude Code que `-p` sigue funcionando con suscripción (`--bare`).
+- Preguntas abiertas:
+  - ¿Se publica ya una versión de prueba en npm para reservar el nombre `codewizards`?
+  - ¿Añadimos `command.run` al contrato (v2) para auditar cada orden de un agente?
+  - Siguen las del paso 1: titular del copyright y la versión de `docs/agentes.md` en Claude Docs.
+- Pruebas para Pol: las de `auditorias/software.md` §9.

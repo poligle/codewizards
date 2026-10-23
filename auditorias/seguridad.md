@@ -2,6 +2,8 @@
 
 22/10/2026 · Estado: entregado para revisión de Pol.
 
+> Nota (v1.2): Pol eligió en el paso 2 el workflow propio para Pages (`.github/workflows/pages.yml`, solo la demo, acciones fijadas por SHA). Hay que cambiar Settings → Pages → Source a «GitHub Actions». La seguridad del núcleo local está en `docs/arquitectura.md` §3.
+
 ## 1. Qué pasaba
 - El job «Secrets (gitleaks)» falló en el primer push del repo público con `unknown revision` y código de salida 1. Ese push empezaba en el commit raíz, y gitleaks-action escanea el rango `<primer commit>^..<último>`: el raíz no tiene padre. No era cosa de `fetch-depth`, que ya estaba a 0.
 - El código 1 es un error de gitleaks; las fugas devuelven 2. El «no leaks found in partial scan» llegó tras escanear 0 bytes, así que el historial no se había escaneado nunca.

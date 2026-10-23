@@ -2,6 +2,8 @@
 
 22/10/2026 · Estado: v0 entregada para revisión de Pol.
 
+> Nota (v1.2): informe histórico. La maqueta pasó a ser la sala de la app en `apps/room/` (paso 2): ya no hay `maqueta.html` autocontenido, la página carga sus scripts y `build.py` genera `src/assets.gen.js`; el test es `apps/room/test/room.test.mjs` y el contrato, v1. La URL antigua de GitHub Pages redirige a la demo.
+
 ## 1. Qué hay
 - `apps/maqueta/maqueta.html` (unos 157 KB, autocontenida): sala GBC con filtro CRT, grimorio (hechizo, tareas y maná por gremio), pizarra (entrega en diff, aprobar y rechazar) y pergamino (registro de eventos).
 - `apps/maqueta/src/`: `world.js` (rejilla, rutas A*, estaciones y comportamiento de los magos), `sim.js` (simulador que emite el contrato de eventos v0), `render.js` (canvas) y `ui.js` (interfaz). La lógica no depende del DOM y se prueba en node.

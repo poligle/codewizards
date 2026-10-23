@@ -1,0 +1,4 @@
+{"type":"system","subtype":"init","cwd":"__CWD__","session_id":"__SESSION__","tools":["Read"],"mcp_servers":[],"model":"claude-sonnet-5-5","permissionMode":"dontAsk","apiKeySource":"none"}
+{"type":"system","subtype":"api_retry","attempt":1,"max_retries":10,"retry_delay_ms":30000,"error_status":429,"error":"rate_limit","uuid":"00000000-0000-4000-8000-000000000001","session_id":"__SESSION__"}
+{"type":"system","subtype":"api_retry","attempt":2,"max_retries":10,"retry_delay_ms":60000,"error_status":429,"error":"rate_limit","uuid":"00000000-0000-4000-8000-000000000002","session_id":"__SESSION__"}
+{"type":"result","subtype":"error_during_execution","is_error":true,"duration_ms":91000,"duration_api_ms":0,"num_turns":0,"result":"Claude usage limit reached. Your limit will reset at 5pm.","session_id":"__SESSION__","total_cost_usd":0,"usage":{"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0},"permission_denials":[]}

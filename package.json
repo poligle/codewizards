@@ -1,0 +1,38 @@
+{
+  "name": "codewizards",
+  "version": "1.2.0",
+  "private": true,
+  "description": "A local app that drives the official coding-agent CLIs with your own accounts and shows their work as a tower of pixel-art wizards.",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://github.com/poligle/codewizards#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/poligle/codewizards.git"
+  },
+  "bugs": "https://github.com/poligle/codewizards/issues",
+  "bin": {
+    "codewizards": "apps/core/bin/codewizards.js"
+  },
+  "files": [
+    "apps/core/bin/",
+    "apps/core/src/",
+    "apps/room/src/",
+    "packages/contract/contract.js",
+    "codewizards-art/LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node apps/core/bin/codewizards.js demo",
+    "test": "node --test \"apps/core/test/*.test.js\" \"packages/contract/test/*.test.js\" && node apps/room/test/room.test.mjs",
+    "smoke": "node tools/smoke.mjs"
+  },
+  "dependencies": {
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "playwright": "1.56.0"
+  }
+}
