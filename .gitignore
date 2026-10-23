@@ -19,6 +19,10 @@ build/
 # Paquete de prueba (npm pack) y capturas de la prueba de humo
 codewizards-*.tgz
 tools/smoke/out/
+# Nix
+result
+result-*
+.direnv/
 
 # Secretos: la clave de la API nunca va al repo
 .env

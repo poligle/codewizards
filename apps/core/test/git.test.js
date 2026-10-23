@@ -12,7 +12,8 @@ test('branch names are short, ASCII and prefixed', () => {
 
 test('a task works in its own worktree; the user checkout is untouched until approval', async () => {
   const { dir, git } = makeRepo();
-  assert.equal(fs.realpathSync(await repoRoot(path.join(dir, 'src'))), fs.realpathSync(dir));
+  // .native: on Windows git and the temp folder may disagree on short (RUNNER~1) and long names.
+  assert.equal(fs.realpathSync.native(await repoRoot(path.join(dir, 'src'))), fs.realpathSync.native(dir));
   const base = await head(dir);
   assert.equal(await currentBranch(dir), 'main');
   const wt = path.join(tmp(), 'wt');

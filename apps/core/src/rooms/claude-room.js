@@ -22,6 +22,9 @@ const short = (s, n) => {
   return t.length > n ? t.slice(0, n - 1) + '…' : t;
 };
 const message = err => String((err && err.message) || err);
+// The real path of a folder. A CLI reports the files it touches under its real working directory
+// (macOS: /var is /private/var; Windows: long names, not RUNNER~1), so the worktrees live under it.
+const realDir = p => { try { return fs.realpathSync.native(p); } catch { return p; } };
 
 export class ClaudeRoom {
   /**
@@ -31,7 +34,7 @@ export class ClaudeRoom {
    *   now?: () => number}} o
    */
   constructor({ store, repo, dir, bin, policy = buildPolicy(), caps = {}, account = 'claude-code', model = null, rank = 'sabio', openPrs = false, env = process.env, now = () => Date.now() }) {
-    Object.assign(this, { store, repo, dir, bin, policy, account, model, rank, openPrs, env, now });
+    Object.assign(this, { store, repo, dir: realDir(dir), bin, policy, account, model, rank, openPrs, env, now });
     this.caps = { ...DEFAULT_CAPS, ...caps };
     this.tasks = new Map();
     this.queue = [];

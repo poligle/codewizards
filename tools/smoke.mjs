@@ -10,6 +10,8 @@
 // Screenshots (×3, with and without CRT) go to tools/smoke/out/.
 //
 //   node tools/smoke.mjs [--bin path/to/codewizards.js]     (default: this repository's)
+//   CW_CHROMIUM=/path/to/chromium uses that browser instead of Playwright's download (NixOS:
+//   `nix develop .#smoke`, which sets it).
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -192,7 +194,7 @@ async function claudeRoom(browser) {
   }
 }
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.CW_CHROMIUM ? { executablePath: process.env.CW_CHROMIUM } : {});
 try {
   await staticDemo(browser);
   await mobileDemo(browser);

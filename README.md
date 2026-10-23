@@ -15,7 +15,7 @@
 
 CodeWizards is an open-source local app, in development, that turns the AI coding agents you already use into a tower of pixel-art wizards in the style of the Game Boy Color. A small process on your computer drives the official agent CLIs with your own accounts and opens the room in your browser, so your work spends the plan limits or free quotas you already have instead of pay-per-token credit. Each project is a room, each agent is a wizard, and every action is a spell you can see, approve and audit.
 
-> **Status: v1.2.** The room now runs on a local core: `codewizards demo` with simulated wizards, and an experimental `codewizards serve` that drives your own Claude Code on a repository. It is not on npm yet ([changelog](CHANGELOG.md)).
+> **Status: v1.2.1.** The room now runs on a local core: `codewizards demo` with simulated wizards, and an experimental `codewizards serve` that drives your own Claude Code on a repository. It is not on npm yet ([changelog](CHANGELOG.md)).
 > [Try the demo](https://poligle.github.io/codewizards/): simulated agents, interface still in Spanish.
 
 ## How it will work
@@ -44,10 +44,11 @@ CodeWizards is an open-source local app, in development, that turns the AI codin
 
 ## Run it locally
 
-You need Node 22 or newer and git. For `serve`, also [Claude Code](https://code.claude.com/docs), installed and signed in with your own account.
+You need Node 22 or newer and git. For `serve`, also [Claude Code](https://code.claude.com/docs), installed and signed in with your own account. With Nix, `nix develop` gives you node, npm, git and the Python the art needs.
 
 ```sh
 git clone https://github.com/poligle/codewizards && cd codewizards
+nix develop                                            # optional, with Nix
 npm ci --ignore-scripts
 node apps/core/bin/codewizards.js demo                 # the room with simulated wizards
 node apps/core/bin/codewizards.js doctor               # checks node, git, gh and claude
@@ -79,9 +80,11 @@ The room knows nothing about LLMs: it only replays events (`room.opened`, `task.
 ## Development
 
 ```sh
+nix develop                                      # optional: node, npm, git and Python with numpy and Pillow
 npm ci --ignore-scripts                          # ws, plus Playwright for the smoke test
 npm test                                         # core, contract and room tests
 npx playwright install chromium && npm run smoke # the room in a real browser
+nix develop .#smoke -c npm run smoke             # the same on NixOS, with nixpkgs' Chromium
 python3 -m pip install -r codewizards-art/04_source/requirements.txt   # numpy, Pillow
 python3 codewizards-art/04_source/gen/build.py   # regenerate art, previews and the art demo
 python3 codewizards-art/04_source/gen/check.py   # validate art: format, palettes, colours, names, orphans

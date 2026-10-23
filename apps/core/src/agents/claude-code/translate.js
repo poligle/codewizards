@@ -9,6 +9,7 @@
 //                            authentication_failed, oauth_org_not_allowed: agent.blocked (auth)
 //   next assistant message → agent.unblocked
 //   result                 → tokens.used, agent.error per permission denial, outcome (ok or failure)
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -48,6 +49,10 @@ export class ClaudeTranslator {
   /** @param {{agent: string, task: string, cwd: string, account: string}} o */
   constructor({ agent, task, cwd, account }) {
     Object.assign(this, { agent, task, cwd, account });
+    // The CLI may report paths under the real directory while we know it by a link (macOS /var).
+    let real = cwd;
+    try { real = fs.realpathSync.native(cwd); } catch { /* not on disk (recordings in tests) */ }
+    this.roots = real === cwd ? [cwd] : [cwd, real];
     this.session = null;
     this.model = null;
     this.capabilities = [];
@@ -118,8 +123,10 @@ export class ClaudeTranslator {
   // Paths inside the worktree become relative; anything else keeps its place, with ~ for home.
   display(p) {
     if (!path.isAbsolute(p)) return p;
-    const rel = path.relative(this.cwd, p);
-    if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) return rel.split(path.sep).join('/');
+    for (const root of this.roots) {
+      const rel = path.relative(root, p);
+      if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) return rel.split(path.sep).join('/');
+    }
     const home = os.homedir();
     return home && p.startsWith(home) ? '~' + p.slice(home.length) : p;
   }

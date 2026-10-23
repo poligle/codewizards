@@ -47,6 +47,24 @@ test('cast → wizard works in a worktree → blackboard → approve → commit 
   assert.ok(store.events.every(e => e.seq > 0), 'every event went through the store');
 });
 
+test('a data folder reached through a link still gives paths relative to the worktree', async () => {
+  // macOS: os.tmpdir() is under /var, a link to /private/var, and the CLI reports real paths.
+  // A directory junction does the same on Windows without admin rights.
+  const real = tmp('cw-real-');
+  const link = path.join(tmp('cw-link-'), 'data');
+  fs.symlinkSync(real, link, 'junction');
+  const repo = makeRepo();
+  const store = new EventStore({ room: 'linked' });
+  const room = new ClaudeRoom({
+    store, repo: repo.dir, dir: link, bin: FAKE_CLAUDE, policy: buildPolicy({ platform: 'linux' }), env: { ...process.env, FAKE_CLAUDE_DELAY_MS: '1' },
+  });
+  room.cast('Add a greeting file');
+  await waitFor(() => store.events.some(e => e.t === 'review.requested'), { what: 'review' });
+  const files = store.events.filter(e => e.t === 'code.write').map(e => e.file);
+  assert.deepEqual(files, ['hello.txt', 'README.md']);
+  assert.deepEqual(store.events.find(e => e.t === 'context.read').files, ['README.md', 'src']);
+});
+
 test('reject → the same session resumes with the comment → back to the blackboard', async () => {
   const { room, has, runs, store } = setup();
   room.cast('Add a greeting file');

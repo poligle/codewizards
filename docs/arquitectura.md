@@ -188,7 +188,7 @@ Al pasar un tope, la tarea termina con `task.failed` y `reason: cap` o `timeout`
 
 La CI ejecuta el núcleo en Linux, macOS y Windows, y la prueba de humo sobre el paquete empaquetado e instalado como lo haría un usuario. Las grabaciones de Claude Code son sintéticas hasta que Pol grabe las reales en el hito 3 (`apps/core/test/fixtures/claude-code/README.md`).
 
-En local:
+En local (con Nix, antes `nix develop`; en NixOS la prueba de humo va con `nix develop .#smoke -c npm run smoke`, que usa el Chromium de nixpkgs a través de `CW_CHROMIUM`):
 
 ```sh
 npm ci --ignore-scripts

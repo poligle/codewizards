@@ -1,7 +1,10 @@
 name: pages
 
 # Publishes only the room demo (apps/room/src) to GitHub Pages, instead of the whole repository.
-# Needs Settings → Pages → Source: "GitHub Actions". The old mockup URL redirects to the demo.
+# Needs Settings → Pages → Build and deployment → Source: "GitHub Actions" (while it says "Deploy
+# from a branch", Pages keeps rendering the README). Then run this workflow once by hand. The old
+# mockup URL redirects to the demo. No configure-pages step: a plain static site does not need it,
+# and the build job keeps read-only permissions.
 
 on:
   push:
@@ -36,7 +39,6 @@ jobs:
           <meta http-equiv="refresh" content="0; url=../../">
           <p>The demo moved: <a href="../../">open it here</a>.</p>
           HTML
-      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site

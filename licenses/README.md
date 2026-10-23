@@ -6,8 +6,8 @@ them from their registries, each with its own license file.
 
 | Component | Version | License | Used for | Shipped to users |
 | --- | --- | --- | --- | --- |
-| [ws](https://github.com/websockets/ws) | 8.22.0 | MIT | The core's WebSocket server | Yes, as an npm dependency |
-| [Playwright](https://github.com/microsoft/playwright) | 1.56.0 | Apache-2.0 | Smoke tests in Chromium | No (development only) |
+| [ws](https://github.com/websockets/ws) | pinned in `package.json` | MIT | The core's WebSocket server | Yes, as an npm dependency |
+| [Playwright](https://github.com/microsoft/playwright) | pinned in `package.json` | Apache-2.0 | Smoke tests in Chromium | No (development only) |
 | [NumPy](https://numpy.org/) | ≥ 1.24 | BSD-3-Clause | Art generator | No |
 | [Pillow](https://python-pillow.github.io/) | ≥ 10 | MIT-CMU | Art generator | No |
 | [gitleaks](https://github.com/gitleaks/gitleaks) | 8.30.1 | MIT | Secret scan in CI | No |

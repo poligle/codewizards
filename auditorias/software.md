@@ -1,6 +1,6 @@
 # Arquitectura y software · paso 2 (fase A), ronda 1
 
-22/10/2026 · Estado: entregado para revisión de Pol · Versión v1.2. La arquitectura resultante está en `docs/arquitectura.md`.
+22/10/2026 · Estado: entregado para revisión de Pol · Versión v1.2, corregida en v1.2.1 (23/10/2026, §10). La arquitectura resultante está en `docs/arquitectura.md`.
 
 ## 0. En pocas líneas
 
@@ -123,7 +123,7 @@ Su «Continuar» tras la propuesta lo tomo como «adelante» a las seis recomend
   - las claves de sandbox pasadas por `--settings`;
   - `--max-budget-usd` con suscripción;
   - el texto exacto del límite de uso.
-- **macOS y Windows**: el núcleo solo se ha ejecutado en Linux; los tests de los otros sistemas corren en la CI tras el push.
+- **macOS y Windows**: el núcleo solo se ha ejecutado en Linux; los tests de los otros sistemas corren en la CI tras el push. La primera CI falló en ambos (§10).
 - **Firefox y Safari**: no probados; solo Chromium.
 - **GitHub**: el workflow de Pages y Dependabot para npm aún no han corrido. `gh pr create` y `git push` reales no se han probado; están testeados con argumentos y con un repo local.
 - **Hito 5**: los precios y condiciones de firma para macOS y Windows.
@@ -155,7 +155,7 @@ Su «Continuar» tras la propuesta lo tomo como «adelante» a las seis recomend
 
 ## 9. Pruebas para Pol
 
-1. Aplicar el parche, sobre `main` en v1.1:
+1. Aplicar el parche, sobre `main` en v1.1 (con Nix, `nix develop` antes de npm; ver §10):
 
    ```sh
    git am paso-2.patch        # o bien: git pull --ff-only paso-2.bundle paso-2
@@ -167,3 +167,45 @@ Su «Continuar» tras la propuesta lo tomo como «adelante» a las seis recomend
 3. `node apps/core/bin/codewizards.js doctor`.
 4. Con Claude Code instalado y la sesión iniciada, en un repo de pruebas: `node apps/core/bin/codewizards.js serve --repo RUTA`, un hechizo pequeño, aprobar, y ver la rama `cw/t1-…` con el commit.
 5. Tras el push: CI en verde en los tres sistemas; Settings → Pages → Source: «GitHub Actions»; ejecutar `pages` y abrir `https://poligle.github.io/codewizards/` y la URL antigua de la maqueta.
+
+## 10. Corrección tras la primera CI (23/10/2026, v1.2.1)
+
+Pol aplicó v1.2 (árbol idéntico al entregado) y fusionó dos PR de Dependabot (Playwright 1.64.1 y `setup-python` 7.0.0). Entonces:
+
+- la CI falló en macOS y en Windows;
+- Pages seguía mostrando el README;
+- Pol usa Nix y no tiene npm instalado.
+
+| # | Problema | Causa | Arreglo | Comprobación |
+| --- | --- | --- | --- | --- |
+| 1 | macOS: `code.write` llegaba con una ruta absoluta en vez de `hello.txt` (log de la CI) | `os.tmpdir()` cuelga de `/var`, un enlace a `/private/var`: el CLI informa rutas bajo el directorio real y el traductor comparaba con la ruta del enlace. Le pasaría a cualquiera con la carpeta de datos tras un enlace | Los worktrees cuelgan de la ruta real (`realpathSync.native`) y el traductor acepta las dos | Reproducido en Linux con un `TMPDIR` enlazado; test nuevo con un enlace (en Windows, una *junction*) que falla sin el arreglo; 49/49 con y sin enlace |
+| 2 | Windows: no he visto el log | Por análisis, el mismo tipo de fallo: nombres cortos (`RUNNER~1`) frente a largos en el test de git y, según cómo informe el CLI, en el de la sala | `realpathSync.native` en los dos | Sin verificar hasta la próxima CI: si sigue en rojo, hace falta el log del job de Windows |
+| 3 | Pages abre el README | Pages sigue en «Deploy from a branch» y, sin `index.html` en la raíz, publica el README; el workflow `pages` necesita la fuente «GitHub Actions» | Instrucciones en el propio workflow y aquí. Fuera `configure-pages`: una web estática no lo necesita y así el job de build solo tiene lectura | Tras cambiar la fuente y ejecutar `pages` |
+| 4 | Sin npm (Nix) | — | `flake.nix` con dos entornos: `nix develop` (node 22 con npm, git y Python con numpy y Pillow) y, en Linux, `nix develop .#smoke`, con el Chromium de nixpkgs para la prueba de humo (`CW_CHROMIUM`) | Sintaxis comprobada con alejandra 4.0.0. Sin evaluar: aquí no hay Nix. La primera vez crea `flake.lock`, que hay que subir |
+| 5 | Con un Chromium completo, como el de Nix, la prueba de humo veía un 404 | El navegador pide `/favicon.ico` | `<link rel="icon" href="data:,">` en la sala | 26/26 con Playwright 1.64.1 y un Chromium completo |
+
+Validación de v1.2.1:
+
+- `npm test`: 55 tests (49 del núcleo y 6 del contrato) y 3142 comprobaciones de la sala.
+- Prueba de humo: 26/26.
+- actionlint: 0 problemas. zizmor: el mismo hallazgo bajo aceptado.
+- gitleaks: sin fugas.
+- El parche se aplica sobre `main` (`4fd69c3`).
+
+Pruebas para Pol:
+
+```sh
+git am paso-2-fix.patch
+nix develop
+npm ci --ignore-scripts && npm test
+node apps/core/bin/codewizards.js demo
+nix develop .#smoke -c npm run smoke        # opcional, la prueba de humo con el Chromium de nixpkgs
+git push && git tag -a v1.2.1 -F TAG_MSG.txt && git push origin v1.2.1
+```
+
+Después:
+
+1. En GitHub, Settings → Pages → Build and deployment → Source: «GitHub Actions».
+2. En Actions → pages, «Run workflow».
+3. Abrir `https://poligle.github.io/codewizards/`.
+4. Confirmar que la CI queda en verde en los tres sistemas; si Windows sigue en rojo, pásame su log.

@@ -98,3 +98,11 @@
   - ¿Añadimos `command.run` al contrato (v2) para auditar cada orden de un agente?
   - Siguen las del paso 1: titular del copyright y la versión de `docs/agentes.md` en Claude Docs.
 - Pruebas para Pol: las de `auditorias/software.md` §9.
+
+## Paso 2 · Corrección tras la primera CI (A) · 23/10/2026
+- Cambios: worktrees bajo la ruta real (la CI de macOS fallaba porque `/var` es un enlace a `/private/var`; en Windows, por análisis, los nombres cortos), con un test de regresión con enlace; la sala ya no pide `/favicon.ico`; `pages.yml` sin `configure-pages`; `flake.nix` con `nix develop` y `nix develop .#smoke`; la prueba de humo acepta `CW_CHROMIUM`; versión 1.2.1. Detalle en `auditorias/software.md` §10.
+- Archivos tocados: `apps/core/src/rooms/claude-room.js`, `apps/core/src/agents/claude-code/translate.js`, `apps/core/test/claude-room.test.js`, `apps/core/test/git.test.js`, `apps/room/src/index.html`, `tools/smoke.mjs`, `.github/workflows/pages.yml`, `flake.nix` (nuevo), `.gitignore`, `package.json`, `package-lock.json`, `README.md`, `CHANGELOG.md`, `docs/arquitectura.md`, `licenses/README.md`, `auditorias/software.md`, este traspaso, `COMMIT_MSG.txt` y `TAG_MSG.txt`.
+- Decisiones de Pol: ninguna nueva. Usa Nix: los comandos de desarrollo van con `nix develop`.
+- Encargos para pasos siguientes: (paso 9) → valorar un paquete Nix (`nix run`) además del de npm.
+- Preguntas abiertas: si Windows sigue en rojo, hace falta el log de su job.
+- Pruebas para Pol: las de `auditorias/software.md` §10.

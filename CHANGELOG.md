@@ -2,6 +2,16 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.2.1] · 2026-10-23 · Fixes after the first CI run
+
+### Fixed
+- macOS and Windows: the Claude Code room reported the files a wizard touched as absolute paths when its data folder was reached through a link (macOS `/var` is `/private/var`); worktrees now live under the real path, and a test with a link (a junction on Windows) keeps it that way.
+- The room no longer asks the server for `/favicon.ico`, which a full Chromium logged as an error.
+- The Pages workflow drops `configure-pages`, which a plain static site does not need; Pages still has to be switched to "GitHub Actions" once.
+
+### Added
+- `flake.nix` with development shells: `nix develop` (node, npm, git, Python with numpy and Pillow) and, on Linux, `nix develop .#smoke` with nixpkgs' Chromium for the smoke test (`CW_CHROMIUM`).
+
 ## [1.2] · 2026-10-22 · Architecture and the local core
 
 Step 2 of milestone 1 (architecture and software, phase A). The room runs on a local core.
@@ -60,6 +70,7 @@ Step 1 of milestone 1. The mockup is the same as in v1.0.
 ### Fixed
 - The mockup no longer freezes on its first frame in real browsers.
 
+[1.2.1]: https://github.com/poligle/codewizards/compare/v1.2...v1.2.1
 [1.2]: https://github.com/poligle/codewizards/compare/v1.1...v1.2
 [1.1]: https://github.com/poligle/codewizards/compare/v1.0...v1.1
 [1.0]: https://github.com/poligle/codewizards/tree/v1.0
