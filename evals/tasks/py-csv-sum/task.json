@@ -1,0 +1,13 @@
+{
+  "id": "py-csv-sum",
+  "title": "Sum a CSV column",
+  "difficulty": "joven",
+  "lang": "py",
+  "pilot": false,
+  "prompt": "Implement sum_column(csv_text, column) in sheet.py: the first line of csv_text is the header; return the sum of the named column as a float, skipping empty cells; raise KeyError if the column does not exist.",
+  "testCommand": "python3 -m unittest",
+  "check": [
+    "python3",
+    ".cw-check/test_sheet.py"
+  ]
+}

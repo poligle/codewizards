@@ -1,9 +1,10 @@
-// A room bound to one git repository where Claude Code does the work (milestone 3 material).
-// One spell = one task for now (the Archmage's split arrives with step 3). Each task gets a branch
-// and a worktree; the wizard walks in when Claude Code starts and reports its real model; the diff
-// goes to the blackboard; approval commits it to the task branch (with --merge, also brings it into
-// the user's branch as a fast-forward; with --open-prs, pushes and opens a draft PR with the user's
-// own `gh`); a rejection resumes the same Claude Code session with the reviewer's comment.
+// A room bound to one git repository where Claude Code does the work.
+// The Archmage (router/router.js) reads each spell and picks the rank, model, turns and note; the
+// task gets a branch and a worktree; the wizard walks in when Claude Code starts and reports its
+// real model; the diff goes to the blackboard. Approval commits it to the task branch; it reaches
+// the user's branch with --merge, with the blackboard's merge button (both fast-forward only) or as
+// a draft PR with --open-prs. A rejection resumes the same session with the comment. A wizard that
+// runs out of quota does not leave: it waits for the window to reset and then carries on.
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -13,11 +14,15 @@ import { redact } from '../redact.js';
 import { buildPolicy, claudeArgs, systemNote } from '../agents/claude-code/policy.js';
 import { ClaudeTranslator } from '../agents/claude-code/translate.js';
 import { runClaude } from '../agents/claude-code/runner.js';
+import { defaultRanks, WORKER_RANKS } from '../router/config.js';
+import { route } from '../router/router.js';
 
-// Provisional caps; step 3 calibrates them with measurements.
+// Provisional caps; the evals calibrate them. maxTurns null: each rank's own (ranks.json).
 export const DEFAULT_CAPS = Object.freeze({
-  maxAgents: 2, maxTasks: 20, maxTurns: 40, timeoutMs: 30 * 60000, roomTokens: 2000000, maxBudgetUsd: null,
+  maxAgents: 2, maxTasks: 20, maxTurns: null, timeoutMs: 30 * 60000, roomTokens: 2000000, maxBudgetUsd: null,
+  quotaWaitMs: 30 * 60000, maxWaits: 3,
 });
+const CONTINUE = 'The usage limit has reset. Continue the task where you left off.';
 
 const short = (s, n) => {
   const t = String(s).replace(/\s+/g, ' ').trim();
@@ -31,15 +36,19 @@ const realDir = p => { try { return fs.realpathSync.native(p); } catch { return 
 export class ClaudeRoom {
   /**
    * @param {{store: import('../store.js').EventStore, repo: string, dir: string, bin: string,
-   *   policy?: ReturnType<typeof buildPolicy>, caps?: Partial<typeof DEFAULT_CAPS>, account?: string,
-   *   model?: string|null, rank?: 'aprendiz'|'sabio', openPrs?: boolean, merge?: boolean, record?: boolean,
+   *   policy?: ReturnType<typeof buildPolicy>, caps?: Partial<typeof DEFAULT_CAPS>, ranks?: any, account?: string,
+   *   model?: string|null, rank?: string|null, openPrs?: boolean, merge?: boolean, record?: boolean,
    *   env?: NodeJS.ProcessEnv, now?: () => number, log?: (line: string) => void}} o
-   *   `env` is what Claude Code gets (see agents/claude-code/env.js); `record` keeps each turn's
-   *   output, secrets masked, in tasks/<task>/turn-<n>.ndjson for test recordings.
+   *   `ranks`: the Archmage's table (router/config.js); `model` and `rank` force one for every spell.
+   *   `env` is what Claude Code gets (agents/claude-code/env.js); `record` keeps each turn's output,
+   *   secrets masked, in tasks/<task>/turn-<n>.ndjson.
    */
-  constructor({ store, repo, dir, bin, policy = buildPolicy(), caps = {}, account = 'claude-code', model = null, rank = 'sabio', openPrs = false, merge = false, record = false, env = process.env, now = () => Date.now(), log = () => {} }) {
+  constructor({ store, repo, dir, bin, policy = buildPolicy(), caps = {}, ranks = null, account = 'claude-code', model = null, rank = null, openPrs = false, merge = false, record = false, env = process.env, now = () => Date.now(), log = () => {} }) {
     if (merge && openPrs) throw new Error('--merge and --open-prs do not go together: pick one');
-    Object.assign(this, { store, repo, dir: realDir(dir), bin, policy, account, model, rank, openPrs, merge, record, env, now, log });
+    if (rank && !WORKER_RANKS.includes(rank)) throw new Error('--rank must be aprendiz, joven or sabio');
+    Object.assign(this, { store, repo, dir: realDir(dir), bin, policy, account, model, openPrs, merge, record, env, now, log });
+    this.forcedRank = rank;
+    this.ranks = ranks || defaultRanks();
     this.caps = { ...DEFAULT_CAPS, ...caps };
     this.tasks = new Map();
     this.queue = [];
@@ -47,34 +56,48 @@ export class ClaudeRoom {
     this.started = 0;
     this.tokensUsed = 0;
     this.closing = false;
+    this.quota = {};      // window → {status, utilization, resets_at}: the latest Claude Code reported
+    this.history = {};    // rank → real tokens per task, for the Archmage's estimates
     this.opened = store.events.some(e => e.t === 'room.opened');
-    // Ids go on after the ones already in the log: a restarted room never reuses them.
+    // Ids go on after the ones already in the log: a restarted room never reuses them. The log also
+    // seeds the estimates and the quota.
     this.taskSeq = 0;
     this.agentSeq = 0;
+    const rankOf = {};
     for (const e of store.events) {
       const tn = /^t(\d+)$/.exec(e.task || '');
       if (tn) this.taskSeq = Math.max(this.taskSeq, Number(tn[1]));
       const an = /^a(\d+)$/.exec(e.agent || '');
       if (an) this.agentSeq = Math.max(this.agentSeq, Number(an[1]));
+      if (e.t === 'agent.summoned') rankOf[e.agent] = e.rank;
+      if (e.t === 'tokens.used' && rankOf[e.agent]) (this.history[rankOf[e.agent]] ||= []).push(e.input + e.output);
+      if (e.t === 'quota.updated' && e.window) this.quota[e.window] = { status: e.status, utilization: e.utilization ?? null, resets_at: e.resets_at ?? null };
     }
   }
 
   get mode() { return 'claude-code'; }
-  hello() { return { mode: 'claude-code', autoApprove: false }; }
+  hello() {
+    return { mode: 'claude-code', autoApprove: false, merge: this.merge, accounts: [{ id: this.account, guild: 'anthropic', label: 'Claude Code' }] };
+  }
 
-  emit(draft) { return this.store.append({ ts: this.now(), ...draft }); }
+  emit(draft) {
+    const ev = this.store.append({ ts: this.now(), ...draft });
+    if (ev.t === 'quota.updated' && ev.window) this.quota[ev.window] = { status: ev.status, utilization: ev.utilization ?? null, resets_at: ev.resets_at ?? null };
+    return ev;
+  }
 
   async handle(cmd) {
     switch (cmd.cmd) {
-      case 'cast': return this.cast(cmd.text);
+      case 'cast': return this.cast(cmd.text, cmd.rank);
       case 'approve': return this.approve(cmd.task);
       case 'reject': return this.reject(cmd.task, cmd.comment);
       case 'stop': return this.stop(cmd.task);
+      case 'merge': return this.mergeTask(cmd.task);
       default: return undefined;   // no auto-approval and no speed outside the demo
     }
   }
 
-  cast(text) {
+  cast(text, rank = null) {
     if (this.closing) return null;
     if (!this.opened) {
       this.opened = true;
@@ -82,10 +105,12 @@ export class ClaudeRoom {
     }
     const id = 't' + (++this.taskSeq);
     const title = short(text, 120) || 'Untitled spell';
-    this.emit({ t: 'task.created', task: id, title, estimate: null });
+    const plan = route({ text: String(text), override: rank || this.forcedRank, table: this.ranks, quota: this.quota, history: this.history });
+    this.emit({ t: 'task.created', task: id, title, estimate: plan.estimate, rank: plan.rank, reason: plan.reason.slice(0, 200) });
     const task = {
-      id, title, prompt: String(text), state: 'queued', agent: null, summoned: false, model: null, turns: 0,
-      sessionId: randomUUID(), branch: null, wt: null, base: null, baseBranch: null, run: null,
+      id, title, prompt: String(text), state: 'queued', agent: null, summoned: false, prepared: false, model: null, turns: 0, waits: 0, timer: null,
+      rank: plan.rank, plannedModel: this.model || plan.model, maxTurns: this.caps.maxTurns ? Math.min(this.caps.maxTurns, plan.maxTurns) : plan.maxTurns,
+      note: plan.note, sessionId: randomUUID(), branch: null, wt: null, base: null, baseBranch: null, run: null, result: null,
     };
     this.tasks.set(id, task);
     if (this.tokensUsed >= this.caps.roomTokens) {
@@ -97,7 +122,7 @@ export class ClaudeRoom {
       return task;
     }
     this.started++;
-    this.queue.push({ task, prompt: task.prompt, resume: false });
+    this.queue.push({ task, prompt: task.prompt, resume: false, wait: plan.wait });
     this.pump();
     return task;
   }
@@ -113,8 +138,14 @@ export class ClaudeRoom {
   async exec(job) {
     const { task } = job;
     try {
-      if (!job.resume) await this.prepare(task);
+      if (!task.prepared) await this.prepare(task);
       if (task.state === 'cancelled') return;
+      if (job.wait) {
+        // The window is (almost) used up before starting: the wizard comes in and waits.
+        if (!task.summoned) this.summon(task, task.plannedModel);
+        this.waitForQuota(task, { task, prompt: job.prompt, resume: job.resume }, job.wait.until);
+        return;
+      }
       await this.turn(task, job.prompt, job.resume);
     } catch (err) {
       if (task.state !== 'cancelled') this.fail(task, 'error', message(err));
@@ -129,13 +160,14 @@ export class ClaudeRoom {
     task.wt = path.join(this.dir, 'worktrees', task.id);
     ensureDir(path.dirname(task.wt));
     await addWorktree(this.repo, task.wt, task.branch, task.base);
+    task.prepared = true;
   }
 
   // The wizard walks in when Claude Code starts, with the model it really uses (system/init).
   summon(task, model) {
     task.summoned = true;
-    task.model = String(model || this.model || 'default').slice(0, 80);
-    this.emit({ t: 'agent.summoned', agent: task.agent, guild: 'anthropic', rank: this.rank, model: task.model, account: this.account });
+    task.model = String(model || task.plannedModel || 'default').slice(0, 80);
+    this.emit({ t: 'agent.summoned', agent: task.agent, guild: 'anthropic', rank: task.rank, model: task.model, account: this.account });
     this.emit({ t: 'agent.assigned', agent: task.agent, task: task.id });
   }
 
@@ -158,8 +190,8 @@ export class ClaudeRoom {
     task.turns++;
     const tr = new ClaudeTranslator({ agent: task.agent, task: task.id, cwd: task.wt, account: this.account });
     const args = claudeArgs({
-      sessionId: task.sessionId, resume, policy: this.policy, model: this.model, maxTurns: this.caps.maxTurns,
-      maxBudgetUsd: this.caps.maxBudgetUsd, settingsFile: this.settingsFile(task), note: systemNote(task.branch),
+      sessionId: task.sessionId, resume, policy: this.policy, model: this.model || task.plannedModel, maxTurns: task.maxTurns,
+      maxBudgetUsd: this.caps.maxBudgetUsd, settingsFile: this.settingsFile(task), note: `${systemNote(task.branch)} ${task.note}`.trim(),
     });
     const run = runClaude({
       bin: this.bin, args, cwd: task.wt, env: this.env, prompt, timeoutMs: this.caps.timeoutMs, onLine: this.recorder(task),
@@ -173,15 +205,41 @@ export class ClaudeRoom {
     const exit = await run.done;
     task.run = null;
     this.tokensUsed += tr.tokens;
+    if (tr.tokens) (this.history[task.rank] ||= []).push(tr.tokens);
     if (exit.killedFor === 'cancel') return this.cancelled(task, 'user');
     if (exit.killedFor === 'timeout') return this.fail(task, 'timeout', `No result after ${Math.round(this.caps.timeoutMs / 60000)} min: the wizard was stopped.`);
     const out = tr.outcome;
     if (!out) return this.fail(task, 'error', `Claude Code ended (${exit.code ?? exit.signal ?? 'no exit code'}) without a result.${exit.stderrTail ? ' ' + exit.stderrTail : ''}`);
+    if (!out.ok && out.reason === 'quota' && task.summoned) {
+      // Out of quota in the middle of the work: wait for the window, then resume the same session.
+      return this.waitForQuota(task, { task, prompt: CONTINUE, resume: true }, (this.quota.five_hour || {}).resets_at);
+    }
     if (!out.ok) return this.fail(task, out.reason, out.message);
     const diff = await diffAgainst(task.wt, task.base);
     this.emit({ t: 'artifact.present', agent: task.agent, task: task.id, artifact: task.branch, diff: diff.trim() ? diff : '(no changes)' });
     task.state = 'review';
     this.emit({ t: 'review.requested', agent: task.agent, task: task.id });
+    return undefined;
+  }
+
+  waitForQuota(task, job, until) {
+    task.waits++;
+    if (task.waits > this.caps.maxWaits) {
+      return this.fail(task, 'quota', `Still out of quota after ${this.caps.maxWaits} waits; the task stops here (its branch stays).`);
+    }
+    const now = this.now();
+    const at = until && until > now ? until + 60000 : now + this.caps.quotaWaitMs;
+    task.state = 'waiting';
+    this.emit({ t: 'agent.blocked', agent: task.agent, reason: 'quota', detail: 'waiting for the usage window to reset', until: at });
+    task.timer = setTimeout(() => {
+      task.timer = null;
+      if (task.state !== 'waiting' || this.closing) return;
+      this.emit({ t: 'agent.unblocked', agent: task.agent });
+      task.state = 'queued';
+      this.queue.push({ ...job, wait: null });
+      this.pump();
+    }, Math.max(0, at - now));
+    if (task.timer.unref) task.timer.unref();
     return undefined;
   }
 
@@ -201,6 +259,7 @@ export class ClaudeRoom {
         pr = await openPr(task.wt, { branch: task.branch, base: task.baseBranch, title: task.title, body: `Cast in CodeWizards and approved on the blackboard.\n\nSpell:\n\n> ${quoted}` });
       }
       task.state = 'done';
+      task.result = pr ? 'pr' : result;
       this.emit({ t: 'task.done', agent: task.agent, task: id, result, branch: task.branch, ...(pr ? { pr: pr.slice(0, 500) } : {}) });
       this.emit({ t: 'agent.idle', agent: task.agent });
       await removeWorktree(this.repo, task.wt).catch(() => {});
@@ -211,17 +270,36 @@ export class ClaudeRoom {
     }
   }
 
-  // --merge: fast-forward the user's branch to the task branch, or say why not (the change stays
-  // on its branch either way).
-  async mergeIn(task) {
+  // Fast-forward the user's branch to the task branch, or say why not (the change stays on its branch).
+  async ffInto(task) {
     const now = await currentBranch(this.repo);
-    let why = null;
-    if (!task.baseBranch || now !== task.baseBranch) why = `your checkout is on ${now || 'a detached HEAD'}, the task started from ${task.baseBranch || 'a detached HEAD'}`;
-    else {
-      try { await mergeFastForward(this.repo, task.branch); return 'merged'; } catch (err) { why = message(err); }
+    if (!task.baseBranch || now !== task.baseBranch) {
+      throw new Error(`your checkout is on ${now || 'a detached HEAD'}, the task started from ${task.baseBranch || 'a detached HEAD'}`);
     }
-    this.emit({ t: 'agent.error', agent: task.agent, message: `Not merged (${why}). The change is on ${task.branch}.`.slice(0, 2000) });
-    return 'ok';
+    await mergeFastForward(this.repo, task.branch);
+  }
+
+  async mergeIn(task) {
+    try {
+      await this.ffInto(task);
+      return 'merged';
+    } catch (err) {
+      this.emit({ t: 'agent.error', agent: task.agent, message: `Not merged (${message(err)}). The change is on ${task.branch}.`.slice(0, 2000) });
+      return 'ok';
+    }
+  }
+
+  // The blackboard's merge button, for an approved task that is still only on its branch.
+  async mergeTask(id) {
+    const task = this.tasks.get(id);
+    if (!task || task.state !== 'done' || task.result !== 'ok') throw new Error('only an approved task whose change is still on its branch can be merged');
+    try {
+      await this.ffInto(task);
+    } catch (err) {
+      throw new Error(`Not merged (${message(err)}). The change is still on ${task.branch}: bring it in with git merge.`);
+    }
+    task.result = 'merged';
+    this.emit({ t: 'task.merged', task: id, branch: task.branch, ...(task.summoned ? { agent: task.agent } : {}) });
   }
 
   reject(id, comment) {
@@ -238,6 +316,7 @@ export class ClaudeRoom {
     const task = this.tasks.get(id);
     if (!task || ['done', 'failed', 'cancelled', 'approving'].includes(task.state)) return;
     if (task.run) { task.run.stop(); return; }   // turn() reports the cancellation when it ends
+    if (task.timer) { clearTimeout(task.timer); task.timer = null; }
     this.queue = this.queue.filter(j => j.task !== task);
     this.cancelled(task, 'user');
   }
@@ -257,6 +336,7 @@ export class ClaudeRoom {
 
   async shutdown() {
     this.closing = true;
+    for (const t of this.tasks.values()) if (t.timer) { clearTimeout(t.timer); t.timer = null; }
     const runs = [...this.tasks.values()].filter(t => t.run).map(t => { t.run.stop(); return t.run.done; });
     await Promise.allSettled(runs);
   }

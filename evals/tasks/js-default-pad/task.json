@@ -1,0 +1,14 @@
+{
+  "id": "js-default-pad",
+  "title": "Pad with spaces by default",
+  "difficulty": "aprendiz",
+  "lang": "js",
+  "pilot": false,
+  "prompt": "padLeft in src/pad.js should pad with spaces when no fill character is given.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/pad.test.mjs"
+  ]
+}

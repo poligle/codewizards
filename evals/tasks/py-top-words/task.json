@@ -1,0 +1,13 @@
+{
+  "id": "py-top-words",
+  "title": "Count the most frequent words",
+  "difficulty": "joven",
+  "lang": "py",
+  "pilot": true,
+  "prompt": "Implement top_words(text, n) in words.py: count words case-insensitively (a word is a run of letters or digits; apostrophes and punctuation split words) and return the n most frequent as (word, count) tuples, sorted by count descending and then alphabetically.",
+  "testCommand": "python3 -m unittest",
+  "check": [
+    "python3",
+    ".cw-check/test_words.py"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "js-retry",
+  "title": "Retry an async call",
+  "difficulty": "joven",
+  "lang": "js",
+  "pilot": false,
+  "prompt": "Implement retry(fn, { attempts = 3, delayMs = 0 } = {}) in src/retry.js: call the async function fn; if its promise rejects, wait delayMs and call it again, up to attempts calls in total. Resolve with the first success; if every call fails, reject with the last error.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/retry.test.mjs"
+  ]
+}

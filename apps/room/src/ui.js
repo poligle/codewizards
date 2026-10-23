@@ -11,8 +11,8 @@
   const T = {
     states: { created: 'creada', assigned: 'asignada', reading: 'leyendo', writing: 'escribiendo', presenting: 'presentando',
       review: 'en revisión', approved: 'aprobada', rejected: 'rechazada', done: 'hecha', error: 'error',
-      blocked: 'bloqueada', failed: 'fallida', cancelled: 'cancelada' },
-    ranks: { aprendiz: 'Aprendiz', sabio: 'Gran Sabio', archimago: 'Archimago' },
+      blocked: 'bloqueada', waiting: 'esperando cuota', failed: 'fallida', cancelled: 'cancelada', pending: 'por integrar' },
+    ranks: { aprendiz: 'Aprendiz', joven: 'Mago Joven', sabio: 'Gran Sabio', archimago: 'Archimago' },
     modes: { demo: 'demo', 'claude-code': 'Claude Code' },
     pending: 'esperando mago',
     hint: 'Toca un mago o una tarea para ver su entrega.',
@@ -28,13 +28,19 @@
     merged: 'Aprobado e integrado en tu rama actual. Queda también en la rama',
     pr: 'Pull request (borrador):',
     noChanges: 'Aprobado sin cambios: no hay nada que integrar.',
+    mergeBtn: 'Integrar en mi rama',
+    manaLeft: (p, at) => 'Queda ' + p + ' % de la ventana de 5 h' + (at ? '; se recupera a las ' + at : ''),
+    week: p => '7 días: ' + p + ' % usado',
+    unknownQuota: 'sin datos de cuota todavía',
+    waitUntil: at => 'Sin cuota: espera en el sillón hasta las ' + at + ' y luego sigue.',
+    archmage: 'Archimago',
   };
-  const MANA = 60000;
+  const DEMO_ACCOUNTS = [{ id: 'demo', guild: 'anthropic', label: 'Demo' }];
   const live = !!(CW.net && CW.net.live);
   const world = new CW.World(), view = new CW.Renderer($('room'), A);
   const sim = live ? null : new CW.Sim({ seed: Date.now() % 100000 });
-  const tasks = new Map(), agents = new Map(), agentTask = new Map(), mana = {};
-  let speed = 1, selTask = null, crtOn = true, t0 = null;
+  const tasks = new Map(), agents = new Map(), agentTask = new Map(), accounts = new Map();
+  let speed = 1, selTask = null, crtOn = true, t0 = null, canMerge = false;
 
   const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const kfmt = n => ((Number(n) || 0) / 1000).toFixed(1).replace('.', ',') + 'k';
@@ -51,30 +57,43 @@
     return '<svg class="emb" viewBox="0 0 5 5" fill="currentColor" aria-hidden="true" style="color:' + gcol(g) + '">' + r.join('') + '</svg>';
   }
 
-  CW.GUILDS.forEach(g => {
-    mana[g] = MANA;
-    const li = doc.createElement('li');
-    li.innerHTML = emblem(g) + '<span class="gname">' + esc(nameOf(g)) + '</span>' +
-      '<span class="bar" role="meter" aria-label="' + esc(T.manaOf(nameOf(g))) + '" aria-valuemin="0" aria-valuemax="' + MANA + '" aria-valuenow="' + MANA + '">' +
-      '<span class="fill" style="width:100%;background:' + gcol(g) + '"></span></span><span class="val">' + kfmt(MANA) + '</span>';
-    $('mana').appendChild(li);
-    mana[g + ':el'] = li;
-  });
+  const hhmm = ms => { const d = new Date(ms); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
 
-  function spendMana(g, n) {
-    if (!has(mana, g + ':el')) return;   // per-account mana arrives with step 4
-    mana[g] = Math.max(0, mana[g] - n);
-    const li = mana[g + ':el'];
-    li.querySelector('.fill').style.width = (mana[g] / MANA * 100).toFixed(1) + '%';
-    li.querySelector('.bar').setAttribute('aria-valuenow', String(mana[g]));
-    li.querySelector('.val').textContent = kfmt(mana[g]);
+  // Mana per connected account: only the guilds of the accounts in use appear (Pol, 23/10/2026).
+  // The bar is what is left of the account's five-hour window, as the CLI reports it.
+  function renderAccounts(list) {
+    $('mana').textContent = '';
+    accounts.clear();
+    for (const a of list) {
+      const li = doc.createElement('li');
+      li.innerHTML = emblem(a.guild) + '<span class="gname">' + esc(a.label || nameOf(a.guild)) + '</span>' +
+        '<span class="bar" role="meter" aria-label="' + esc(T.manaOf(a.label || nameOf(a.guild))) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">' +
+        '<span class="fill" style="width:100%;background:' + gcol(a.guild) + '"></span></span><span class="val">—</span>' +
+        '<small class="quota">' + esc(T.unknownQuota) + '</small>';
+      $('mana').appendChild(li);
+      accounts.set(a.id, { li, week: null });
+    }
+  }
+
+  function showQuota(ev) {
+    const acc = accounts.get(ev.account);
+    if (!acc || typeof ev.utilization !== 'number') return;
+    const left = Math.round((1 - ev.utilization) * 100);
+    if (ev.window === 'seven_day') { acc.week = Math.round(ev.utilization * 100); }
+    else if (!ev.window || ev.window === 'five_hour') {
+      acc.li.querySelector('.fill').style.width = left + '%';
+      acc.li.querySelector('.bar').setAttribute('aria-valuenow', String(left));
+      acc.li.querySelector('.val').textContent = left + ' %';
+      acc.li.title = T.manaLeft(left, ev.resets_at ? hhmm(ev.resets_at) : null);
+    } else return;
+    acc.li.querySelector('.quota').textContent = (acc.li.title || '') + (acc.week !== null ? ' · ' + T.week(acc.week) : '');
   }
 
   function renderTask(id) {
     const t = tasks.get(id);
     if (!t) return;
-    const st = stateKey(t.state);
-    const who = t.guild ? esc(nameOf(t.guild)) + ' · ' + esc(T.ranks[t.rank] || t.rank) : esc(T.pending);
+    const st = shownState(t);
+    const who = t.guild ? esc(nameOf(t.guild)) + ' · ' + esc(T.ranks[t.rank] || t.rank) : esc(T.pending) + (t.rank ? ' · ' + esc(T.ranks[t.rank] || t.rank) : '');
     t.btn.innerHTML = (t.guild ? emblem(t.guild) : '<span class="emb ph" aria-hidden="true"></span>') +
       '<span class="tt"><b>' + esc(t.title) + '</b><small>' + who + ' · <span class="st st-' + st + '">' + esc(T.states[st]) + '</span></small></span>' +
       '<span class="tok">' + kfmt(t.tokens) + (t.estimate ? '<small>/' + kfmt(t.estimate) + '</small>' : '') + '</span>';
@@ -89,7 +108,7 @@
     btn.addEventListener('click', () => select(ev.task));
     li.appendChild(btn);
     $('tasks').appendChild(li);
-    tasks.set(ev.task, { id: ev.task, title: ev.title, estimate: ev.estimate, state: 'created', prev: null, tokens: 0, guild: null, rank: null, model: null, agent: null, diff: null, partial: null, file: null, branch: null, pr: null, result: null, btn });
+    tasks.set(ev.task, { id: ev.task, title: ev.title, estimate: ev.estimate, state: 'created', prev: null, tokens: 0, guild: null, rank: ev.rank || null, reason: ev.reason || null, model: null, agent: null, diff: null, partial: null, file: null, branch: null, pr: null, result: null, until: null, gone: false, li, btn });
     renderTask(ev.task);
     if (!selTask) select(ev.task);
   }
@@ -118,7 +137,7 @@
     $('approve').disabled = $('reject').disabled = !canReview;
     $('stop').disabled = !(live && t && ACTIVE.has(t.state));
     if (!t) { box.innerHTML = '<p class="empty">' + esc(tasks.size ? T.choose : T.empty) + '</p>'; return; }
-    const st = stateKey(t.state);
+    const st = shownState(t);
     const body = t.diff || t.partial;
     const lines = body ? String(body).split('\n').map(l => {
       const k = l.startsWith('@@') ? 'hunk' : l[0] === '+' ? 'add' : l[0] === '-' ? 'del' : 'ctx';
@@ -127,7 +146,10 @@
     box.innerHTML = '<h3 class="dt">' + esc(t.title) + '</h3><p class="dm">' +
       (t.guild ? emblem(t.guild) + esc(nameOf(t.guild)) + ' · ' + esc(T.ranks[t.rank] || t.rank) + ' · ' : '') +
       (t.model ? '<span class="model">' + esc(t.model) + '</span> · ' : '') +
+      (!t.guild && t.rank ? esc(T.ranks[t.rank] || t.rank) + ' · ' : '') +
       '<span class="st st-' + st + '">' + esc(T.states[st]) + '</span>' + (t.file ? ' · <code>' + esc(t.file) + '</code>' : '') + '</p>' +
+      (t.reason ? '<p class="reason">' + esc(T.archmage) + ': ' + esc(T.ranks[t.rank] || t.rank || '') + ' (' + esc(t.reason) + ')</p>' : '') +
+      (t.state === 'waiting' && t.until ? '<p class="done-note wait">' + esc(T.waitUntil(hhmm(t.until))) + '</p>' : '') +
       doneNote(t) +
       (lines ? '<pre class="diff">' + lines + '</pre>' : '<p class="empty">' + esc(T.nothing) + '</p>');
   }
@@ -140,14 +162,37 @@
     if (t.result === 'merged') return '<p class="done-note">' + esc(T.merged) + ' ' + b + '.</p>';
     const pr = /^https:\/\/[^\s"'<>]+$/.test(t.pr || '')
       ? ' ' + esc(T.pr) + ' <a href="' + esc(t.pr) + '" target="_blank" rel="noopener noreferrer">' + esc(t.pr) + '</a>' : '';
-    return '<p class="done-note">' + esc(T.saved) + ' ' + b + '.' + pr + '<br>' + esc(T.bring) + ' <code>git merge ' + esc(t.branch) + '</code></p>';
+    return '<p class="done-note">' + esc(T.saved) + ' ' + b + '.' + pr + '<br>' + esc(T.bring) + ' <code>git merge ' + esc(t.branch) + '</code>' +
+      (canMerge && !pr ? '<br><button type="button" class="merge" data-merge="' + esc(t.id) + '">' + esc(T.mergeBtn) + '</button>' : '') + '</p>';
   }
+
+  // The state shown: an approved change that is still only on its branch is "por integrar".
+  function shownState(t) {
+    if (t.state === 'done' && t.result === 'ok' && t.branch && !t.pr) return 'pending';
+    return stateKey(t.state);
+  }
+
+  // Finished tasks leave the list when their wizard walks out through the door (Pol, 23/10/2026);
+  // one still waiting to be merged stays until it is. The blackboard keeps showing the selected one.
+  function settled(t) {
+    return (t.state === 'done' && shownState(t) !== 'pending') || t.state === 'cancelled';
+  }
+  function dropTask(t) {
+    if (t.gone) return;
+    t.gone = true;
+    if (t.li && t.li.parentNode) t.li.parentNode.removeChild(t.li);
+  }
+  world.onLeave = id => {
+    const t = tasks.get(agentTask.get(id));
+    if (t) { t.left = true; if (settled(t)) dropTask(t); }
+  };
 
   const fmtT = ms => { const s = Math.max(0, ms) / 1000; return String(Math.floor(s / 60)).padStart(2, '0') + ':' + (s % 60).toFixed(1).padStart(4, '0'); };
   function logEvent(ev) {
     const ul = $('log'), near = ul.scrollTop + ul.clientHeight >= ul.scrollHeight - 24;
-    const keys = ['agent', 'task', 'guild', 'rank', 'model', 'file', 'title', 'message', 'reason', 'branch'].filter(k => ev[k] !== undefined).map(k => ev[k]);
+    const keys = ['agent', 'task', 'guild', 'rank', 'model', 'file', 'title', 'tool', 'command', 'message', 'reason', 'branch'].filter(k => ev[k] !== undefined).map(k => ev[k]);
     if (ev.t === 'tokens.used') keys.push(ev.input + '+' + ev.output + ' tok');
+    if (ev.t === 'quota.updated') keys.push((ev.window || '') + (typeof ev.utilization === 'number' ? ' ' + Math.round(ev.utilization * 100) + ' %' : ''), ev.status);
     const li = doc.createElement('li');
     li.className = 'ev ev-' + ev.t.split('.')[0].replace(/[^a-z]/g, '');
     li.innerHTML = '<time>' + fmtT(ev.ts - t0) + '</time> <b>' + esc(ev.t) + '</b> ' + esc(keys.join(' · '));
@@ -177,9 +222,8 @@
       case 'code.write': { const t = tasks.get(tk); if (t) { t.partial = ev.diff; t.file = ev.file; } setState(tk, 'writing'); break; }
       case 'artifact.present': { const t = tasks.get(tk); if (t) { t.diff = ev.diff; t.file = ev.artifact; } setState(tk, 'presenting'); break; }
       case 'tokens.used': {
-        const t = tasks.get(tk), a = agents.get(ev.agent), n = (ev.input || 0) + (ev.output || 0);
+        const t = tasks.get(tk), n = (ev.input || 0) + (ev.output || 0);
         if (t) t.tokens += n;
-        if (a) spendMana(a.guild, n);
         renderTask(tk);
         break;
       }
@@ -192,8 +236,16 @@
       case 'review.approved': setState(tk, 'approved'); break;
       case 'review.rejected': setState(tk, 'rejected'); break;
       case 'agent.error': setState(tk, 'error'); break;
-      case 'agent.blocked': { const t = tasks.get(tk); if (t && t.state !== 'blocked') t.prev = t.state; setState(tk, 'blocked'); break; }
-      case 'agent.unblocked': { const t = tasks.get(tk); if (t && t.state === 'blocked') setState(tk, t.prev || 'writing'); break; }
+      case 'agent.blocked': {
+        const t = tasks.get(tk);
+        if (t && t.state !== 'blocked' && t.state !== 'waiting') t.prev = t.state;
+        if (t) t.until = ev.until || null;
+        setState(tk, ev.reason === 'quota' ? 'waiting' : 'blocked');
+        break;
+      }
+      case 'agent.unblocked': { const t = tasks.get(tk); if (t && (t.state === 'blocked' || t.state === 'waiting')) setState(tk, t.prev || 'writing'); break; }
+      case 'quota.updated': showQuota(ev); break;
+      case 'task.merged': { const t = tasks.get(ev.task); if (t) { t.result = 'merged'; renderTask(ev.task); if (t.left) dropTask(t); } break; }
       case 'task.done': { const t = tasks.get(tk); if (t) { t.branch = ev.branch || null; t.pr = ev.pr || null; t.result = ev.result; } setState(tk, 'done'); break; }
       case 'task.failed': setState(tk, 'failed'); break;
       case 'task.cancelled': setState(tk, 'cancelled'); break;
@@ -203,6 +255,8 @@
   }
 
   function onHello(h) {
+    renderAccounts(Array.isArray(h.accounts) && h.accounts.length ? h.accounts : DEMO_ACCOUNTS);
+    canMerge = h.mode !== 'demo' && !h.merge;
     $('mode').textContent = T.modes[h.mode] || 'local';
     $('auto').disabled = !h.autoApprove;           // outside the demo nothing goes in without review
     if (!h.autoApprove) $('auto').checked = false;
@@ -210,19 +264,26 @@
   }
   function onStatus(ok) { $('hint').textContent = ok ? T.live : T.offline; }
 
-  const bus = live ? CW.net.connect({ onEvent, onHello, onStatus }) : (() => {
+  function onError(msg) { $('hint').textContent = msg; }
+
+  if (!live) renderAccounts(DEMO_ACCOUNTS);
+  const bus = live ? CW.net.connect({ onEvent, onHello, onStatus, onError }) : (() => {
     sim.on(onEvent);
     return {
-      cast: text => sim.cast(text), approve: id => sim.approve(id), reject: (id, c) => sim.reject(id, c),
-      stop: () => {}, auto: on => sim.setAuto(on), speed: () => {},
+      cast: (text, rank) => sim.cast(text, rank), approve: id => sim.approve(id), reject: (id, c) => sim.reject(id, c),
+      stop: () => {}, merge: () => {}, auto: on => sim.setAuto(on), speed: () => {},
     };
   })();
+  $('deliv').addEventListener('click', e => {
+    const b = e.target.closest('[data-merge]');
+    if (b) { b.disabled = true; bus.merge(b.getAttribute('data-merge')); }
+  });
 
   $('spell').addEventListener('submit', e => {
     e.preventDefault();
     const text = $('spell-text').value.trim();
     if (!text) return;
-    bus.cast(text);
+    bus.cast(text, $('rank').value);
     if (!live) $('hint').textContent = T.hint;
   });
   doc.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => {

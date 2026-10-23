@@ -12,16 +12,20 @@ const translate = name => {
   return { tr, drafts };
 };
 
-test('success: reads, writes, tokens and one denied command', () => {
+test('success: quota, reads, writes, a denied and a run command, tokens', () => {
   const { tr, drafts } = translate('success.ndjson');
-  assert.deepEqual(drafts.map(d => d.t), ['context.read', 'code.write', 'code.write', 'tokens.used', 'agent.error']);
-  assert.deepEqual(drafts[0].files, ['README.md', 'src']);
-  assert.equal(drafts[1].file, 'hello.txt');
-  assert.match(drafts[1].diff, /^@@ hello\.txt \(whole file\) @@\n\+Hello from the wizard/);
-  assert.equal(drafts[2].file, 'README.md');
-  assert.match(drafts[2].diff, /-# demo\n\+# demo/);
-  assert.deepEqual(drafts[3], { t: 'tokens.used', agent: 'a1', account: 'claude-code', input: 2190, output: 310, cache: 6600, cost_usd: 0.0123 });
-  assert.equal(drafts[4].message, 'Permission denied: Bash (git push origin HEAD)');
+  assert.deepEqual(drafts.map(d => d.t), ['quota.updated', 'context.read', 'code.write', 'code.write', 'command.denied', 'command.run', 'tokens.used']);
+  assert.deepEqual(drafts[0], { t: 'quota.updated', account: 'claude-code', status: 'ok', window: 'five_hour', utilization: 0.12, resets_at: 1761150000000 });
+  assert.deepEqual(drafts[1].files, ['README.md', 'src']);
+  assert.equal(drafts[2].file, 'hello.txt');
+  assert.match(drafts[2].diff, /^@@ hello\.txt \(whole file\) @@\n\+Hello from the wizard/);
+  assert.equal(drafts[3].file, 'README.md');
+  assert.match(drafts[3].diff, /-# demo\n\+# demo/);
+  assert.deepEqual(drafts[4], { t: 'command.denied', agent: 'a1', tool: 'Bash', command: 'git push origin HEAD' });
+  assert.deepEqual(drafts[5], { t: 'command.run', agent: 'a1', command: 'npm test', failed: false }, 'an OS "Permission denied" in the output is not a refusal');
+  assert.deepEqual(drafts[6], { t: 'tokens.used', agent: 'a1', account: 'claude-code', input: 2190, output: 310, cache: 6600, cost_usd: 0.0123 });
+  assert.deepEqual([tr.turns, tr.durationMs], [4, 4200]);
+  assert.deepEqual(tr.quota.five_hour, { status: 'ok', utilization: 0.12, resets_at: 1761150000000 });
   assert.deepEqual(tr.outcome, { ok: true, message: 'Done: added hello.txt and a line to the README.' });
   assert.equal(tr.tokens, 2500);
   assert.equal(tr.model, 'claude-sonnet-5-5');
@@ -36,13 +40,33 @@ test('max turns ends as a failure with its reason', () => {
   assert.equal(tr.outcome.reason, 'max_turns');
 });
 
-test('rate limit: blocked once, quota limited, then the usage limit ends the task', () => {
+test('rate limit: blocked once, the window reported as used up, the turn ends for quota', () => {
   const { tr, drafts } = translate('rate-limit.ndjson');
-  assert.deepEqual(drafts.map(d => d.t), ['agent.blocked', 'quota.updated', 'tokens.used', 'quota.updated']);
+  assert.deepEqual(drafts.map(d => d.t), ['agent.blocked', 'quota.updated', 'quota.updated', 'tokens.used', 'quota.updated']);
   assert.deepEqual(drafts[0], { t: 'agent.blocked', agent: 'a1', reason: 'quota', detail: 'rate_limit' });
   assert.equal(drafts[1].status, 'limited');
-  assert.equal(drafts[3].status, 'exhausted');
+  assert.deepEqual(drafts[2], { t: 'quota.updated', account: 'claude-code', status: 'exhausted', window: 'five_hour', utilization: 1, resets_at: 1761150000000 });
+  assert.equal(drafts[4].status, 'exhausted');
   assert.equal(tr.outcome.reason, 'quota');
+});
+
+test('newer rate_limit_event: one update per window, the main one with the reported status', () => {
+  const { drafts } = translate('resume.ndjson');
+  const q = drafts.filter(d => d.t === 'quota.updated');
+  assert.deepEqual(q, [
+    { t: 'quota.updated', account: 'claude-code', status: 'limited', window: 'five_hour', utilization: 0.91, resets_at: 1761150000000 },
+    { t: 'quota.updated', account: 'claude-code', status: 'ok', window: 'seven_day', utilization: 0.35, resets_at: 1761600000000 },
+  ]);
+});
+
+test('rate_limit_event odds and ends: percentages, milliseconds, missing fields', () => {
+  const tr = new ClaudeTranslator({ agent: 'a1', task: 't1', cwd: CWD, account: 'x' });
+  const [a] = tr.push({ type: 'rate_limit_event', rate_limit_info: { status: 'allowed', rateLimitType: 'five_hour', utilization: 42, resetsAt: 1761150000000 } });
+  assert.deepEqual([a.utilization, a.resets_at], [0.42, 1761150000000]);
+  const [b] = tr.push({ type: 'rate_limit_event', rate_limit_info: { status: 'weird' } });
+  assert.deepEqual(b, { t: 'quota.updated', account: 'x', status: 'unknown', utilization: null, resets_at: null });
+  assert.deepEqual(tr.push({ type: 'rate_limit_event' }), []);
+  for (const d of [a, b]) assert.deepEqual(validate(d, { draft: true }), []);
 });
 
 test('a message after a block unblocks the wizard', () => {

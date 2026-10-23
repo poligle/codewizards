@@ -1,0 +1,14 @@
+{
+  "id": "js-extract-tax",
+  "title": "Extract duplicated tax rules into a module",
+  "difficulty": "sabio",
+  "lang": "js",
+  "pilot": false,
+  "prompt": "src/invoice.js and src/receipt.js both compute tax with the same copied rules. Move them into a new module src/tax.js that exports taxFor(amount, region), make both files use it, and keep their results exactly as they are.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/tax.test.mjs"
+  ]
+}

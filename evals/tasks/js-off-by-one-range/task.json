@@ -1,0 +1,14 @@
+{
+  "id": "js-off-by-one-range",
+  "title": "Make a range inclusive",
+  "difficulty": "aprendiz",
+  "lang": "js",
+  "pilot": false,
+  "prompt": "range(a, b) in src/range.js should include b. Fix it.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/range.test.mjs"
+  ]
+}

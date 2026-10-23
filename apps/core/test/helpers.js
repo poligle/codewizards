@@ -17,6 +17,8 @@ export function makeRepo() {
   const dir = tmp('cw-repo-');
   const git = (...a) => execFileSync('git', a, { cwd: dir, stdio: 'pipe' });
   git('init', '-q', '-b', 'main');
+  // Same bytes on every system: Git for Windows turns LF into CRLF on checkout by default.
+  git('config', 'core.autocrlf', 'false');
   git('config', 'user.name', 'Test Wizard');
   git('config', 'user.email', 'wizard@example.invalid');
   git('config', 'commit.gpgsign', 'false');
@@ -25,7 +27,7 @@ export function makeRepo() {
   fs.writeFileSync(path.join(dir, 'src', 'app.js'), 'export const greet = () => "hi";\n');
   git('add', '-A');
   git('commit', '-q', '-m', 'init');
-  return { dir, git: (...a) => execFileSync('git', a, { cwd: dir, encoding: 'utf8' }) };
+  return { dir, git: (...a) => execFileSync('git', a, { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }) };
 }
 
 /** Lines of a recording with its placeholders filled in, parsed. */

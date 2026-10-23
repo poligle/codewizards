@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { EventStore, ContractError } from '../src/store.js';
+import { VERSION } from '../../../packages/contract/contract.js';
 import { tmp } from './helpers.js';
 
 const idle = { t: 'agent.idle', agent: 'a1' };
@@ -11,7 +12,7 @@ test('stamps v, seq, ts and room, in order', () => {
   const s = new EventStore({ room: 'r1', now: () => 1000 });
   const a = s.append(idle), b = s.append({ ...idle, ts: 5 });
   assert.deepEqual(Object.keys(a).slice(0, 5), ['v', 't', 'seq', 'ts', 'room']);
-  assert.equal(a.v, 1);
+  assert.equal(a.v, VERSION);
   assert.deepEqual([a.seq, b.seq], [1, 2]);
   assert.deepEqual([a.ts, b.ts], [1000, 5]);
   assert.equal(b.room, 'r1');
@@ -20,7 +21,7 @@ test('stamps v, seq, ts and room, in order', () => {
 test('a draft cannot choose its own seq or room', () => {
   const s = new EventStore({ room: 'r1' });
   const ev = s.append({ ...idle, seq: 99, room: 'elsewhere', v: 0 });
-  assert.deepEqual([ev.seq, ev.room, ev.v], [1, 'r1', 1]);
+  assert.deepEqual([ev.seq, ev.room, ev.v], [1, 'r1', VERSION]);
 });
 
 test('rejects events that break the contract, and keeps nothing of them', () => {

@@ -25,11 +25,18 @@
     <form id="spell">
       <label for="spell-text">Hechizo</label>
       <textarea id="spell-text" rows="3">Añade un modo oscuro a la página de ajustes</textarea>
+      <label for="rank" class="cm">Quién lo hace</label>
+      <select id="rank">
+        <option value="auto" selected>Que decida el Archimago</option>
+        <option value="aprendiz">Aprendiz</option>
+        <option value="joven">Mago Joven</option>
+        <option value="sabio">Gran Sabio</option>
+      </select>
       <button type="submit" class="cast">Lanzar</button>
     </form>
     <h3>Tareas</h3>
     <ol id="tasks" class="tasks"></ol>
-    <h3>Maná por gremio</h3>
+    <h3>Maná por cuenta</h3>
     <ul id="mana" class="mana"></ul>
   </section>
   <section class="panel sala" aria-label="Sala">

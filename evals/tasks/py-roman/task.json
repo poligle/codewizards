@@ -1,0 +1,13 @@
+{
+  "id": "py-roman",
+  "title": "Write Roman numerals",
+  "difficulty": "joven",
+  "lang": "py",
+  "pilot": false,
+  "prompt": "Implement to_roman(n) in roman.py for integers from 1 to 3999 (for example 1994 -> \"MCMXCIV\"). Raise ValueError for anything else, including non-integers.",
+  "testCommand": "python3 -m unittest",
+  "check": [
+    "python3",
+    ".cw-check/test_roman.py"
+  ]
+}

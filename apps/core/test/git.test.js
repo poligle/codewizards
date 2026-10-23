@@ -33,6 +33,20 @@ test('a task works in its own worktree; the user checkout is untouched until app
   assert.equal(git('rev-parse', 'main').trim(), base, 'main did not move');
 });
 
+test('Claude Code\'s personal settings never go into a wizard\'s commit', async () => {
+  const { dir, git } = makeRepo();
+  const base = await head(dir);
+  const wt = path.join(tmp(), 'wt');
+  await addWorktree(dir, wt, 'cw/t1-x', base);
+  fs.mkdirSync(path.join(wt, '.claude'));
+  fs.writeFileSync(path.join(wt, '.claude', 'settings.local.json'), '{"permissions":{}}\n');
+  assert.equal(await commitAll(wt, 'Only local settings'), false, 'nothing to commit when that is all there is');
+  fs.writeFileSync(path.join(wt, 'a.txt'), 'a\n');
+  assert.equal(await commitAll(wt, 'Add a'), true);
+  assert.deepEqual(git('show', '--name-only', '--format=', 'cw/t1-x').trim().split('\n'), ['a.txt']);
+  assert.doesNotMatch(await diffAgainst(wt, base), /settings\.local\.json/);
+});
+
 test('pull request arguments: draft, head, title and body as separate arguments', () => {
   const a = prArgs({ branch: 'cw/t1-x', base: 'main', title: 'A "title"; rm -rf /', body: 'b' });
   assert.deepEqual(a, ['pr', 'create', '--draft', '--head', 'cw/t1-x', '--title', 'A "title"; rm -rf /', '--body', 'b', '--base', 'main']);

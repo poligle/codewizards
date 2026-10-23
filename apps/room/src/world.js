@@ -192,7 +192,15 @@
           if (w) this.say(w, 'z', 1.5);
           break;
         case 'agent.blocked':
-          if (w) w.actions.push({ type: 'wait', emote: '!' });
+          // Out of quota: to the armchair to wait for the window (it does not leave). Anything else: wait here.
+          if (w && ev.reason === 'quota') w.actions.push({ type: 'goto', station: 'rest' }, { type: 'wait', emote: 'z' });
+          else if (w) w.actions.push({ type: 'wait', emote: '!' });
+          break;
+        case 'command.denied':
+          if (w) this.say(w, '!', 1.4);
+          break;
+        case 'command.run':
+          if (w) this.burst(w, 'rune', 3);
           break;
         case 'task.failed':
           if (w) { this.say(w, '?', 2.2); this.burst(w, 'smoke', 6); w.actions.push({ type: 'goto', station: 'rest' }, { type: 'rest' }); }
@@ -323,7 +331,12 @@
       if (!(dt >= 0)) return;   // time never goes back (negative or NaN dt)
       this.time += dt;
       for (const w of this.wizards.values()) this.step(w, dt);
-      for (const [id, w] of this.wizards) if (w.gone) { this.wizards.delete(id); if (this.selected === id) this.selected = null; }
+      for (const [id, w] of this.wizards) {
+        if (!w.gone) continue;
+        this.wizards.delete(id);
+        if (this.selected === id) this.selected = null;
+        if (this.onLeave) this.onLeave(id);
+      }
       this.archi.anim += dt;
       if (this.archi.flashT > 0) this.archi.flashT -= dt;
       const target = this.time < this.door.openUntil ? 1 : 0;

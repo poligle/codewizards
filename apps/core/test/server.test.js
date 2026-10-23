@@ -79,13 +79,13 @@ test('the WebSocket needs the right Origin, Host and token', async () => {
   } finally { await srv.close(); await room.shutdown(); }
 });
 
-test('hello replays the log; commands drive the room; events follow contract v1', async () => {
+test('hello replays the log; commands drive the room; events follow the contract', async () => {
   const { srv, room, store } = await boot();
   try {
     const a = connect(srv);
     await a.opened;
     await waitFor(() => a.msgs.some(m => m.ctl === 'hello'), { what: 'hello' });
-    assert.deepEqual(a.msgs[0], { ctl: 'hello', room: 'demo', version: a.msgs[0].version, mode: 'demo', autoApprove: true });
+    assert.deepEqual(a.msgs[0], { ctl: 'hello', room: 'demo', version: a.msgs[0].version, mode: 'demo', autoApprove: true, merge: false, accounts: [{ id: 'demo', guild: 'anthropic', label: 'Demo' }] });
     a.ws.send(JSON.stringify({ cmd: 'hello', since: 0 }));
     a.ws.send(JSON.stringify({ cmd: 'auto', on: true }));
     a.ws.send(JSON.stringify({ cmd: 'cast', text: 'Add a dark mode' }));
@@ -115,6 +115,10 @@ test('hello replays the log; commands drive the room; events follow contract v1'
 
 test('sanitize accepts the known commands and nothing else', () => {
   assert.deepEqual(sanitize({ cmd: 'cast', text: 'x' }), { cmd: 'cast', text: 'x' });
+  assert.deepEqual(sanitize({ cmd: 'cast', text: 'x', rank: 'joven' }), { cmd: 'cast', text: 'x', rank: 'joven' });
+  assert.deepEqual(sanitize({ cmd: 'cast', text: 'x', rank: 'auto' }), { cmd: 'cast', text: 'x' });
+  assert.equal(sanitize({ cmd: 'cast', text: 'x', rank: 'emperor' }), null);
+  assert.deepEqual(sanitize({ cmd: 'merge', task: 't3' }), { cmd: 'merge', task: 't3' });
   assert.equal(sanitize({ cmd: 'cast', text: '   ' }), null);
   assert.equal(sanitize({ cmd: 'cast', text: 'x'.repeat(4001) }), null);
   assert.deepEqual(sanitize({ cmd: 'reject', task: 't12' }), { cmd: 'reject', task: 't12', comment: '' });

@@ -1,0 +1,13 @@
+{
+  "id": "py-fahrenheit",
+  "title": "Fix a conversion formula",
+  "difficulty": "aprendiz",
+  "lang": "py",
+  "pilot": true,
+  "prompt": "fahrenheit() in temperature.py returns wrong values. Fix the formula.",
+  "testCommand": "python3 -m unittest",
+  "check": [
+    "python3",
+    ".cw-check/test_temperature.py"
+  ]
+}

@@ -142,5 +142,28 @@ let log1;
   ok(v.wizards.get('g3') === before && before.x === x && before.guild === 'qwen', 'summoning an agent already in the room does not reset it');
 }
 
+// 7) out of quota the wizard waits in the armchair and does not leave; the room says when one leaves
+{
+  const w = new World(4);
+  const left = [];
+  w.onLeave = id => left.push(id);
+  const ev = (seq, t, d) => Object.assign({ v: 2, t, seq, ts: T0 + seq, room: 'r' }, d);
+  w.handle(ev(1, 'agent.summoned', { agent: 'q1', guild: 'anthropic', rank: 'joven', model: 'sonnet', account: 'x' }));
+  w.handle(ev(2, 'agent.assigned', { agent: 'q1', task: 't1' }));
+  w.handle(ev(3, 'agent.blocked', { agent: 'q1', reason: 'quota', detail: 'five_hour', until: T0 + 3600000 }));
+  for (let t = 0; t < 120; t += 0.05) w.update(0.05);
+  const q = w.wizards.get('q1');
+  ok(q && M.STATIONS.rest.some(s => Math.hypot(s.x - q.x, s.y - q.y) < 0.01), 'a wizard without quota waits in the armchair, for as long as it takes');
+  w.handle(ev(4, 'agent.unblocked', { agent: 'q1' }));
+  w.handle(ev(5, 'code.write', { agent: 'q1', file: 'a.js', diff: '+x' }));
+  for (let t = 0; t < 20; t += 0.05) w.update(0.05);
+  ok(M.STATIONS.table.some(s => Math.hypot(s.x - q.x, s.y - q.y) < 0.01), 'and goes back to the table when it can go on');
+  w.handle(ev(6, 'command.run', { agent: 'q1', command: 'npm test', failed: false }));
+  w.handle(ev(7, 'command.denied', { agent: 'q1', tool: 'Bash', command: 'git push' }));
+  w.handle(ev(8, 'task.cancelled', { task: 't1', agent: 'q1', by: 'user' }));
+  for (let t = 0; t < 30; t += 0.05) w.update(0.05);
+  ok(left.join() === 'q1', `the room is told when a wizard walks out (${left.join()})`);
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 process.exit(fails ? 1 : 0);

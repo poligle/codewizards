@@ -1,0 +1,14 @@
+{
+  "id": "js-chunk",
+  "title": "Split an array into chunks",
+  "difficulty": "joven",
+  "lang": "js",
+  "pilot": false,
+  "prompt": "Implement chunk(array, size) in src/chunk.js: split the array into consecutive pieces of the given size (the last one may be shorter). size must be a positive integer, otherwise throw a RangeError.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/chunk.test.mjs"
+  ]
+}

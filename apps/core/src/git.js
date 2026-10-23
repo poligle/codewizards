@@ -36,16 +36,20 @@ export async function removeWorktree(repo, dir) {
 }
 
 /** Everything the agent changed against `base` (commits and working tree, new files included). */
+// Claude Code keeps personal approvals in .claude/settings.local.json (it git-ignores it itself);
+// it never goes into a wizard's commit, even if a repository lacks the ignore rule.
+const ADD = ['add', '-A', '--', '.', ':(exclude).claude/settings.local.json'];
+
 export async function diffAgainst(wt, base, maxBytes = 200000) {
-  await git(wt, ['add', '-A']);
+  await git(wt, ADD);
   const out = await git(wt, ['diff', '--cached', '--no-color', '--no-ext-diff', base]);
   return out.length > maxBytes ? out.slice(0, maxBytes) + '\n… (diff truncated; the full change is on the branch)' : out;
 }
 
 /** Commits whatever is pending in the worktree. Returns false when there was nothing to commit. */
 export async function commitAll(wt, message) {
-  await git(wt, ['add', '-A']);
-  if (!(await git(wt, ['status', '--porcelain'])).trim()) return false;
+  await git(wt, ADD);
+  if ((await run('git', ['diff', '--cached', '--quiet'], { cwd: wt })).code === 0) return false;   // nothing staged
   await git(wt, ['commit', '-q', '-m', message]);
   return true;
 }

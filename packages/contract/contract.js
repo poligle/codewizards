@@ -1,14 +1,15 @@
-// CodeWizards · event contract v1.
+// CodeWizards · event contract v2.
 // The single source of truth for event shapes. The core validates every event before it stores or
 // broadcasts it, and the tests check the simulator and every adapter against it. The table for
-// humans is in docs/agentes.md («Contrato de eventos v1»). Changing it needs Pol's go-ahead and a
-// new `v`.
+// humans is in docs/agentes.md («Contrato de eventos v2»). Changing it needs Pol's go-ahead and a
+// new `v`. v2 only adds to v1, so logs written with v1 still replay.
 
-export const VERSION = 1;
+export const VERSION = 2;
+export const ACCEPTED_VERSIONS = Object.freeze([1, 2]);
 
 // Guild ids are model makers (Pol, step 1). The room paints any other id with a neutral palette.
 export const GUILDS = Object.freeze(['anthropic', 'openai', 'google', 'deepseek', 'qwen', 'meta']);
-export const RANKS = Object.freeze(['aprendiz', 'sabio', 'archimago']);
+export const RANKS = Object.freeze(['aprendiz', 'joven', 'sabio', 'archimago']);
 export const BLOCK_REASONS = Object.freeze(['permission', 'quota', 'auth', 'user']);
 export const FAIL_REASONS = Object.freeze(['max_turns', 'budget', 'timeout', 'quota', 'auth', 'cap', 'error']);
 export const QUOTA_STATUS = Object.freeze(['ok', 'limited', 'exhausted', 'unknown']);
@@ -21,9 +22,10 @@ const str = (max, extra) => Object.assign({ type: 'string', max }, extra);
 const int0 = { type: 'integer', min: 0 };
 const id = { type: 'string', pattern: ID };
 const opt = f => Object.assign({}, f, { optional: true });
+const rank = { type: 'string', enum: RANKS };
 
 const ENVELOPE = {
-  v: { type: 'integer', enum: [VERSION] },
+  v: { type: 'integer', enum: ACCEPTED_VERSIONS },
   t: { type: 'string', max: 40 },
   seq: { type: 'integer', min: 1 },
   ts: { type: 'integer', min: 0 },
@@ -32,9 +34,11 @@ const ENVELOPE = {
 
 export const EVENTS = Object.freeze({
   'room.opened': { project: str(120), guild: { type: 'string', pattern: SLUG } },
-  'task.created': { task: id, title: str(200), estimate: { type: 'number', min: 0, nullable: true } },
+  'task.created': {
+    task: id, title: str(200), estimate: { type: 'number', min: 0, nullable: true }, rank: opt(rank), reason: opt(str(200)),
+  },
   'agent.summoned': {
-    agent: id, guild: { type: 'string', pattern: SLUG }, rank: { type: 'string', enum: RANKS }, model: str(80), account: str(64),
+    agent: id, guild: { type: 'string', pattern: SLUG }, rank, model: str(80), account: str(64),
   },
   'agent.assigned': { agent: id, task: id },
   'context.read': { agent: id, files: { type: 'array', max: 200, items: str(512) }, tokens_in: opt(Object.assign({ nullable: true }, int0)) },
@@ -47,12 +51,16 @@ export const EVENTS = Object.freeze({
   'review.approved': { agent: id, task: id, comment: str(2000) },
   'review.rejected': { agent: id, task: id, comment: str(2000) },
   'agent.error': { agent: id, message: str(2000) },
-  'agent.blocked': { agent: id, reason: { type: 'string', enum: BLOCK_REASONS }, detail: opt(str(200)) },
+  'agent.blocked': { agent: id, reason: { type: 'string', enum: BLOCK_REASONS }, detail: opt(str(200)), until: opt(Object.assign({ nullable: true }, int0)) },
   'agent.unblocked': { agent: id },
   'quota.updated': {
     account: str(64), status: { type: 'string', enum: QUOTA_STATUS }, resets_at: opt(Object.assign({ nullable: true }, int0)),
+    window: opt({ type: 'string', pattern: /^[a-z0-9_]{1,32}$/ }), utilization: opt({ type: 'number', min: 0, max: 1, nullable: true }),
   },
+  'command.run': { agent: id, command: str(500), failed: opt({ type: 'boolean' }) },
+  'command.denied': { agent: id, tool: str(64), command: opt(str(500)) },
   'task.done': { agent: id, task: id, result: str(64), branch: opt(str(200)), pr: opt(str(500)) },
+  'task.merged': { task: id, branch: str(200), agent: opt(id) },
   'task.failed': { task: id, agent: opt(id), reason: { type: 'string', enum: FAIL_REASONS }, message: str(2000) },
   'task.cancelled': { task: id, agent: opt(id), by: { type: 'string', enum: CANCEL_BY } },
   'agent.idle': { agent: id },
@@ -82,7 +90,11 @@ function check(errs, path, val, f) {
     case 'number':
       if (typeof val !== 'number' || !Number.isFinite(val)) { errs.push(`${path}: not a number`); return; }
       if (f.min !== undefined && val < f.min) errs.push(`${path}: below ${f.min}`);
+      if (f.max !== undefined && val > f.max) errs.push(`${path}: above ${f.max}`);
       break;
+    case 'boolean':
+      if (typeof val !== 'boolean') errs.push(`${path}: not a boolean`);
+      return;
     case 'array':
       if (!Array.isArray(val)) { errs.push(`${path}: not an array`); return; }
       if (f.max !== undefined && val.length > f.max) errs.push(`${path}: more than ${f.max} items`);

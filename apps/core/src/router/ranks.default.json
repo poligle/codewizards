@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "about": "Rank table of the Archmage (step 3). Models are Claude Code aliases (haiku, sonnet, opus track the latest of each family) or full model ids. Override any field in ~/.config/codewizards/ranks.json (Linux; see docs/arquitectura.md for other systems). Estimates are input + output tokens per task, provisional until the evals measure them.",
+  "ranks": {
+    "aprendiz": {
+      "label": "Aprendiz",
+      "model": "haiku",
+      "maxTurns": 15,
+      "estimate": 30000,
+      "note": "You are an apprentice wizard: make the smallest change that satisfies the request, read only the files you need, and do not refactor unrelated code."
+    },
+    "joven": {
+      "label": "Mago Joven",
+      "model": "sonnet",
+      "maxTurns": 30,
+      "estimate": 60000,
+      "note": "Make the requested change and keep the diff focused. If the project has tests and you may run them, run them before you finish."
+    },
+    "sabio": {
+      "label": "Gran Sabio",
+      "model": "opus",
+      "maxTurns": 40,
+      "estimate": 120000,
+      "note": "Plan briefly before editing, keep the change coherent across files, and verify it with the project's tests when you may run them."
+    }
+  },
+  "router": {
+    "default": "joven",
+    "downgradeAt": 0.8,
+    "pauseAt": 0.97,
+    "aprendiz": ["typo", "errata", "renombra", "rename", "comentario", "comment", "docstring", "readme", "formatea", "format ", "lint", "hello world", "hola mundo", "traduce", "translate", "bump"],
+    "sabio": ["refactor", "arquitectura", "architecture", "diseña", "design", "migra", "migrate", "rendimiento", "performance", "seguridad", "security", "concurren", "race condition", "deadlock", "investiga", "investigate", "por qué falla", "why does", "optimiza", "optimize", "reescribe", "rewrite"]
+  }
+}

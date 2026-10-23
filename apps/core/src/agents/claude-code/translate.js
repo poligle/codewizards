@@ -1,4 +1,4 @@
-// Claude Code headless output (`claude -p --output-format stream-json --verbose`) → contract v1.
+// Claude Code headless output (`claude -p --output-format stream-json --verbose`) → contract v2.
 // Pure and stateful per turn: push() takes one parsed line and returns the drafts it produces
 // (events without seq, ts or room; the store stamps them). The orchestrator adds the lifecycle
 // events (summoned, assigned, artifact, review, done). Raw tool output is never copied into events.
@@ -8,7 +8,10 @@
 //   system/api_retry       → rate_limit, billing_error: agent.blocked (quota) + quota.updated
 //                            authentication_failed, oauth_org_not_allowed: agent.blocked (auth)
 //   next assistant message → agent.unblocked
-//   result                 → tokens.used, agent.error per permission denial, outcome (ok or failure)
+//   tool_result of a Bash  → command.run (failed when the command failed)
+//   denied tool call       → command.denied (from its tool_result, or from result.permission_denials)
+//   rate_limit_event       → quota.updated per window (five_hour, seven_day…), with utilization and reset
+//   result                 → tokens.used and the outcome (ok or failure)
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -24,6 +27,18 @@ const FAIL = {
 const LIMIT_TEXT = /usage limit|limit reached|out of (?:extra )?usage/i;
 const MAX_LINES = 40;
 const MAX_CHARS = 8000;
+// How Claude Code words a refused tool call (dontAsk mode); a command that ran and hit a file's
+// "Permission denied" is not one of these.
+const DENIED = /permission to use|requested permissions? to use|haven't granted|has been denied|was denied by|not allowed by your/i;
+const STATUS = { allowed: 'ok', allowed_warning: 'limited', rejected: 'exhausted' };
+const WINDOW = /^[a-z0-9_]{1,32}$/;
+
+// rate_limit_event values seen in the wild: utilization 0–1 (some tools print percentages) and
+// resetsAt in seconds or milliseconds since the epoch.
+const fraction = u => (typeof u === 'number' && Number.isFinite(u) ? Math.min(1, Math.max(0, u > 1 ? u / 100 : u)) : null);
+const epochMs = t => (typeof t === 'number' && Number.isFinite(t) && t > 0 ? Math.round(t < 1e12 ? t * 1000 : t) : null);
+const statusOf = u => (u === null ? 'unknown' : u >= 1 ? 'exhausted' : u >= 0.9 ? 'limited' : 'ok');
+const textOf = c => (typeof c === 'string' ? c : Array.isArray(c) ? c.map(b => (b && typeof b.text === 'string' ? b.text : '')).join(' ') : '');
 
 export function miniDiff(tool, file, input) {
   const lines = [];
@@ -59,7 +74,12 @@ export class ClaudeTranslator {
     this.blocked = null;
     this.result = null;
     this.tokens = 0;
+    this.turns = null;
+    this.durationMs = null;
+    this.quota = {};            // window → {status, utilization, resets_at}, the latest seen
     this.seen = new Set();
+    this.calls = new Map();     // tool_use id → {tool, command}
+    this.denied = new Set();    // tool_use ids already reported as denied
   }
 
   /** The turn's outcome once `result` arrives: {ok: true, message} or {ok: false, reason, message}. */
@@ -69,8 +89,42 @@ export class ClaudeTranslator {
     if (!msg || typeof msg !== 'object') return [];
     if (msg.type === 'system') return this.system(msg);
     if (msg.type === 'assistant') return this.assistant(msg);
+    if (msg.type === 'user') return this.toolResults(msg);
+    if (msg.type === 'rate_limit_event') return this.rateLimit(msg);
     if (msg.type === 'result') return this.finish(msg);
-    return [];   // user (tool results), stream_event, hook events…
+    return [];   // stream_event, hook events…
+  }
+
+  rateLimit(msg) {
+    const info = msg.rate_limit_info && typeof msg.rate_limit_info === 'object' ? msg.rate_limit_info : null;
+    if (!info) return [];
+    const main = WINDOW.test(info.rateLimitType || '') ? info.rateLimitType : null;
+    const windows = info.unifiedWindows && typeof info.unifiedWindows === 'object' ? Object.entries(info.unifiedWindows) : [];
+    const rows = windows.length
+      ? windows.filter(([w, v]) => WINDOW.test(w) && v && typeof v === 'object').map(([w, v]) => [w, fraction(v.utilization), epochMs(v.resetsAt)])
+      : [[main, fraction(info.utilization), epochMs(info.resetsAt)]];
+    return rows.map(([w, u, r]) => {
+      const status = w === main || !windows.length ? (STATUS[info.status] || statusOf(u)) : statusOf(u);
+      if (w) this.quota[w] = { status, utilization: u, resets_at: r };
+      return { t: 'quota.updated', account: this.account, status, ...(w ? { window: w } : {}), utilization: u, resets_at: r };
+    });
+  }
+
+  toolResults(msg) {
+    const out = [];
+    const content = msg.message && Array.isArray(msg.message.content) ? msg.message.content : [];
+    for (const b of content) {
+      if (!b || b.type !== 'tool_result' || !this.calls.has(b.tool_use_id)) continue;
+      const call = this.calls.get(b.tool_use_id);
+      this.calls.delete(b.tool_use_id);
+      if (b.is_error && DENIED.test(textOf(b.content))) {
+        this.denied.add(b.tool_use_id);
+        out.push({ t: 'command.denied', agent: this.agent, tool: call.tool.slice(0, 64), ...(call.command ? { command: call.command } : {}) });
+      } else if (call.tool === 'Bash' && call.command) {
+        out.push({ t: 'command.run', agent: this.agent, command: call.command, failed: !!b.is_error });
+      }
+    }
+    return out;
   }
 
   system(msg) {
@@ -103,6 +157,10 @@ export class ClaudeTranslator {
       if (!b || b.type !== 'tool_use' || this.seen.has(b.id)) continue;
       if (b.id) this.seen.add(b.id);
       const input = b.input && typeof b.input === 'object' ? b.input : {};
+      if (b.id) {
+        const command = String(input.command || input.url || input.file_path || '').slice(0, 500);
+        this.calls.set(b.id, { tool: String(b.name || 'tool'), command });
+      }
       if (READ.has(b.name)) {
         const f = this.target(input);
         if (f && !files.includes(f)) files.push(f);
@@ -139,10 +197,14 @@ export class ClaudeTranslator {
     const cache = n('cache_read_input_tokens');
     this.tokens += input + output;
     const cost = typeof msg.total_cost_usd === 'number' && msg.total_cost_usd >= 0 ? msg.total_cost_usd : null;
+    this.turns = Number.isSafeInteger(msg.num_turns) ? msg.num_turns : null;
+    this.durationMs = Number.isSafeInteger(msg.duration_ms) ? msg.duration_ms : null;
     const out = [{ t: 'tokens.used', agent: this.agent, account: this.account, input, output, cache, cost_usd: cost }];
-    for (const d of Array.isArray(msg.permission_denials) ? msg.permission_denials.slice(0, 5) : []) {
-      const what = d && d.tool_input && typeof d.tool_input === 'object' ? (d.tool_input.command || d.tool_input.file_path || d.tool_input.url || '') : '';
-      out.push({ t: 'agent.error', agent: this.agent, message: `Permission denied: ${String((d && d.tool_name) || 'tool')}${what ? ` (${String(what).slice(0, 120)})` : ''}` });
+    for (const d of Array.isArray(msg.permission_denials) ? msg.permission_denials.slice(0, 10) : []) {
+      if (!d || this.denied.has(d.tool_use_id)) continue;   // already reported from its tool_result
+      if (d.tool_use_id) this.denied.add(d.tool_use_id);
+      const what = d.tool_input && typeof d.tool_input === 'object' ? String(d.tool_input.command || d.tool_input.file_path || d.tool_input.url || '') : '';
+      out.push({ t: 'command.denied', agent: this.agent, tool: String(d.tool_name || 'tool').slice(0, 64), ...(what ? { command: what.slice(0, 500) } : {}) });
     }
     const text = typeof msg.result === 'string' ? msg.result : '';
     if (msg.subtype === 'success' && !msg.is_error) {

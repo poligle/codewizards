@@ -1,0 +1,14 @@
+{
+  "id": "js-lru-cache",
+  "title": "Write an LRU cache",
+  "difficulty": "sabio",
+  "lang": "js",
+  "pilot": true,
+  "prompt": "Implement the class LRUCache in src/lru.js: new LRUCache(capacity) with get(key) (undefined when missing), set(key, value), delete(key) and a size getter. get and set make the key the most recently used; when set would go over capacity, evict the least recently used key. capacity must be a positive integer, otherwise throw a RangeError.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/lru.test.mjs"
+  ]
+}

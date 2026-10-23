@@ -1,0 +1,13 @@
+{
+  "id": "py-paginate",
+  "title": "Make pages start at 1",
+  "difficulty": "aprendiz",
+  "lang": "py",
+  "pilot": false,
+  "prompt": "paginate() in pager.py should treat page 1 as the first page.",
+  "testCommand": "python3 -m unittest",
+  "check": [
+    "python3",
+    ".cw-check/test_pager.py"
+  ]
+}

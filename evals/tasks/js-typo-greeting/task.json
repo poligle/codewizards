@@ -1,0 +1,14 @@
+{
+  "id": "js-typo-greeting",
+  "title": "Fix a typo in a greeting",
+  "difficulty": "aprendiz",
+  "lang": "js",
+  "pilot": true,
+  "prompt": "Fix the typo in the greeting that greet() returns in src/greet.js.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/greet.test.mjs"
+  ]
+}

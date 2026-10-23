@@ -2,6 +2,29 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.3.0] · 2026-10-23 · The Archmage and the quota
+
+Step 3 of milestone 1 (orchestration and tokens).
+
+### Added
+- The Archmage, version 1: plain rules, no model and no tokens, pick each spell's rank (Apprentice, Young Mage or Grand Sage), or you pick it in the spell book. Each rank's model, turns, token estimate and system note live in `ranks.json` (haiku, sonnet and opus to start); you can override any of it in `~/.config/codewizards/ranks.json`, and no model name is fixed in the code.
+- A fourth rank, the Young Mage, as in the original concept (drawn as an Apprentice until the art round).
+- Real quota: Claude Code's rate-limit events become the account's mana in the room (what is left of the five-hour window, and when it resets). Past 80 % the Archmage picks one rank lower; when the window is used up, the wizard waits in the armchair and resumes the same session after the reset, instead of failing.
+- A "Merge into my branch" button on the blackboard for an approved change that is still on its branch (fast-forward only, never forced).
+- Event contract v2: the Young Mage, the Archmage's rank and reason, quota per window, `command.run`, `command.denied` and `task.merged`. Logs written with v1 still replay.
+- Evals: 20 small tasks with hidden tests and reference solutions, and `tools/evals.mjs` to compare configurations on your own plan (`evals/README.md`). CI checks the bank, the routing and the whole pipeline with a fake agent, without tokens.
+- CI: a smoke test in Firefox (not blocking yet), and a GitHub release published automatically when a push to main brings a new version.
+- `codewizards` on the PATH inside `nix develop`.
+
+### Changed
+- Only the guilds of connected accounts appear; for now that is Anthropic, in the demo too.
+- Finished tasks leave the list when their wizard walks out; a change waiting to be merged stays until it is.
+- A command refused by the rules shows as a refusal, not as an error of the wizard.
+- `.claude/settings.local.json` never goes into a wizard's commit.
+
+### Fixed
+- The `--merge` test failed on Windows, where Git converts line endings on checkout.
+
 ## [1.2.2] · 2026-10-23 · After the first real run
 
 The first `codewizards serve` with a real Claude Code (2.1.223) worked end to end. This release makes clear where approved work goes and who pays.
@@ -84,6 +107,7 @@ Step 1 of milestone 1. The mockup is the same as in v1.0.
 ### Fixed
 - The mockup no longer freezes on its first frame in real browsers.
 
+[1.3.0]: https://github.com/poligle/codewizards/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/poligle/codewizards/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/poligle/codewizards/compare/v1.2...v1.2.1
 [1.2]: https://github.com/poligle/codewizards/compare/v1.1...v1.2

@@ -124,3 +124,34 @@
   - (Pol) → grabar con `--record` y pasar una grabación revisada para los tests.
 - Preguntas abiertas: las de antes (npm, `command.run`, titular del copyright).
 - Pruebas para Pol: las de `auditorias/software.md` §11.
+
+## Paso 3 · Orquestación y tokens, ronda 1 · 23/10/2026
+- Cambios (detalle en `auditorias/orquestacion.md` §5):
+  - El Archimago v1, que son reglas sin modelo con la tabla de rangos en `ranks.json`.
+  - El Mago Joven.
+  - La cuota real (`rate_limit_event` pasa a maná por cuenta).
+  - La espera por cuota, que reanuda la misma sesión.
+  - El botón de integrar.
+  - El contrato v2.
+  - 20 evals con tests ocultos y su runner.
+  - Firefox en la prueba de humo.
+  - La release automática.
+  - `codewizards` en el PATH de `nix develop`.
+  - El arreglo del test de Windows (fines de línea).
+  - Versión 1.3.0.
+- Archivos tocados:
+  - Nuevos: `apps/core/src/router/`, `evals/`, `tools/evals.mjs`, `tools/release-notes.mjs`, `auditorias/orquestacion.md`, y los tests `router.test.js` y `release-notes.test.js`.
+  - Contrato, traductor, sala de Claude Code, git, servidor, CLI y sala demo.
+  - `apps/room/src/` (`sim.js`, `world.js`, `ui.js`, `net.js`, `index.html` y `style.css`) y los tests de la sala y del núcleo.
+  - El Claude Code falso, `tools/smoke.mjs`, la CI, `flake.nix` y `.gitignore`.
+  - README, CHANGELOG, `docs/agentes.md`, `docs/arquitectura.md`, este traspaso y `package.json`.
+- Decisiones de Pol: en `docs/agentes.md`, «Decididas el 23/10/2026, en el paso 3».
+- Encargos para pasos siguientes:
+  - (Pol) → lanzar el piloto de evals y pasarme el resumen; pegarme una línea `rate_limit_event`; decir si `opus` funciona en Pro.
+  - (siguiente parche) → crear y abrir salas desde la interfaz; ajustar reglas y tabla con el piloto; la guía de npm.
+  - (paso 4) → comportamiento de la espera, de las órdenes y de «por integrar».
+  - (paso 5) → lo del punto 8 de su prompt.
+  - (paso 6) → el punto 7 de su prompt: sala de descanso, pizarra en la pared, planta en cruz, vidrieras, partículas y el sprite del Mago Joven.
+  - (paso 7) → los textos nuevos, en inglés.
+- Preguntas abiertas: si `opus` está en el plan Pro (lo dirá el piloto); el titular del copyright y la versión de `docs/agentes.md` en Claude Docs, como antes.
+- Pruebas para Pol: las de `auditorias/orquestacion.md` §9.

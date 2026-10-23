@@ -1,0 +1,14 @@
+{
+  "id": "js-numeric-sort",
+  "title": "Sort numbers as numbers",
+  "difficulty": "aprendiz",
+  "lang": "js",
+  "pilot": false,
+  "prompt": "median() in src/stats.js gives wrong results for numbers with different numbers of digits. Fix it.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/stats.test.mjs"
+  ]
+}

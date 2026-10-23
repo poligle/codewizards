@@ -20,6 +20,7 @@ const FILES = new Map([
   ['/world.js', 'world.js'], ['/sim.js', 'sim.js'], ['/render.js', 'render.js'], ['/net.js', 'net.js'], ['/ui.js', 'ui.js'],
 ]);
 const TASK = /^t\d{1,6}$/;
+const RANK = new Set(['auto', 'aprendiz', 'joven', 'sabio']);
 
 export const newToken = () => crypto.randomBytes(24).toString('base64url');
 
@@ -34,8 +35,13 @@ export function sanitize(m) {
   const str = (v, max) => typeof v === 'string' && v.length <= max;
   switch (m.cmd) {
     case 'hello': return { cmd: 'hello', since: Number.isSafeInteger(m.since) && m.since > 0 ? m.since : 0 };
-    case 'cast': return str(m.text, 4000) && m.text.trim() ? { cmd: 'cast', text: m.text } : null;
+    case 'cast': {
+      if (!(str(m.text, 4000) && m.text.trim())) return null;
+      if (m.rank !== undefined && !RANK.has(m.rank)) return null;
+      return { cmd: 'cast', text: m.text, ...(m.rank && m.rank !== 'auto' ? { rank: m.rank } : {}) };
+    }
     case 'approve':
+    case 'merge':
     case 'stop': return typeof m.task === 'string' && TASK.test(m.task) ? { cmd: m.cmd, task: m.task } : null;
     case 'reject':
       return typeof m.task === 'string' && TASK.test(m.task) && (m.comment === undefined || str(m.comment, 2000))

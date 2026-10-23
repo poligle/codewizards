@@ -42,6 +42,7 @@ CodeWizards es una app local y open source que dirige los CLI oficiales de agent
 - Maqueta v0 del hito 0: sala, grimorio, pizarra y pergamino con agentes simulados. Hito 0 cerrado (tag `v1.0`). Desde v1.2 es la sala de la app, en `apps/room/`.
 - Seguridad del repo y CI: escaneo de secretos, acciones fijadas por SHA y ajustes de GitHub (`auditorias/seguridad.md`).
 - Paso 1 (producto y marca) hecho en v1.1: `auditorias/producto.md`.
+- Paso 3 (orquestación y tokens, ronda 1) hecho en v1.3.0 (23/10/2026): el Archimago v1 (reglas sin modelo y tabla de rangos en `ranks.json`), cuatro rangos con el Mago Joven, la cuota real de Claude Code como maná por cuenta, la espera por cuota, el botón de integrar, el contrato v2 y 20 evals con tests ocultos. Detalle en `auditorias/orquestacion.md`.
 - Primera prueba real de `codewizards serve` (23/10/2026): Pol, en NixOS, con Claude Code 2.1.223 de nixpkgs; un «hello world» en C++ de punta a punta. Mejoras en v1.2.2: modelo real, `--merge`, `--record` y la clave de API fuera por defecto.
 - Paso 2 (arquitectura y software, fase A) hecho en v1.2: núcleo local en `apps/core/` (`codewizards demo`, `serve` y `doctor`), contrato v1 en `packages/contract/`, CI con prueba de humo en Chromium y Pages solo con la demo. Detalle en `docs/arquitectura.md` y `auditorias/software.md`.
 
@@ -78,6 +79,19 @@ Decididas el 23/10/2026, tras la primera prueba real de `serve` (`auditorias/sof
 - CodeWizards no pasa `ANTHROPIC_API_KEY` ni `ANTHROPIC_AUTH_TOKEN` a Claude Code para que pague el plan; `--use-api-key` las mantiene.
 - Interfaz (paso 5): la sala debe ocupar gran parte de la pantalla, y desde la interfaz se debe poder ver el directorio del repo con sus archivos.
 
+Decididas el 23/10/2026, en el paso 3 (`auditorias/orquestacion.md` §3):
+
+- Cuatro rangos como el concepto: Aprendiz, Mago Joven (nuevo), Gran Sabio y Archimago. Modelo de cada uno en `ranks.json`, con Aprendiz → `haiku`, Mago Joven → `sonnet` y Gran Sabio → `opus` de partida.
+- El Archimago v1 son reglas sin modelo y la elección manual en el grimorio; un Archimago con modelo solo si un eval lo justifica.
+- Pol tiene el plan Pro: los evals reales empiezan por un piloto pequeño.
+- Las tareas hechas desaparecen de la lista cuando su mago sale por la puerta; las que esperan a integrarse se quedan hasta que se integran.
+- Solo se ven los gremios de las cuentas conectadas: de momento, solo Anthropic, también en la demo.
+- Un mago sin cuota no se va: espera a que se recupere la ventana y sigue.
+- Botón para integrar un cambio aprobado cuando `serve` no lleva `--merge`.
+- Release automática en GitHub en cada push a `main` que traiga una versión nueva en `package.json` (el tag ya no se crea a mano).
+- La extensión de VS Code, como segunda vía tras el hito 3; Firefox (y con él Zen) en la prueba de humo.
+- Pendiente: crear y abrir salas desde la interfaz (sobre un repo existente o uno nuevo, eligiendo la ruta), y publicar en npm con una guía paso a paso.
+
 ### Estilo vigente (GBC)
 
 | Regla | Valor |
@@ -99,28 +113,31 @@ Decididas el 23/10/2026, tras la primera prueba real de `serve` (`auditorias/sof
 - **Agentes**: primero Claude Code, con la cuenta del usuario (su plan de Claude o su clave de API); después Codex, el CLI de Google y otros. Cada CLI se autentica con su propio flujo; CodeWizards nunca ve, guarda ni reenvía credenciales.
 - **Arte**: generador en Python (`codewizards-art/04_source/gen/gbc.py`), PNG indexados y `meta.json` con anclas.
 
-## Contrato de eventos v1
+## Contrato de eventos v2
 
 La sala no sabe de LLM: solo reproduce eventos. El simulador y los adaptadores de los CLI emiten los mismos, así que la sala no cambia al conectar los agentes reales. La verdad ejecutable es `packages/contract/contract.js`: el núcleo valida cada evento antes de guardarlo o emitirlo.
 
-Formato: JSON por WebSocket, `{"v":1,"t":"<tipo>","seq":<n>,"ts":<ms>,"room":"<id>","agent":"<id>", …}`. `seq` lo pone el registro del núcleo (1, 2, 3… por sala) y `ts` es la hora del hecho en milisegundos de época.
+Formato: JSON por WebSocket, `{"v":2,"t":"<tipo>","seq":<n>,"ts":<ms>,"room":"<id>","agent":"<id>", …}`. `seq` lo pone el registro del núcleo (1, 2, 3… por sala) y `ts` es la hora del hecho en milisegundos de época. Los registros escritos con v1 se siguen leyendo.
 
 | Evento | Datos | Qué hace el mago |
 | --- | --- | --- |
 | `room.opened` | proyecto, gremio dominante | Se encienden las antorchas; estandarte del gremio |
-| `task.created` | id, título, coste estimado (o `null`) | El Archimago lo anota en su grimorio |
+| `task.created` | id, título, coste estimado (o `null`); rango y motivo del Archimago (opcionales) | El Archimago lo anota en su grimorio |
 | `agent.summoned` | gremio, rango, modelo, cuenta | Se abre la puerta y entra caminando |
 | `agent.assigned` | tarea | Camina a la estación que toque |
 | `context.read` | ficheros, tokens de entrada (opcional) | Lee en la librería, con el bastón sobre los tomos |
 | `code.write` | fichero, diff parcial | Escribe en la mesa; suben runas |
+| `command.run` | orden, si falló | Runas en la mesa |
+| `command.denied` | herramienta, orden | «!»: las reglas no se lo permiten (no es un error del mago) |
 | `artifact.present` | entregable, diff | Señala la pizarra; la tiza resume el entregable |
-| `tokens.used` | cuenta, entrada, salida, caché, `cost_usd` (o `null`) | El orbe late; baja el maná |
+| `tokens.used` | cuenta, entrada, salida, caché, `cost_usd` (o `null`) | El orbe late |
+| `quota.updated` | cuenta, estado (`ok`, `limited`, `exhausted`, `unknown`), ventana (`five_hour`, `seven_day`…), uso de 0 a 1, reinicio | Cambia el maná de la cuenta |
 | `review.requested` | entregable | Espera junto a la pizarra; aviso en el panel |
 | `review.approved` / `review.rejected` | comentario | Celebra / vuelve a la mesa |
 | `agent.error` | mensaje | Confundido: «?» sobre la cabeza y humo gris |
-| `agent.blocked` / `agent.unblocked` | motivo (`permission`, `quota`, `auth`, `user`) | Espera con «!» hasta que se desbloquea |
-| `quota.updated` | cuenta, estado (`ok`, `limited`, `exhausted`, `unknown`), reinicio | Cambia el maná de la cuenta |
+| `agent.blocked` / `agent.unblocked` | motivo (`permission`, `quota`, `auth`, `user`), hasta cuándo (opcional) | Sin cuota: espera en el sillón hasta el reinicio; si no, espera con «!» |
 | `task.done` | resultado, rama, PR (opcionales) | Celebra y descansa o sale por la puerta |
+| `task.merged` | rama | El cambio aprobado llega a la rama del usuario |
 | `task.failed` | motivo (`max_turns`, `budget`, `timeout`, `quota`, `auth`, `cap`, `error`), mensaje | «?», humo y a descansar |
 | `task.cancelled` | quién (`user`, `cap`) | Sale por la puerta |
 | `agent.idle` | — | Descansa en el sillón o medita en la alfombra |
@@ -129,10 +146,14 @@ Reglas:
 
 - Un evento con un `seq` ya visto se ignora: repetir el registro o reconectarse no tiene efectos dobles.
 - La sala tolera huecos: si llega `code.write` de un agente que no ha visto, el mago entra por la puerta y va a la mesa.
-- Los gremios son el fabricante del modelo (`anthropic`, `openai`, `google`, `deepseek`, `qwen`, `meta`); uno desconocido se pinta con una paleta neutra.
+- Los gremios son el fabricante del modelo (`anthropic`, `openai`, `google`, `deepseek`, `qwen`, `meta`); solo se ven los de las cuentas conectadas, y uno desconocido se pinta con una paleta neutra.
+- Los rangos son `aprendiz`, `joven`, `sabio` y `archimago`.
 - `account` es un identificador local y opaco: nunca un correo ni una credencial.
 - El estado de la sala se reconstruye reproduciendo el registro (event sourcing).
-- Cambiar el contrato exige el «adelante» de Pol y sube la versión `v`. Historia: v0 en el hito 0; v1 en el paso 2 (`seq`, `ts` de época, `account`, `cost_usd`, gremios por fabricante y los eventos de bloqueo, cuota, fallo y cancelación).
+- Cambiar el contrato exige el «adelante» de Pol y sube la versión `v`. Historia:
+  - v0, en el hito 0.
+  - v1, en el paso 2: `seq`, `ts` de época, `account`, `cost_usd`, gremios por fabricante y los eventos de bloqueo, cuota, fallo y cancelación.
+  - v2, en el paso 3: el Mago Joven, el rango y el motivo del Archimago, la cuota por ventana, `command.run`, `command.denied` y `task.merged`.
 
 ## Protocolo común de los agentes
 
@@ -144,7 +165,7 @@ El de BaitSpace, adaptado: lectura, referencias, propuesta, puerta de aprobació
 4. **Puerta de aprobación**: sin el «adelante» de Pol no se tocan el estilo, la marca, el contrato de eventos, el modelo de negocio, la gestión de claves ni sus decisiones. Los arreglos pequeños y evidentes se hacen y se anotan.
 5. **Implementación**: cambios pequeños y revisables; ninguna clave en el repo ni en el navegador; el arte, siempre por el generador; colores nuevos, dentro de las paletas GBC.
 6. **Validación**: tests y `check.py` en verde; la maqueta sin errores de consola; capturas a ×3 con y sin CRT; lo no comprobado se dice.
-7. **Traspaso**: informe en `auditorias/<tema>.md`, cambios con `COMMIT_MSG.txt` y entrada en `auditorias/traspaso.md`; si el paso cierra una versión, también `TAG_MSG.txt` para el tag anotado y una entrada en `CHANGELOG.md`. La entrega va como parche de git (`git format-patch --binary`, que Pol aplica con `git am`), para que lleguen también los borrados; copiar ficheros encima del repo los pierde (le pasó a v1.1). Idioma: `COMMIT_MSG.txt`, `TAG_MSG.txt`, el changelog y los README, en inglés; el plan, los informes y el traspaso, en español.
+7. **Traspaso**: informe en `auditorias/<tema>.md`, cambios con `COMMIT_MSG.txt` y entrada en `auditorias/traspaso.md`; si el paso cierra una versión, sube la versión en `package.json` y añade su entrada en `CHANGELOG.md`: al hacer push, la CI crea el tag y la release con esas notas (desde v1.3.0 ya no hace falta `TAG_MSG.txt`). La entrega va como parche de git (`git format-patch --binary`, que Pol aplica con `git am`), para que lleguen también los borrados; copiar ficheros encima del repo los pierde (le pasó a v1.1). Idioma: `COMMIT_MSG.txt`, el changelog y los README, en inglés; el plan, los informes y el traspaso, en español.
 
 ```markdown
 ## Paso <N> · <rol> · <fecha>
@@ -163,11 +184,11 @@ Seis hitos: la maqueta está hecha (v1.0) y ahora toca la especialización; Clau
 | Hito | Qué | Quién | Puerta para pasar al siguiente |
 | --- | --- | --- | --- |
 | 0 · Maqueta | Sala GBC, grimorio y pizarra con agentes simulados | Claude, en el Proyecto (hecho, v1.0) | «Adelante» de Pol a la maqueta |
-| 1 · Especialización | Cada agente pule su parte sobre la maqueta | Agentes de los pasos 1 a 7 (pasos 1 y 2 hechos, v1.1 y v1.2) | Contrato de eventos estable y maqueta pulida |
+| 1 · Especialización | Cada agente pule su parte sobre la maqueta | Agentes de los pasos 1 a 7 (pasos 1, 2 y 3 hechos: v1.1, v1.2 y v1.3) | Contrato de eventos estable y maqueta pulida |
 | 2 · App local | Empaquetado, CI con prueba de humo y una primera versión de prueba | Pol y paso 2 (núcleo, CI y paquete de prueba en v1.2) | CI en verde y una versión de prueba que se instala y abre la sala |
 | 3 · Claude Code real | Gremio Anthropic real con Claude Code y la cuenta de Pol, con topes de uso | Pasos 2 y 3 | Una tarea real de punta a punta, con su consumo medido |
 | 4 · Más cuentas y reparto | Codex, el CLI de Google y otros; reparto por cuota restante, medido con evals | Paso 3 | Reparto medido sin perder calidad |
-| 5 · Lanzamiento | Página de descarga, plan de lanzamiento y versión publicada | Pasos 8 y 9 | — |
+| 5 · Lanzamiento | Página de descarga, extensión de VS Code (Marketplace y Open VSX), plan de lanzamiento y versión publicada en npm | Pasos 8 y 9 | — |
 
 ## Hito 0 · La maqueta
 
@@ -287,6 +308,7 @@ Actúa como Diseñador Senior de UI/UX de herramientas para desarrolladores con 
 5. Pantallas: escritorio primero; en móvil, consultar y aprobar.
 6. Peticiones de Pol (23/10/2026): la sala tiene que ocupar gran parte de la pantalla, con los paneles a su alrededor o encima, sin perder el escalado entero. Desde la interfaz se tiene que poder ver el directorio del repo con sus archivos; el núcleo lo daría en solo lectura y con el mismo token que la sala, y el paso 2 lo añade cuando este paso fije qué se muestra.
 7. Lo que dejó a medias el paso 2: el comentario al rechazar, el botón «Detener» y la nota de la pizarra sobre dónde quedó el cambio aprobado (rama, merge o PR); una vista de revisión cómoda del diff (cabeceras de git, líneas largas); y distinguir una orden denegada por las reglas de un error del mago.
+8. Lo que dejó el paso 3: el selector «Quién lo hace», el maná por cuenta (ventana de 5 h y de 7 días), el estado «por integrar» con su botón, la espera por cuota y los motivos del Archimago, que hoy salen en inglés; y el vestíbulo para fundar o abrir salas (nombres provisionales: «La Torre», «Fundar sala», «Entrar en una sala»).
 
 Criterios: cada decisión con una captura o una medida; prueba con 3–5 desarrolladores y tareas concretas.
 
@@ -300,6 +322,13 @@ Actúa como artista principal de pixel art con experiencia en las restricciones 
 4. Sala: ambiente (antorchas y ventanal) y variantes según el gremio dominante.
 5. Interfaz: iconos de 8 × 8, marcos de panel, una fuente de píxel original y el cursor.
 6. Validación: `check.py` (paletas, RGB555, colores por sprite y tamaños).
+7. Peticiones de Pol (23/10/2026):
+   - una sala de descanso donde se sientan a esperar los magos que se han quedado a medias (sin cuota);
+   - la pizarra colgada en una pared;
+   - una planta menos cuadrada, en forma de cruz como una iglesia;
+   - vidrieras tintadas de varios colores, manteniendo la estética actual;
+   - partículas en los magos y en la mesa, saliendo de las pociones.
+   Y del paso 3: el sprite del Mago Joven, que hoy se dibuja como Aprendiz.
 
 Criterios: ningún modelo generativo de imagen; nada que recuerde a logos reales; todo pasa `check.py`.
 
@@ -346,8 +375,8 @@ Preguntas para Pol:
 - [x] Licencia: código MIT y arte CC BY 4.0.
 - [x] ¿App de escritorio o proceso local con la sala en el navegador? Proceso local hasta el hito 4; escritorio en el hito 5 (paso 2).
 - [ ] ¿Aceptas los términos comerciales de Anthropic antes del hito 3? Decidido que sí; pendiente de hacerlo (Pol).
-- [ ] ¿Se publica ya una versión de prueba en npm para reservar el nombre `codewizards`? Recomendación del paso 2: sí, cuando Pol configure *trusted publishing*.
-- [ ] ¿Se añade al contrato un evento `command.run` para auditar cada orden que ejecuta un agente? Recomendación del paso 2: sí, en v2, con la orden ya filtrada de secretos.
+- [ ] ¿Se publica ya una versión de prueba en npm para reservar el nombre `codewizards`? Más adelante, con una guía paso a paso para Pol.
+- [x] ¿Se añade al contrato un evento `command.run` para auditar cada orden que ejecuta un agente? Sí: en v2, junto con `command.denied` (paso 3).
 
 ## Documentos de referencia
 
@@ -355,6 +384,7 @@ Preguntas para Pol:
 - `auditorias/seguridad.md`: seguridad del repo y CI.
 - `docs/arquitectura.md` (paso 2): núcleo local, seguridad, adaptadores, credenciales, ejecución, GitHub, datos, topes, pruebas, empaquetado y guías «cómo añadir».
 - `auditorias/software.md` (paso 2): diagnóstico, cambios y validación de la arquitectura.
+- `auditorias/orquestacion.md` (paso 3): el Archimago, los rangos, la cuota y los evals; `evals/README.md`: cómo se lanzan.
 - `docs/concepto/contexto_general.md` (v3.2): visión, marca y arquitectura de partida; donde choque con este plan, manda el plan.
 - Ronda SNES (arte, generador y documentos de estilo): en el tag `v1.0`; sus correcciones de geometría están en `auditorias/arte_ronda1_snes.md`.
 - La metodología se adaptó del `agentes.md` de BaitSpace (otro proyecto de Pol; no está en este repo).

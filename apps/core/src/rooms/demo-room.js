@@ -33,7 +33,7 @@ export class DemoRoom {
   }
 
   get mode() { return 'demo'; }
-  hello() { return { mode: 'demo', autoApprove: true }; }
+  hello() { return { mode: 'demo', autoApprove: true, merge: false, accounts: [{ id: 'demo', guild: 'anthropic', label: 'Demo' }] }; }
 
   tick() {
     const now = performance.now();
@@ -49,7 +49,7 @@ export class DemoRoom {
 
   async handle(cmd) {
     switch (cmd.cmd) {
-      case 'cast': this.sim.cast(cmd.text); break;
+      case 'cast': this.sim.cast(cmd.text, cmd.rank); break;
       case 'approve': this.sim.approve(cmd.task); break;
       case 'reject': this.sim.reject(cmd.task, cmd.comment); break;
       case 'auto': this.sim.setAuto(cmd.on); break;

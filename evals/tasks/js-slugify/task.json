@@ -1,0 +1,14 @@
+{
+  "id": "js-slugify",
+  "title": "Write slugify()",
+  "difficulty": "joven",
+  "lang": "js",
+  "pilot": true,
+  "prompt": "Implement slugify(text) in src/slug.js: lowercase, strip accents (é → e), turn every run of characters that are not letters or digits into a single \"-\", and remove dashes at both ends.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/slug.test.mjs"
+  ]
+}

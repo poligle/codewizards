@@ -33,11 +33,19 @@ test('cast → wizard works in a worktree → blackboard → approve → commit 
   assert.deepEqual(types().slice(0, 4), ['room.opened', 'task.created', 'agent.summoned', 'agent.assigned']);
   assert.equal(has('agent.summoned').model, 'claude-sonnet-5-5', 'the wizard carries the model Claude Code reports at start');
   assert.ok(has('code.write', e => e.file === 'hello.txt'));
-  assert.ok(has('agent.error', e => /Permission denied: Bash/.test(e.message)));
+  assert.ok(has('command.denied', e => e.tool === 'Bash' && e.command === 'git push origin HEAD'));
+  assert.ok(has('command.run', e => e.command === 'npm test'));
+  assert.ok(!has('agent.error'), 'a refused command is not an error of the wizard');
+  const created = has('task.created');
+  assert.deepEqual([created.rank, created.reason, created.estimate], ['joven', 'default rank', 60000], 'the Archmage picks the default rank');
+  assert.equal(has('agent.summoned').rank, 'joven');
+  assert.ok(has('quota.updated', e => e.window === 'five_hour'), 'the quota Claude Code reports reaches the room');
   assert.equal(repo.git('status', '--porcelain'), '', 'nothing touches the user checkout before approval');
   const run = runs()[0];
   assert.equal(run.prompt, 'Add a greeting file');
   assert.ok(run.args.includes('dontAsk') && run.args.includes('--settings'));
+  assert.deepEqual([run.args[run.args.indexOf('--model') + 1], run.args[run.args.indexOf('--max-turns') + 1]], ['sonnet', '30'], 'model and turns come from the rank table');
+  assert.match(run.args[run.args.indexOf('--append-system-prompt') + 1], /keep the diff focused/, 'with the rank\'s note');
   await room.handle({ cmd: 'approve', task: 't1' });
   const done = has('task.done');
   assert.deepEqual([done.result, done.branch, done.pr], ['ok', 'cw/t1-add-a-greeting-file', undefined]);
@@ -86,12 +94,48 @@ test('failures end the task with a reason: max turns and quota', async () => {
   a.room.cast('Explore');
   const f = await waitFor(() => a.has('task.failed'), { what: 'max-turns failure' });
   assert.equal(f.reason, 'max_turns');
-  const b = setup({ env: { FAKE_CLAUDE_SCENARIO: 'rate-limit' } });
+});
+
+test('out of quota in the middle of the work: the wizard waits, then resumes the same session', async () => {
+  const b = setup({ env: { FAKE_CLAUDE_SCENARIO: 'rate-limit' }, caps: { quotaWaitMs: 300 } });
   b.room.cast('Explore');
-  const g = await waitFor(() => b.has('task.failed'), { what: 'quota failure' });
-  assert.equal(g.reason, 'quota');
-  assert.ok(b.has('agent.blocked', e => e.reason === 'quota'));
-  assert.ok(b.has('quota.updated', e => e.status === 'exhausted'));
+  await waitFor(() => b.has('agent.blocked', e => e.reason === 'quota' && e.until), { what: 'waiting for quota' });
+  assert.ok(!b.has('task.failed'), 'it does not give up');
+  await waitFor(() => b.has('review.requested'), { what: 'resumed after the wait' });
+  assert.ok(b.has('agent.unblocked'));
+  const [first, second] = b.runs();
+  assert.equal(second.args[second.args.indexOf('--resume') + 1], first.args[first.args.indexOf('--session-id') + 1]);
+  assert.match(second.prompt, /usage limit has reset/);
+});
+
+test('the Archmage: your choice wins, and a used-up window makes the wizard wait before starting', async () => {
+  const a = setup();
+  a.room.cast('Add a greeting file', 'aprendiz');
+  await waitFor(() => a.has('review.requested'), { what: 'review' });
+  assert.equal(a.has('task.created').reason, 'chosen by you');
+  const r = a.runs()[0];
+  assert.deepEqual([r.args[r.args.indexOf('--model') + 1], r.args[r.args.indexOf('--max-turns') + 1]], ['haiku', '15']);
+  const p = setup({ caps: { quotaWaitMs: 300 } });
+  p.room.quota.five_hour = { status: 'exhausted', utilization: 1, resets_at: null };
+  p.room.cast('Add a greeting file');
+  await waitFor(() => p.has('agent.blocked'), { what: 'blocked before starting' });
+  assert.equal(p.runs().length, 0, 'no tokens are spent while the window is used up');
+  assert.deepEqual(p.types().slice(0, 5), ['room.opened', 'task.created', 'agent.summoned', 'agent.assigned', 'agent.blocked']);
+  p.room.quota = {};
+  await waitFor(() => p.has('review.requested'), { what: 'runs after the wait' });
+});
+
+test('the merge button: an approved change on its branch reaches the user\'s branch, once', async () => {
+  const { repo, room, has } = setup();
+  room.cast('Add a greeting file');
+  await waitFor(() => has('review.requested'), { what: 'review' });
+  await room.handle({ cmd: 'approve', task: 't1' });
+  assert.equal(has('task.done').result, 'ok');
+  assert.throws(() => repo.git('show', 'main:hello.txt'));
+  await room.handle({ cmd: 'merge', task: 't1' });
+  assert.deepEqual(has('task.merged'), { ...has('task.merged'), t: 'task.merged', task: 't1', branch: 'cw/t1-add-a-greeting-file' });
+  assert.match(repo.git('show', 'main:hello.txt'), /Hello from the wizard/);
+  await assert.rejects(room.handle({ cmd: 'merge', task: 't1' }), /only an approved task/);
 });
 
 test('caps: timeout, crash without result, room tokens, task count', async () => {
@@ -123,7 +167,7 @@ test('stop cancels a running wizard; outside the demo there is no auto-approval'
   const c = await waitFor(() => s.has('task.cancelled'), { what: 'cancelled' });
   assert.equal(c.by, 'user');
   assert.ok(!s.has('review.approved'));
-  assert.deepEqual(s.room.hello(), { mode: 'claude-code', autoApprove: false });
+  assert.deepEqual(s.room.hello(), { mode: 'claude-code', autoApprove: false, merge: false, accounts: [{ id: 'claude-code', guild: 'anthropic', label: 'Claude Code' }] });
 });
 
 test('a restarted room continues the ids of its log', async () => {
@@ -142,7 +186,7 @@ test('--merge: approval fast-forwards the user\'s branch to the task branch', as
   await room.handle({ cmd: 'approve', task: 't1' });
   assert.deepEqual([has('task.done').result, has('task.done').branch], ['merged', 'cw/t1-add-a-greeting-file']);
   assert.match(repo.git('show', 'main:hello.txt'), /Hello from the wizard/);
-  assert.equal(fs.readFileSync(path.join(repo.dir, 'hello.txt'), 'utf8'), 'Hello from the wizard\n', 'the file is in the user\'s checkout');
+  assert.equal(fs.readFileSync(path.join(repo.dir, 'hello.txt'), 'utf8').replace(/\r\n/g, '\n'), 'Hello from the wizard\n', 'the file is in the user\'s checkout');
   assert.equal(repo.git('rev-parse', 'main').trim(), repo.git('rev-parse', 'cw/t1-add-a-greeting-file').trim());
 });
 

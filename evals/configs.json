@@ -1,0 +1,10 @@
+{
+  "about": "Configurations the eval runner compares (node tools/evals.mjs --configs a,b). model forces a Claude Code model for every task; rank forces a rank (and so its turns and note); router lets the Archmage decide; noNote drops the ranks' system notes.",
+  "configs": {
+    "haiku": { "about": "Every task with haiku", "model": "haiku" },
+    "sonnet": { "about": "Every task with sonnet (the baseline)", "model": "sonnet" },
+    "opus": { "about": "Every task with opus (may not be in a Pro plan)", "model": "opus" },
+    "archimago": { "about": "The Archmage's rules pick rank and model (ranks.json)", "router": true },
+    "sonnet-sin-nota": { "about": "sonnet without the ranks' system notes: do the notes help?", "model": "sonnet", "noNote": true }
+  }
+}

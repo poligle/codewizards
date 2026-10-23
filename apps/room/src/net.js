@@ -28,7 +28,7 @@
         try { msg = JSON.parse(e.data); } catch (err) { return; }
         if (!msg || typeof msg !== 'object') return;
         if (msg.ctl === 'hello') { h.onHello(msg); return; }
-        if (msg.ctl === 'error') { G.console.warn('codewizards:', String(msg.message)); return; }
+        if (msg.ctl === 'error') { if (h.onError) h.onError(String(msg.message)); else G.console.warn('codewizards:', String(msg.message)); return; }
         if (typeof msg.t !== 'string') return;
         if (typeof msg.seq === 'number' && msg.seq > lastSeq) lastSeq = msg.seq;
         h.onEvent(msg);
@@ -45,7 +45,8 @@
     }
     open();
     return {
-      cast: text => send({ cmd: 'cast', text }),
+      cast: (text, rank) => send(rank && rank !== 'auto' ? { cmd: 'cast', text, rank } : { cmd: 'cast', text }),
+      merge: task => send({ cmd: 'merge', task }),
       approve: task => send({ cmd: 'approve', task }),
       reject: (task, comment) => send({ cmd: 'reject', task, comment: comment || '' }),
       stop: task => send({ cmd: 'stop', task }),

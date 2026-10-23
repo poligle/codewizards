@@ -1,0 +1,13 @@
+{
+  "id": "py-calculator",
+  "title": "Evaluate arithmetic without eval()",
+  "difficulty": "sabio",
+  "lang": "py",
+  "pilot": true,
+  "prompt": "Implement evaluate(expr) in calc.py: evaluate arithmetic with integers and decimals, + - * /, unary minus and parentheses, with the usual precedence, and return a float. Do not use eval, exec or the ast module. Raise ValueError for malformed input or division by zero.",
+  "testCommand": "python3 -m unittest",
+  "check": [
+    "python3",
+    ".cw-check/test_calc.py"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "js-parse-duration",
+  "title": "Parse durations like 1h30m",
+  "difficulty": "joven",
+  "lang": "js",
+  "pilot": false,
+  "prompt": "Implement parseDuration(text) in src/duration.js. It takes strings such as \"1h30m\", \"45s\" or \"2h5s\" (units h, m, s, each at most once, in that order) and returns the total in seconds. Anything else, including an empty string, throws a TypeError.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/duration.test.mjs"
+  ]
+}

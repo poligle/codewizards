@@ -1,5 +1,5 @@
 // Smoke test of the room in a real browser (Chromium, via Playwright):
-//   A. the static demo, as GitHub Pages or a file on disk serves it (desktop, ×3);
+//   A. the static demo, served like GitHub Pages serves it (desktop, ×3);
 //   B. the same demo on a phone (390 × 844, ×1);
 //   C. the live room served by the core (`codewizards demo`), events over the WebSocket;
 //   D. `codewizards serve` on a throw-away git repo with the tests' fake Claude Code: cast, the diff
@@ -9,7 +9,7 @@
 // remembered, that the token leaves the address bar and that another origin cannot connect.
 // Screenshots (×3, with and without CRT) go to tools/smoke/out/.
 //
-//   node tools/smoke.mjs [--bin path/to/codewizards.js]     (default: this repository's)
+//   node tools/smoke.mjs [--bin path/to/codewizards.js] [--browser chromium|firefox]
 //   CW_CHROMIUM=/path/to/chromium uses that browser instead of Playwright's download (NixOS:
 //   `nix develop .#smoke`, which sets it).
 import fs from 'node:fs';
@@ -17,14 +17,31 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium } from 'playwright';
+import http from 'node:http';
+import { chromium, firefox } from 'playwright';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'tools', 'smoke', 'out');
 const binArg = process.argv.indexOf('--bin');
 const BIN = binArg > 0 ? path.resolve(process.argv[binArg + 1]) : path.join(ROOT, 'apps', 'core', 'bin', 'codewizards.js');
-const STATIC = pathToFileURL(path.join(ROOT, 'apps', 'room', 'src', 'index.html')).href;
+const browserArg = process.argv.indexOf('--browser');
+const BROWSER = browserArg > 0 ? process.argv[browserArg + 1] : 'chromium';
+const ROOM_SRC = path.join(ROOT, 'apps', 'room', 'src');
 fs.mkdirSync(OUT, { recursive: true });
+
+// The demo as GitHub Pages serves it: plain static files over http, no CSP header.
+function startStatic() {
+  const types = { html: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8' };
+  const server = http.createServer((req, res) => {
+    const name = new URL(req.url, 'http://x').pathname.replace(/^\/$/, '/index.html').slice(1);
+    const file = path.join(ROOM_SRC, path.basename(name));
+    if (name.includes('/') || !fs.existsSync(file)) { res.writeHead(404); res.end(); return; }
+    res.writeHead(200, { 'Content-Type': types[file.split('.').pop()] || 'application/octet-stream' });
+    fs.createReadStream(file).pipe(res);
+  });
+  return new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve({ server, url: `http://127.0.0.1:${server.address().port}/` })));
+}
+let STATIC = pathToFileURL(path.join(ROOM_SRC, 'index.html')).href;
 
 const results = [];
 const check = (ok, what) => { results.push({ ok: !!ok, what }); console.log(`${ok ? '✓' : '✗'} ${what}`); };
@@ -42,15 +59,25 @@ function watch(page, allowed) {
   return w;
 }
 
+// Counts in the scroll: tasks leave the list once their wizard walks out, so the log is the record.
+// Functions, not strings: the live room's CSP rightly refuses to evaluate strings.
+const logged = page => page.evaluate(() => {
+  const n = t => [...document.querySelectorAll('#log li b')].filter(b => b.textContent === t).length;
+  return { created: n('task.created'), done: n('task.done'), merged: n('task.merged') };
+});
+
 async function castAndFinish(page, label) {
   await page.click('button[data-speed="4"]');
   if (await page.isEnabled('#auto')) await page.check('#auto');
   await page.click('button.cast');
   const done = await page.waitForFunction(() => {
-    const all = document.querySelectorAll('#tasks li').length;
-    return all >= 3 && document.querySelectorAll('#tasks .st-done').length === all;
+    const n = t => [...document.querySelectorAll('#log li b')].filter(b => b.textContent === t).length;
+    return n('task.created') >= 3 && n('task.done') === n('task.created');
   }, null, { timeout: 90000 }).then(() => true, () => false);
-  check(done, `${label}: a spell completes (every task done)`);
+  const c = await logged(page);
+  check(done, `${label}: a spell completes (every task done)${done ? '' : ` ${c.created} created, ${c.done} done`}`);
+  const gone = await page.waitForFunction(() => document.querySelectorAll('#tasks li').length === 0, null, { timeout: 60000 }).then(() => true, () => false);
+  check(gone, `${label}: finished tasks leave the list when their wizard walks out`);
 }
 
 async function crtShots(page, prefix) {
@@ -65,9 +92,11 @@ async function crtShots(page, prefix) {
 async function staticDemo(browser) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await page.addInitScript(HOOK);
-  const w = watch(page, u => u.startsWith('file:') || u.startsWith('data:'));
+  const w = watch(page, u => u.startsWith(STATIC) || u.startsWith('data:'));
   await page.goto(STATIC);
   check((await page.textContent('#mode')).trim() === 'demo', 'A static: demo mode without a token');
+  check((await page.locator('#mana li').count()) === 1, 'A static: only the connected account\'s guild has mana (Anthropic)');
+  check((await page.locator('#rank option').count()) === 4, 'A static: the spell book lets you choose the rank or leave it to the Archmage');
   await castAndFinish(page, 'A static');
   check((await page.evaluate(() => getComputedStyle(document.getElementById('screen')).getPropertyValue('--px'))).trim() === '3px', 'A static: room at ×3 on a 1440 × 900 screen');
   // An unknown guild and a repeated event must not freeze the room (v1.1 froze on the first).
@@ -93,7 +122,7 @@ async function staticDemo(browser) {
 async function mobileDemo(browser) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
   const page = await ctx.newPage();
-  const w = watch(page, u => u.startsWith('file:') || u.startsWith('data:'));
+  const w = watch(page, u => u.startsWith(STATIC) || u.startsWith('data:'));
   await page.goto(STATIC);
   await page.click('button.cast');
   await page.waitForTimeout(4000);
@@ -175,18 +204,23 @@ async function claudeRoom(browser) {
     check(await page.isDisabled('#auto'), 'D serve: no auto-approval outside the demo');
     check(await page.isVisible('#stop'), 'D serve: the stop button is there for real wizards');
     await page.fill('#spell-text', 'Add a greeting file');
+    await page.selectOption('#rank', 'aprendiz');
     await page.click('button.cast');
     const review = await page.waitForSelector('#tasks .st-review', { timeout: 30000 }).then(() => true, () => false);
     check(review, 'D serve: the wizard\'s change reaches the blackboard');
     check(/Hello from the wizard/.test(await page.textContent('#deliv')), 'D serve: the blackboard shows the real git diff');
     check(git('status', '--porcelain') === '', 'D serve: the user\'s checkout is untouched before approval');
     await page.click('#approve');
-    const done = await page.waitForSelector('#tasks .st-done', { timeout: 30000 }).then(() => true, () => false);
+    const done = await page.waitForSelector('#tasks .st-pending', { timeout: 30000 }).then(() => true, () => false);
     check(done && /Hello from the wizard/.test(git('show', 'cw/t1-add-a-greeting-file:hello.txt')), 'D serve: approval commits to the task branch');
     const note = await page.textContent('#deliv');
     check(/guardado en la rama cw\/t1-add-a-greeting-file/.test(note) && /git merge cw\/t1-add-a-greeting-file/.test(note), 'D serve: the blackboard says where the change went and how to bring it in');
     check(/claude-sonnet-5-5/.test(note), 'D serve: the blackboard shows the model Claude Code reported');
     check(git('rev-list', '--count', 'main').trim() === '1', 'D serve: main does not move');
+    check(/Aprendiz/.test(note), 'D serve: the rank you chose is the one that worked');
+    await page.click('[data-merge]');
+    const merged = await page.waitForFunction(() => [...document.querySelectorAll('#log li b')].some(b => b.textContent === 'task.merged'), null, { timeout: 15000 }).then(() => true, () => false);
+    check(merged && /Hello from the wizard/.test(git('show', 'main:hello.txt')), `D serve: the merge button brings the change into your branch${merged ? '' : ` (${await page.textContent('#hint')})`}`);
     await page.locator('.tv').screenshot({ path: path.join(OUT, 'claude_code_sala.png') });
     await page.screenshot({ path: path.join(OUT, 'claude_code_pantalla.png') });
     check(w.errors.length === 0, `D serve: no page or console errors ${w.errors.join(' | ')}`);
@@ -197,7 +231,11 @@ async function claudeRoom(browser) {
   }
 }
 
-const browser = await chromium.launch(process.env.CW_CHROMIUM ? { executablePath: process.env.CW_CHROMIUM } : {});
+const statics = await startStatic();
+STATIC = statics.url;
+const browser = BROWSER === 'firefox' ? await firefox.launch()
+  : await chromium.launch(process.env.CW_CHROMIUM ? { executablePath: process.env.CW_CHROMIUM } : {});
+console.log(`Browser: ${BROWSER}`);
 try {
   await staticDemo(browser);
   await mobileDemo(browser);
@@ -207,8 +245,9 @@ try {
   check(false, 'smoke test crashed: ' + (err && err.stack || err));
 } finally {
   await browser.close();
+  statics.server.close();
 }
-fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify(results, null, 2) + '\n');
+fs.writeFileSync(path.join(OUT, `results-${BROWSER}.json`), JSON.stringify(results, null, 2) + '\n');
 const failed = results.filter(r => !r.ok).length;
 console.log(`${results.length - failed}/${results.length} smoke checks passed · screenshots in tools/smoke/out/`);
 process.exit(failed ? 1 : 0);

@@ -1,6 +1,6 @@
 # Arquitectura de CodeWizards
 
-22/10/2026 · Paso 2 (arquitectura y software, fase A) · v1.2. Informe del paso: `auditorias/software.md`.
+22/10/2026 · Paso 2 (arquitectura y software, fase A) · v1.2, puesta al día en el paso 3 (v1.3.0, 23/10/2026). Informes: `auditorias/software.md` y `auditorias/orquestacion.md`.
 
 ## 1. En una página
 
@@ -38,7 +38,9 @@ Principios, todos con su prueba en la CI:
 | --- | --- |
 | `apps/room/` | La sala (antes la maqueta): `src/` se sirve tal cual (sin build); `build.py` genera `src/assets.gen.js` desde el arte; `test/` |
 | `apps/core/` | El núcleo: `bin/codewizards.js` (CLI), `src/` (servidor, registro, salas, adaptadores, git) y `test/` (con un Claude Code falso y grabaciones) |
-| `packages/contract/` | El contrato de eventos v1 en código (`contract.js`) y sus tests |
+| `packages/contract/` | El contrato de eventos v2 en código (`contract.js`) y sus tests |
+| `apps/core/src/router/` | El Archimago: la tabla de rangos (`ranks.default.json`), sus reglas, la cuota y las estimaciones |
+| `evals/` y `tools/evals.mjs` | El banco de evals (20 tareas con tests ocultos) y su runner |
 | `tools/smoke.mjs` | Prueba de humo en Chromium con Playwright |
 | `codewizards-art/` | Arte GBC y su generador; `check.py` también falla ante huérfanos |
 | `docs/`, `auditorias/` | Plan, contrato, esta arquitectura e informes |
@@ -64,16 +66,17 @@ El núcleo controla agentes que escriben código, y cualquier web que visite el 
 
 Fuera del modelo: otros procesos del mismo usuario (pueden leer su disco igualmente) y las extensiones del navegador.
 
-## 4. Contrato de eventos v1
+## 4. Contrato de eventos v2
 
-La tabla está en `docs/agentes.md` («Contrato de eventos v1») y la verdad ejecutable en `packages/contract/contract.js`. En la implementación:
+La tabla está en `docs/agentes.md` («Contrato de eventos v2») y la verdad ejecutable en `packages/contract/contract.js`. En la implementación:
 
 - El registro (`store.js`) es el único que pone `seq` (1, 2, 3… por sala), `v` y `room`. Los adaptadores entregan borradores.
 - `ts` es la hora del hecho en milisegundos de época. El pergamino la muestra relativa al primer evento.
 - La sala ignora un evento con `seq` ya visto, así que reconectarse o reproducir el registro no duplica nada. Al conectar, el cliente envía `{"cmd":"hello","since":<último seq>}` y recibe lo que le falta.
 - Los huecos se toleran: un evento de trabajo de un agente que la sala no ha visto lo hace entrar por la puerta.
 - Un gremio desconocido se pinta con la paleta neutra `unknown` (los grises del muro, ya dentro de la paleta GBC).
-- `account` es un identificador local y opaco (`claude-code`, `demo`): nunca un correo ni una credencial.
+- `account` es un identificador local y opaco (`claude-code`, `demo`): nunca un correo ni una credencial. El saludo del núcleo (`ctl: hello`) dice qué cuentas hay conectadas; la sala solo muestra sus gremios.
+- v2 solo añade a v1: el núcleo valida `v` 1 y 2, así que los registros antiguos se siguen reproduciendo.
 
 ## 5. Adaptadores
 
@@ -101,6 +104,10 @@ Un adaptador lanza un CLI oficial **sin modificar**, traduce su salida a borrado
   | el siguiente mensaje del asistente | `agent.unblocked` |
   | `result` | `tokens.used` (input = entrada + escritura de caché; cache = lectura de caché), un `agent.error` por permiso denegado, y el desenlace del turno |
   | `result` con `error_max_turns`, `error_max_budget_usd` o `error_during_execution` | `task.failed` (`max_turns`, `budget`, `error`) |
+  | `rate_limit_event` | `quota.updated` por ventana (`five_hour`, `seven_day`…), con uso de 0 a 1 y reinicio |
+  | `tool_result` de un Bash | `command.run` (con `failed` si la orden falló) |
+  | herramienta rechazada (su `tool_result` o `result.permission_denials`) | `command.denied`; ya no es `agent.error` |
+  | `result` con «usage limit» y la sesión ya en marcha | el mago espera la ventana y la sesión se reanuda (`agent.blocked` con `until`, luego `agent.unblocked`) |
 
 - La sala añade `agent.summoned` y `agent.assigned` cuando Claude Code arranca (`system/init`), con el modelo que de verdad usa, y después `artifact.present` (el `git diff` real del worktree), `review.*`, `task.*` y `agent.idle`. Un CLI que no llega a arrancar no mete a ningún mago en la sala.
 - `--record` guarda cada turno tal cual lo imprime el CLI, con los secretos conocidos enmascarados, en `tasks/<tarea>/turn-<n>.ndjson`: así las grabaciones reales sustituyen a las sintéticas de los tests.
@@ -110,6 +117,8 @@ Un adaptador lanza un CLI oficial **sin modificar**, traduce su salida a borrado
   - El cambio de facturación de `claude -p` con suscripción está pausado, no descartado.
   - No está verificado si `--max-budget-usd` corta con suscripción.
   - El texto que marca «límite de uso agotado» es una heurística sin verificar.
+
+**El Archimago** (`apps/core/src/router/`, detalle en `auditorias/orquestacion.md` §4): elige el rango con reglas sin modelo o toma el que eligió el usuario, mira la cuota (baja un rango por encima del 80 % de la ventana de 5 h; espera por encima del 97 % o si está agotada) y da el modelo, los turnos, la nota de sistema y la estimación de `ranks.json`.
 
 **Siguientes CLI (hito 4)**: Codex y el CLI de Google. Cada uno con su carpeta en `agents/`, su traductor puro y sus grabaciones; no se han estudiado todavía en detalle.
 
@@ -148,6 +157,8 @@ Capas, de fuera adentro:
    - Por defecto, la rama del usuario no se mueve. La pizarra dice dónde quedó el cambio y el `git merge` que lo trae.
    - Con `--merge`, además, la rama del usuario avanza hasta la de la tarea (`git merge --ff-only`) y `task.done` lleva `result: merged`. Nunca se fuerza: si el usuario cambió de rama o la suya avanzó entretanto, el cambio se queda en su rama y un `agent.error` lo explica.
    - Con `--open-prs`, en su lugar, `git push` y `gh pr create --draft`, y la URL del PR viaja en `task.done`. `--merge` y `--open-prs` no van juntos.
+   - Sin ninguno de los dos, la tarea queda «por integrar» y la pizarra ofrece «Integrar en mi rama»: la orden `merge` hace el mismo avance rápido que `--merge` y emite `task.merged`; si no puede, lo explica y el cambio sigue en su rama.
+   - `.claude/settings.local.json` (las aprobaciones personales de Claude Code) nunca entra en el commit, aunque el repo no lo ignore.
    - Después se quita el worktree; la rama queda.
 4. **Rechazar** → el comentario vuelve a la misma sesión (`--resume`) en el mismo worktree.
 5. Si una tarea falla o se cancela, su rama y su worktree quedan para inspeccionarlos (`git worktree prune` limpia lo que borres a mano).
@@ -173,12 +184,12 @@ Dentro: `rooms/<sala>/events.jsonl` (permisos 0600), `rooms/<sala>/worktrees/` y
 | --- | --- | --- |
 | Magos a la vez por sala | 2 | `--max-agents` |
 | Tareas por sesión | 20 | `--max-tasks` |
-| Turnos por tarea | 40 | `--max-turns` |
+| Turnos por tarea | los del rango en `ranks.json` (15, 30 y 40) | `--max-turns` (tope para todos) |
 | Tiempo por turno | 30 min | `--timeout-min` |
 | Tokens por sala (entrada + salida) | 2.000.000 | `--room-tokens` |
 | Coste por turno | sin tope | `--max-budget-usd` (sin verificar con suscripción) |
 
-Al pasar un tope, la tarea termina con `task.failed` y `reason: cap` o `timeout`, visible en la sala y en el registro.
+Al pasar un tope, la tarea termina con `task.failed` y `reason: cap` o `timeout`, visible en la sala y en el registro. La cuota no es un tope de CodeWizards sino del plan: cuando se agota, el mago espera (hasta tres veces por tarea) en lugar de fallar.
 
 ## 11. Pruebas
 
@@ -203,6 +214,8 @@ python3 apps/room/build.py --check
 ```
 
 ## 12. Empaquetado, distribución y actualizaciones
+
+**Releases.** En cada push a `main`, si la versión de `package.json` aún no tiene release, el job `release` de la CI (tras todos los demás) crea el tag `vX.Y.Z` y la release de GitHub con la sección del CHANGELOG como notas y el paquete de `npm pack` adjunto.
 
 **Fase 1, hitos 2 a 4 (decisión de Pol): proceso local y sala en el navegador.**
 
@@ -252,9 +265,12 @@ Antes de decidir, hay que verificar el coste de las firmas (Apple Developer ID c
 
 **Un rango.**
 
-1. Pide el «adelante» de Pol.
-2. Añádelo a `RANKS`, a su sprite en `gbc.py` y al atlas de `apps/room/build.py` y `render.js`.
-3. Pon su modelo en la tabla configurable del paso 3: ningún nombre de modelo fijo en el código.
+1. Pide el «adelante» de Pol (cambia el contrato).
+2. Añádelo a `RANKS` en el contrato y a `WORKER_RANKS` en `apps/core/src/router/config.js`.
+3. Dale su entrada en `apps/core/src/router/ranks.default.json`: modelo, turnos, estimación y nota. Ningún nombre de modelo va en el código.
+4. Su sprite en `gbc.py`, el atlas de `apps/room/build.py` y `render.js`, y su nombre en `T.ranks` de `ui.js` y en el selector de `index.html`.
+
+**Una tarea de evals.** En `evals/tasks/<id>/`: `task.json`, `repo/`, `check/` (tests ocultos) y `solution/`; `node tools/evals.mjs --self-check --tasks <id>` tiene que dar ✓ (`evals/README.md`).
 
 **Un asset.**
 
@@ -285,3 +301,6 @@ Antes de decidir, hay que verificar el coste de las firmas (Apple Developer ID c
 | 9 | El mago entra cuando Claude Code arranca, con su modelo real | Paso 2, tras la primera prueba real |
 | 10 | `--merge` opcional y solo por avance rápido; por defecto, el cambio se queda en su rama | Aceptada por Pol (23/10/2026) |
 | 11 | Las claves de API del entorno no llegan a Claude Code salvo con `--use-api-key` | Aceptada por Pol (23/10/2026) |
+| 12 | El Archimago v1 son reglas sin modelo, con la tabla de rangos en `ranks.json` | Aceptada por Pol (paso 3) |
+| 13 | Un mago sin cuota espera y reanuda su sesión; no falla | Aceptada por Pol (paso 3) |
+| 14 | Release de GitHub automática por versión nueva en `main` | Aceptada por Pol (paso 3) |

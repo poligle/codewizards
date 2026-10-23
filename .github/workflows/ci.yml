@@ -10,6 +10,8 @@ permissions:
 
 # Actions are pinned to full commit SHAs (immutable); Dependabot keeps the SHA and the version
 # comment up to date. The secret scan lives in secrets.yml and the demo deploy in pages.yml.
+# A push to main whose package.json carries a new version also publishes a GitHub release (job
+# `release`), once everything else is green.
 
 jobs:
   art:
@@ -73,6 +75,26 @@ jobs:
       - name: Core, contract and room tests
         run: npm test
 
+  evals:
+    name: Evals (bank and pipeline, no tokens)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Every task fails before and passes with its reference solution
+        run: node tools/evals.mjs --self-check
+      - name: The Archmage's rules against the task labels
+        run: node tools/evals.mjs --routing
+      - name: The whole pipeline with a fake agent that applies the solutions
+        run: node tools/evals.mjs --oracle --configs sonnet,archimago --tasks all --out "$RUNNER_TEMP/evals"
+
   smoke:
     name: Smoke (Chromium, installed package)
     runs-on: ubuntu-latest
@@ -97,7 +119,7 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/app" --ignore-scripts --no-audit --no-fund ./codewizards-*.tgz
           "$RUNNER_TEMP/app/node_modules/.bin/codewizards" --version
       - name: Smoke test (static demo, phone, and the installed core)
-        run: node tools/smoke.mjs --bin "$RUNNER_TEMP/app/node_modules/codewizards/apps/core/bin/codewizards.js"
+        run: node tools/smoke.mjs --browser chromium --bin "$RUNNER_TEMP/app/node_modules/codewizards/apps/core/bin/codewizards.js"
       - name: Screenshots and the test package
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -107,3 +129,61 @@ jobs:
             tools/smoke/out/
             codewizards-*.tgz
           retention-days: 14
+
+  # Zen and the other Firefox-based browsers. Not blocking until it has been green once.
+  smoke-firefox:
+    name: Smoke (Firefox)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Firefox for Playwright
+        run: npx playwright install --with-deps firefox
+      - name: Smoke test in Firefox
+        run: node tools/smoke.mjs --browser firefox
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: smoke-firefox
+          path: tools/smoke/out/
+          retention-days: 14
+
+  release:
+    name: Release (new version on main)
+    needs: [art, room, core, evals, smoke]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Version in package.json
+        id: version
+        run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Publish the release if this version has none yet
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "$TAG is already released: nothing to do."
+            exit 0
+          fi
+          node tools/release-notes.mjs "${TAG#v}" > "$RUNNER_TEMP/notes.md"
+          npm pack --silent
+          gh release create "$TAG" codewizards-*.tgz --target "$GITHUB_SHA" --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"

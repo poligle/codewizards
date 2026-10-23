@@ -15,12 +15,12 @@
 
 CodeWizards is an open-source local app, in development, that turns the AI coding agents you already use into a tower of pixel-art wizards in the style of the Game Boy Color. A small process on your computer drives the official agent CLIs with your own accounts and opens the room in your browser, so your work spends the plan limits or free quotas you already have instead of pay-per-token credit. Each project is a room, each agent is a wizard, and every action is a spell you can see, approve and audit.
 
-> **Status: v1.2.2.** The room now runs on a local core: `codewizards demo` with simulated wizards, and an experimental `codewizards serve` that drives your own Claude Code on a repository. It is not on npm yet ([changelog](CHANGELOG.md)).
+> **Status: v1.3.0.** The room now runs on a local core: `codewizards demo` with simulated wizards, and an experimental `codewizards serve` that drives your own Claude Code on a repository. It is not on npm yet ([changelog](CHANGELOG.md)).
 > [Try the demo](https://poligle.github.io/codewizards/): simulated agents, interface still in Spanish.
 
 ## How it will work
 
-1. **Cast a spell.** Write a request. The Archmage splits it into tasks and gives each one a rank and an account: free or cheaper quota for apprentices, your strongest plan for the Grand Sage.
+1. **Cast a spell.** Write a request. The Archmage gives it a rank and a model (Apprentice, Young Mage or Grand Sage) by the size of the job and the quota left, or you choose. Later it will split big spells into tasks and spread them over your accounts.
 2. **Watch the wizards.** Each task runs in its own branch of your GitHub repository through an official CLI. Wizards read at the library, write at the lab table and present at the blackboard.
 3. **Review on the blackboard.** You see the diff. Approve it and it is committed to the task's branch, with a draft pull request if you want one; reject it and the wizard goes back to the table with your comment.
 4. **Mind the mana.** Mana is the quota left in each connected account. Every event is logged and can be replayed.
@@ -62,15 +62,15 @@ The room opens at `http://127.0.0.1:PORT/#token=…`; keep that address to yours
 What happens when you cast a spell in `codewizards serve --repo PATH`:
 
 1. **A copy for the wizard.** CodeWizards creates the branch `cw/t1-<name>` from your current commit and a separate working copy of it (a git worktree) in its own data folder. Your checkout is not touched while the wizard works.
-2. **The wizard works.** Your Claude Code runs in that copy, signed in with your own account. It can read and edit files. It can only run `git status`, `git diff`, `git log` and the command you allow with `--test-command`, inside Claude Code's sandbox. It cannot push or reach the network. Anything denied shows up in the scroll.
+2. **The wizard works.** The Archmage picks its rank and model (or you pick in the spell book), and your Claude Code runs in that copy, signed in with your own account. It can read and edit files. It can only run `git status`, `git diff`, `git log` and the command you allow with `--test-command`, inside Claude Code's sandbox. It cannot push or reach the network. Anything denied shows up in the scroll.
 3. **The blackboard.** When it finishes, you see the real diff of the copy against your commit, and the model that did it.
 4. **You decide.**
    - **Reject** with a comment: the same Claude Code session picks it up again in the same copy.
-   - **Approve**: the change is committed to `cw/t1-<name>` and the copy is removed. Your branch does not move: the blackboard shows the `git merge cw/t1-<name>` that brings it in. Start `serve` with `--merge` to fast-forward your branch automatically (never forced: if your branch moved, the change stays on its own branch), or with `--open-prs` to push the branch and open a draft pull request with your own `gh`.
+   - **Approve**: the change is committed to `cw/t1-<name>` and the copy is removed. Your branch does not move: the blackboard offers **Merge into my branch** (a fast-forward, never forced) and shows the `git merge` that does the same. Start `serve` with `--merge` to fast-forward on approval, or with `--open-prs` to push the branch and open a draft pull request with your own `gh`.
    - **Stop**: the wizard is stopped; its branch stays for you to look at.
-5. **Who pays.** Your Claude plan, whose usage limits Claude Code shares with your chats. If `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` is set, CodeWizards leaves it out so the plan pays; `--use-api-key` bills the API instead. If you turned on extra usage in your Claude account, work past the plan's limit is billed at API rates.
+5. **Who pays.** Your Claude plan, whose usage limits Claude Code shares with your chats. The mana bar is what is left of your five-hour window, as Claude Code reports it. When it runs out, the wizard does not leave: it waits in the armchair until the window resets and then carries on. If `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` is set, CodeWizards leaves it out so the plan pays; `--use-api-key` bills the API instead. If you turned on extra usage in your Claude account, work past the plan's limit is billed at API rates.
 
-Leftovers are ordinary git: `git branch -D cw/t1-<name>` and `git worktree prune`. `--record` keeps each turn's raw output, with known secret formats masked, next to the room's log, to turn real runs into test recordings.
+The Archmage's table (rank → model, turns and a short system note) lives in `ranks.json`; change it in `~/.config/codewizards/ranks.json`. Leftovers are ordinary git: `git branch -D cw/t1-<name>` and `git worktree prune`. `--record` keeps each turn's raw output, with known secret formats masked, next to the room's log, to turn real runs into test recordings.
 
 ## Repository layout
 
@@ -78,7 +78,8 @@ Leftovers are ordinary git: `git branch -D cw/t1-<name>` and `git worktree prune
 | --- | --- |
 | `apps/room/` | The room (formerly the mockup): `src/` is served as is (world, simulator, renderer, interface, live link); `build.py` exports the art to `src/assets.gen.js`; `test/` |
 | `apps/core/` | The local core: the `codewizards` command, the local server, the event log, the rooms (demo and Claude Code), the adapters and their tests |
-| `packages/contract/` | Event contract v1 as code, with its validator |
+| `packages/contract/` | Event contract v2 as code, with its validator |
+| `evals/` | The Archmage's evals: 20 small tasks with hidden tests (in Spanish: `evals/README.md`) |
 | `tools/smoke.mjs` | Browser smoke test (Playwright, Chromium) |
 | `codewizards-art/` | GBC-style pixel art painted by code and retouched by hand: assets, palettes, `meta.json` and the generator in `04_source/` |
 | `docs/` | `agentes.md` (development plan, event contract and agent prompts), `arquitectura.md` (architecture), `concepto/` and `img/`; in Spanish |
@@ -88,17 +89,18 @@ Leftovers are ordinary git: `git branch -D cw/t1-<name>` and `git worktree prune
 
 The first art round, in SNES style, was retired in v1.1 and lives in tag [`v1.0`](https://github.com/poligle/codewizards/tree/v1.0/codewizards-art/legacy/snes-ronda1).
 
-## Event contract v1
+## Event contract v2
 
-The room knows nothing about LLMs: it only replays events (`room.opened`, `task.created`, `agent.summoned`, `agent.assigned`, `context.read`, `code.write`, `artifact.present`, `tokens.used`, `review.requested`, `review.approved`, `review.rejected`, `agent.error`, `agent.blocked`, `agent.unblocked`, `quota.updated`, `task.done`, `task.failed`, `task.cancelled`, `agent.idle`). The simulator and the Claude Code adapter emit the same ones, and the core checks every event against `packages/contract/contract.js` before it stores or sends it. Each event carries a sequence number, so replaying the log never doubles anything. Full table in `docs/agentes.md`.
+The room knows nothing about LLMs: it only replays events (`room.opened`, `task.created`, `agent.summoned`, `agent.assigned`, `context.read`, `code.write`, `command.run`, `command.denied`, `artifact.present`, `tokens.used`, `quota.updated`, `review.requested`, `review.approved`, `review.rejected`, `agent.error`, `agent.blocked`, `agent.unblocked`, `task.done`, `task.merged`, `task.failed`, `task.cancelled`, `agent.idle`). The simulator and the Claude Code adapter emit the same ones, and the core checks every event against `packages/contract/contract.js` before it stores or sends it. Each event carries a sequence number, so replaying the log never doubles anything. Full table in `docs/agentes.md`.
 
 ## Development
 
 ```sh
-nix develop                                      # optional: node, npm, git and Python with numpy and Pillow
+nix develop                                      # optional: node, npm, git, Python with numpy and Pillow, and `codewizards` on the PATH
 npm ci --ignore-scripts                          # ws, plus Playwright for the smoke test
 npm test                                         # core, contract and room tests
 npx playwright install chromium && npm run smoke # the room in a real browser
+node tools/evals.mjs --self-check                # the eval bank (see evals/README.md before a real run)
 nix develop .#smoke -c npm run smoke             # the same on NixOS, with nixpkgs' Chromium
 python3 -m pip install -r codewizards-art/04_source/requirements.txt   # numpy, Pillow
 python3 codewizards-art/04_source/gen/build.py   # regenerate art, previews and the art demo
@@ -111,7 +113,8 @@ CI runs the art check, the room tests and the `assets.gen.js` check, the core te
 ## Conventions
 
 - The product, commit messages and READMEs are in English; plans, reports and hand-offs are in Spanish.
-- Each delivery comes as a git patch, applied with `git am`, so that deleted files are deleted too; it also brings its `COMMIT_MSG.txt` (git-ignored). Releases also bring a `TAG_MSG.txt` for the annotated tag.
+- Each delivery comes as a git patch, applied with `git am`, so that deleted files are deleted too; it also brings its `COMMIT_MSG.txt` (git-ignored).
+- Releases are automatic: when a push to main brings a new version in `package.json`, CI tags it and publishes a GitHub release with its CHANGELOG section and the package.
 - No key, token or secret ever goes into the repository.
 - Art is painted by code, without generative image models, and retouched by hand. Integer scaling only (`image-rendering: pixelated`).
 

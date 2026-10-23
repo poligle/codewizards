@@ -1,0 +1,14 @@
+{
+  "id": "js-event-emitter",
+  "title": "Write a small event emitter",
+  "difficulty": "sabio",
+  "lang": "js",
+  "pilot": false,
+  "prompt": "Implement the class Emitter in src/emitter.js with on(name, fn), off(name, fn), once(name, fn) and emit(name, ...args). emit calls the listeners in the order they were added and returns how many it called; a once listener runs only on the first emit; removing a listener during an emit does not change who is called by that emit; on and once return a function that removes the listener.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/emitter.test.mjs"
+  ]
+}

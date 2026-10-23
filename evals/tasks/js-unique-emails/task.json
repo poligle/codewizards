@@ -1,0 +1,14 @@
+{
+  "id": "js-unique-emails",
+  "title": "Clean a list of e-mail addresses",
+  "difficulty": "joven",
+  "lang": "js",
+  "pilot": false,
+  "prompt": "Implement cleanEmails(list) in src/emails.js: trim and lowercase each address, keep only those with exactly one \"@\", a non-empty part before it and a domain that contains a dot not at its start or end, and remove duplicates keeping the first occurrence.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/emails.test.mjs"
+  ]
+}

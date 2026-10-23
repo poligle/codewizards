@@ -1,0 +1,14 @@
+{
+  "id": "js-null-guard",
+  "title": "Guard against a missing name",
+  "difficulty": "aprendiz",
+  "lang": "js",
+  "pilot": false,
+  "prompt": "displayName in src/user.js crashes when the user has no name. It should return \"Anonymous\" then.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/user.test.mjs"
+  ]
+}

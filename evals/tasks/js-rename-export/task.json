@@ -1,0 +1,14 @@
+{
+  "id": "js-rename-export",
+  "title": "Rename an export and its use",
+  "difficulty": "aprendiz",
+  "lang": "js",
+  "pilot": false,
+  "prompt": "Rename the exported function sumAll to sum in src/math.js and update src/report.js, which uses it.",
+  "testCommand": "node --test",
+  "check": [
+    "node",
+    "--test",
+    ".cw-check/rename.test.mjs"
+  ]
+}

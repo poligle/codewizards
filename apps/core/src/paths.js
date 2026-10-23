@@ -20,3 +20,12 @@ export function ensureDir(p) {
 export function roomDir(roomId, env = process.env) {
   return path.join(dataDir(env), 'rooms', roomId);
 }
+
+// Where the user's settings live (ranks.json). CODEWIZARDS_CONFIG overrides it (tests).
+export function configDir(env = process.env, platform = process.platform) {
+  if (env.CODEWIZARDS_CONFIG) return path.resolve(env.CODEWIZARDS_CONFIG);
+  const home = os.homedir();
+  if (platform === 'win32') return path.join(env.APPDATA || path.join(home, 'AppData', 'Roaming'), 'CodeWizards');
+  if (platform === 'darwin') return path.join(home, 'Library', 'Application Support', 'CodeWizards');
+  return path.join(env.XDG_CONFIG_HOME || path.join(home, '.config'), 'codewizards');
+}

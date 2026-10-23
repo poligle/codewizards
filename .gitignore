@@ -19,6 +19,7 @@ build/
 # Paquete de prueba (npm pack) y capturas de la prueba de humo
 codewizards-*.tgz
 tools/smoke/out/
+evals/results/
 # Nix
 result
 result-*
