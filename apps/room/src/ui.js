@@ -84,13 +84,15 @@
   function showQuota(ev) {
     const acc = accounts.get(ev.account);
     if (!acc || typeof ev.utilization !== 'number') return;
-    const left = Math.round((1 - ev.utilization) * 100);
-    if (ev.window === 'seven_day') { acc.week = Math.round(ev.utilization * 100); }
+    // A window whose reset time has passed has been renewed (a room reopened later).
+    const used = ev.resets_at && ev.resets_at <= Date.now() ? 0 : ev.utilization;
+    const left = Math.round((1 - used) * 100);
+    if (ev.window === 'seven_day') { acc.week = Math.round(used * 100); }
     else if (!ev.window || ev.window === 'five_hour') {
       acc.li.querySelector('.fill').style.width = left + '%';
       acc.li.querySelector('.bar').setAttribute('aria-valuenow', String(left));
       acc.li.querySelector('.val').textContent = left + ' %';
-      acc.li.title = T.manaLeft(left, ev.resets_at ? hhmm(ev.resets_at) : null);
+      acc.li.title = T.manaLeft(left, ev.resets_at && used ? hhmm(ev.resets_at) : null);
     } else return;
     acc.li.querySelector('.quota').textContent = (acc.li.title || '') + (acc.week !== null ? ' · ' + T.week(acc.week) : '');
   }

@@ -133,7 +133,7 @@ export class ClaudeRoom {
     const title = short(text, 120) || 'Untitled spell';
     const plan = route({
       text: String(text), override: c.rank || this.forcedRank, model: c.model || this.model, effort: c.effort || this.effort,
-      table: this.ranks, quota: this.quota, history: this.history, extraModels: this.model ? [this.model] : [],
+      table: this.ranks, quota: this.quota, history: this.history, extraModels: this.model ? [this.model] : [], now: this.now(),
     });
     this.emit({ t: 'task.created', task: id, title, estimate: plan.estimate, rank: plan.rank, reason: plan.reason.slice(0, 200) });
     const task = {
@@ -188,6 +188,7 @@ export class ClaudeRoom {
     task.branch = branchName(task.id, task.title);
     task.wt = path.join(this.dir, 'worktrees', task.id);
     ensureDir(path.dirname(task.wt));
+    fs.rmSync(task.wt, { recursive: true, force: true });   // a leftover from an older session, never the user's checkout
     await addWorktree(this.repo, task.wt, task.branch, task.base);
     task.prepared = true;
   }

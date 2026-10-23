@@ -7,7 +7,8 @@ import { startServer } from './server.js';
 import { openBrowser } from './open.js';
 import { killAll } from './procs.js';
 import { dataDir, ensureDir, roomDir } from './paths.js';
-import { repoRoot } from './git.js';
+import { git, repoRoot, rootCommit } from './git.js';
+import { adoptRoomDir } from './rooms/identity.js';
 import { run } from './exec.js';
 import { which } from './which.js';
 import { VERSION } from './version.js';
@@ -115,6 +116,11 @@ async function serve(opts) {
   if (!opts.repo) throw new Error('serve needs --repo PATH (a git repository)');
   if (opts.merge && opts['open-prs']) throw new Error('--merge and --open-prs do not go together: pick one');
   const repo = await repoRoot(path.resolve(opts.repo)).catch(() => { throw new Error(`${opts.repo} is not a git repository`); });
+  // A wizard works on a branch made from a commit: an empty repository has nothing to branch from.
+  const root = await rootCommit(repo);
+  if (!root) {
+    throw new Error(`${repo} has no commits yet. Make a first one, for example:\n  git -C "${repo}" commit --allow-empty -m "First commit"\nand start serve again.`);
+  }
   const keys = claudeEnv(process.env, { useApiKey: !!opts['use-api-key'] });
   const claude = await checkClaude({ env: keys.env });
   if (!claude.ok) {
@@ -129,7 +135,9 @@ async function serve(opts) {
   if (opts.rank && !['aprendiz', 'joven', 'sabio'].includes(opts.rank)) throw new Error('--rank must be aprendiz, joven or sabio');
   const ranks = loadRanks({ file: opts.ranks ? path.resolve(opts.ranks) : null });
   const id = roomIdFor(repo);
-  const dir = ensureDir(roomDir(id));
+  const dir = roomDir(id);
+  const { archived } = adoptRoomDir(dir, { repo, root });
+  await git(repo, ['worktree', 'prune']).catch(() => {});   // forget worktrees whose folders are gone
   const store = new EventStore({ room: id, file: path.join(dir, 'events.jsonl') });
   const policy = buildPolicy({ testCommand: opts['test-command'] || null, sandbox: !opts['no-sandbox'] });
   const caps = {
@@ -145,6 +153,7 @@ async function serve(opts) {
     store, repo, dir, bin: claude.bin, policy, caps, ranks: ranks.table, model: opts.model || null, effort: opts.effort || null, rank: opts.rank || null,
     openPrs: !!opts['open-prs'], merge: !!opts.merge, record: !!opts.record, env: keys.env, log: say,
   });
+  if (archived && !opts.json) process.stdout.write(`A different repository lives at this path now: the previous room was archived to ${archived}.\n`);
   if (!opts.json) {
     const c = { ...DEFAULT_CAPS, ...caps };
     const approved = opts.merge ? 'committed to its cw/ branch and fast-forwarded into your branch (--merge)'

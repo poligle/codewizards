@@ -36,10 +36,11 @@ export function estimate(rank, table, history = {}) {
  * @returns {{rank: string, model: string, effort: string|null, maxTurns: number, note: string, estimate: number, reason: string,
  *   wait: null|{until: number|null, reason: string}}}
  */
-export function route({ text, override = null, model = null, effort = null, table, quota = {}, history = {}, extraModels = [] }) {
+export function route({ text, override = null, model = null, effort = null, table, quota = {}, history = {}, extraModels = [], now = Date.now() }) {
   let { rank, reason } = override && WORKER_RANKS.includes(override)
     ? { rank: override, reason: 'chosen by you' } : classify(text, table);
-  const q = quota.five_hour || null;
+  // A window whose reset time has passed says nothing about now (a room reopened later, an old log).
+  const q = quota.five_hour && !(quota.five_hour.resets_at && quota.five_hour.resets_at <= now) ? quota.five_hour : null;
   const used = q && typeof q.utilization === 'number' ? q.utilization : null;
   let wait = null;
   if (q && (q.status === 'exhausted' || (used !== null && used >= table.router.pauseAt))) {

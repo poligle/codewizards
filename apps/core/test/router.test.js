@@ -31,14 +31,17 @@ test('rules: small jobs to the Apprentice, big ones to the Grand Sage, the rest 
 test('your choice wins; the quota lowers the rank, or makes the task wait', () => {
   assert.equal(route({ text: 'refactor everything', override: 'aprendiz', table }).rank, 'aprendiz');
   const tired = { five_hour: { status: 'ok', utilization: 0.85, resets_at: 9 } };
-  const down = route({ text: 'Refactor the parser', table, quota: tired });
+  const down = route({ text: 'Refactor the parser', table, quota: tired, now: 0 });
   assert.equal(down.rank, 'joven');
   assert.match(down.reason, /85 %: one rank down/);
-  assert.equal(route({ text: 'Refactor the parser', override: 'sabio', table, quota: tired }).rank, 'sabio', 'not when you chose');
-  const out = route({ text: 'anything', table, quota: { five_hour: { status: 'exhausted', utilization: 1, resets_at: 1234 } } });
+  assert.equal(route({ text: 'Refactor the parser', override: 'sabio', table, quota: tired, now: 0 }).rank, 'sabio', 'not when you chose');
+  const out = route({ text: 'anything', table, quota: { five_hour: { status: 'exhausted', utilization: 1, resets_at: 1234 } }, now: 0 });
   assert.deepEqual(out.wait, { until: 1234, reason: 'the 5-hour window is at 100 %' });
   assert.equal(route({ text: 'anything', table, quota: { five_hour: { status: 'ok', utilization: 0.98, resets_at: null } } }).wait.until, null);
   assert.equal(route({ text: 'anything', table }).wait, null);
+  const old = { five_hour: { status: 'exhausted', utilization: 1, resets_at: 1000 } };
+  assert.equal(route({ text: 'anything', table, quota: old, now: 5000 }).wait, null, 'a window whose reset time has passed is renewed');
+  assert.equal(route({ text: 'Refactor the parser', table, quota: { five_hour: { ...tired.five_hour } }, now: 10 }).rank, 'sabio');
 });
 
 test('estimates: the table until three real tasks of a rank, then their median', () => {

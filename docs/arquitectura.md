@@ -174,7 +174,9 @@ Capas, de fuera adentro:
 
 Dentro: `rooms/<sala>/events.jsonl` (permisos 0600), `rooms/<sala>/notes.md` (las notas de «Por hacer», 0600), `rooms/<sala>/worktrees/` y `rooms/<sala>/tasks/<tarea>/claude-settings.json`; con `--record`, también `rooms/<sala>/tasks/<tarea>/turn-<n>.ndjson` (0600). Ojo: esas grabaciones incluyen lo que el mago leyó de los ficheros, así que se revisan antes de compartirlas.
 
-- La sala de un repo se llama `<nombre>-<8 hex del hash de su ruta>`.
+- La sala de un repo se llama `<nombre>-<8 hex del hash de su ruta>` y guarda en `room.json` el primer commit del repo. Si en esa ruta hay ahora otro repositorio (se borró y se creó de nuevo), la sala vieja se archiva como `<sala>.replaced-<fecha>` y la nueva empieza vacía.
+- `serve` exige al menos un commit: las tareas salen en ramas desde él. Al arrancar hace `git worktree prune` para olvidar worktrees cuyas carpetas ya no existen.
+- Claude Code no necesita nada dentro del repo: su sesión vive en la carpeta personal del usuario (en Linux, `~/.claude/.credentials.json`).
 - La demo no guarda nada salvo con `--log`.
 - No se registran salidas crudas de herramientas ni el entorno.
 - No hay telemetría.

@@ -167,3 +167,14 @@
 - Decisiones de Pol: en `docs/agentes.md`, «Decididas el 23/10/2026, tras probar la v1.3.0».
 - Encargos: (paso 5) pulir la nueva distribución, «Hechas» y «Por hacer»; el resto, como en la entrada anterior.
 - Pruebas para Pol: las de `auditorias/orquestacion.md` §9, más reabrir una sala con historia.
+
+## Paso 3 · Repo creado de nuevo en la misma ruta (A) · 23/10/2026
+- Cambios (detalle en `auditorias/orquestacion.md` §11):
+  - `serve` exige un primer commit y lo explica si falta.
+  - La sala se archiva si en la ruta hay otro repositorio (`room.json` con el primer commit).
+  - La cuota con el reinicio ya pasado se ignora.
+  - Los restos de worktrees ya no bloquean.
+  - Versión 1.3.2.
+- Decisiones de Pol: ninguna nueva.
+- Encargos: (siguiente parche) fundar salas desde la interfaz, que creará el primer commit al crear un repo nuevo.
+- Pruebas para Pol: `serve` sobre su `/tmp/prueba` nuevo, con un primer commit.

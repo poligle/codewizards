@@ -13,6 +13,12 @@ export async function git(cwd, args, opts = {}) {
 }
 
 export async function repoRoot(dir) { return (await git(dir, ['rev-parse', '--show-toplevel'])).trim(); }
+
+/** The repository's first commit, or null when it has no commits yet. */
+export async function rootCommit(dir) {
+  const r = await run('git', ['rev-list', '--max-parents=0', 'HEAD'], { cwd: dir });
+  return r.code === 0 && r.stdout.trim() ? r.stdout.trim().split('\n')[0] : null;
+}
 export async function head(dir) { return (await git(dir, ['rev-parse', 'HEAD'])).trim(); }
 
 /** Name of the checked-out branch, or null when HEAD is detached. */

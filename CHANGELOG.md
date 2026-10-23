@@ -2,6 +2,14 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.3.2] · 2026-10-23 · A repository created again at the same path
+
+### Fixed
+- `serve` on a repository without commits used to start and then fail every task with a git error, which looked as if Claude Code did not connect. It now stops at once and says how to make the first commit.
+- A repository deleted and created again at the same path reused the old room, with its history and its quota. The room now remembers the repository's first commit: if another repository lives at that path, the old room is archived (`rooms/<id>.replaced-<date>`) and the new one starts empty.
+- A quota window whose reset time has passed no longer makes the Archmage lower the rank or wait, and the mana bar shows it renewed.
+- A leftover worktree folder from an older session no longer blocks a new task; `serve` also prunes the repository's stale worktrees when it starts.
+
 ## [1.3.1] · 2026-10-23 · Opening a room, models and effort, a new layout
 
 ### Fixed
@@ -122,6 +130,7 @@ Step 1 of milestone 1. The mockup is the same as in v1.0.
 ### Fixed
 - The mockup no longer freezes on its first frame in real browsers.
 
+[1.3.2]: https://github.com/poligle/codewizards/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/poligle/codewizards/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/poligle/codewizards/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/poligle/codewizards/compare/v1.2.1...v1.2.2

@@ -22,6 +22,16 @@ test('serve refuses --merge with --open-prs before touching anything', () => {
   assert.deepEqual(parseArgs(['serve', '--repo', '.', '--merge', '--record', '--use-api-key']), { _: ['serve'], repo: '.', merge: true, record: true, 'use-api-key': true });
 });
 
+test('serve on a repository without commits says how to make the first one', () => {
+  const dir = tmp();
+  execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: dir });
+  let err = null;
+  try { execFileSync(process.execPath, [BIN, 'serve', '--repo', dir], { stdio: 'pipe', encoding: 'utf8' }); } catch (e) { err = e; }
+  assert.equal(err && err.status, 1);
+  assert.match(err.stderr, /has no commits yet/);
+  assert.match(err.stderr, /commit --allow-empty -m "First commit"/);
+});
+
 test('room ids are readable and stable per repository path', () => {
   assert.match(roomIdFor('/home/pol/My Repo'), /^my-repo-[0-9a-f]{8}$/);
   assert.equal(roomIdFor('/a/b'), roomIdFor('/a/b'));

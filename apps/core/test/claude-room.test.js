@@ -23,7 +23,8 @@ function setup(extra = {}) {
 }
 
 test('cast → wizard works in a worktree → blackboard → approve → commit on the task branch', async () => {
-  const { repo, room, store, types, has, runs } = setup();
+  const { repo, room, store, types, has, runs, dir } = setup();
+  fs.mkdirSync(path.join(dir, 'worktrees', 't1', 'junk'), { recursive: true });   // a leftover from an older session
   room.cast('Add a greeting file');
   await waitFor(() => has('review.requested'), { what: 'review' });
   const art = has('artifact.present');

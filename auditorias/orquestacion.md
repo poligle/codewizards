@@ -1,6 +1,6 @@
 # Orquestación y tokens · paso 3, ronda 1
 
-23/10/2026 · Estado: entregado para revisión de Pol · Versión v1.3.0, ampliada en v1.3.1 (§10). Antes, el cierre del paso 2 (v1.2.1 y v1.2.2) está en `auditorias/software.md` §10 y §11.
+23/10/2026 · Estado: entregado para revisión de Pol · Versión v1.3.0, ampliada en v1.3.1 (§10) y corregida en v1.3.2 (§11). Antes, el cierre del paso 2 (v1.2.1 y v1.2.2) está en `auditorias/software.md` §10 y §11.
 
 ## 0. En pocas líneas
 
@@ -257,3 +257,25 @@ Validación de v1.3.1:
 Sin verificar con el Claude Code real:
 - que `claude-opus-5-5` funcione en Pro;
 - los cinco niveles de esfuerzo.
+
+## 11. Un repo creado de nuevo en la misma ruta (23/10/2026, v1.3.2)
+
+Pol borró `/tmp/prueba`, creó otro repo con el mismo nombre y Claude no parecía conectarse. Pensó que faltaba `.claude` en el repo.
+
+- **`.claude` en el repo:** no hace falta. La sesión de Claude Code vive en la carpeta personal del usuario (en Linux, `~/.claude/.credentials.json`), compartida por todos los proyectos.
+- **Causa probable:** el repo nuevo no tenía commits. `serve` arrancaba igual, pero cada tarea fallaba al crear su rama y nunca llegaba a lanzar Claude Code.
+- **Otros dos problemas de reutilizar la ruta:**
+  - La sala del repo viejo se reutilizaba, con su historial y su cuota.
+  - Una cuota antigua del registro podía hacer esperar al mago aunque la ventana ya se hubiera renovado.
+
+| Problema | Arreglo | Comprobación |
+| --- | --- | --- |
+| Repo sin commits | `serve` se para en seco y dice cómo hacer el primer commit | `cli.test.js` y el flujo de Pol reproducido |
+| Otro repo en la misma ruta | `room.json` guarda el primer commit; si cambia, la sala vieja se archiva y la nueva empieza vacía | `identity.test.js` y el flujo reproducido: la sala nueva empieza en `t1` |
+| Cuota caducada | El Archimago y el maná ignoran una ventana cuyo reinicio ya pasó | `router.test.js` |
+| Restos de worktrees | Se borra la carpeta de la tarea si sobra de otra sesión, y `serve` hace `git worktree prune` | `claude-room.test.js` |
+
+Flujo reproducido con el Claude Code falso:
+1. Repo con commit: una tarea completa.
+2. La misma ruta solo con `git init`: `serve` sale con el mensaje del primer commit.
+3. La misma ruta con un commit: la sala vieja queda archivada y la nueva funciona desde `t1`.
