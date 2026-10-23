@@ -1,6 +1,6 @@
 {
   "name": "codewizards",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "private": true,
   "description": "A local app that drives the official coding-agent CLIs with your own accounts and shows their work as a tower of pixel-art wizards.",
   "license": "MIT",

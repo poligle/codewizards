@@ -37,6 +37,9 @@
     efforts: { low: 'bajo', medium: 'medio', high: 'alto', xhigh: 'muy alto', max: 'máximo' },
     effortOf: e => 'esfuerzo ' + e,
     byRank: 'El de su rango',
+    health: h => 'Salud del proyecto: ' + h + ' %',
+    outside: n => n === 1 ? '1 mago espera fuera' : n + ' magos esperan fuera',
+    hourglass: s => 'la ventana de 5 h se renueva en ' + s,
   };
   const DEMO_ACCOUNTS = [{ id: 'demo', guild: 'anthropic', label: 'Demo' }];
   const live = !!(CW.net && CW.net.live);
@@ -46,7 +49,7 @@
   let speed = 1, selTask = null, crtOn = true, t0 = null, canMerge = false;
   // Opening on an existing log: everything up to the core's `live` mark rebuilds the room at once
   // (no wizard walks in to leave again); only what follows is animated (Pol, 23/10/2026).
-  let replaying = live, modelSeq = 0;
+  let replaying = live, modelSeq = 0, lastReset = null, statusT = 1;
 
   const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const kfmt = n => ((Number(n) || 0) / 1000).toFixed(1).replace('.', ',') + 'k';
@@ -89,6 +92,7 @@
     const left = Math.round((1 - used) * 100);
     if (ev.window === 'seven_day') { acc.week = Math.round(used * 100); }
     else if (!ev.window || ev.window === 'five_hour') {
+      lastReset = used && ev.resets_at ? ev.resets_at : null;
       acc.li.querySelector('.fill').style.width = left + '%';
       acc.li.querySelector('.bar').setAttribute('aria-valuenow', String(left));
       acc.li.querySelector('.val').textContent = left + ' %';
@@ -444,14 +448,26 @@
     if (id && agentTask.get(id)) select(agentTask.get(id));
   });
 
+  // Visible resources (step 4): the project's health (moves with outcomes, never with tokens),
+  // the wizards waiting outside a full room, and the hourglass of the five-hour window.
+  const leftFor = ms => { const m = Math.max(1, Math.round(ms / 60000)); return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'; };
+  function showStatus() {
+    const parts = [T.health(Math.round(world.health * 100))];
+    if (world.outside.length) parts.push(T.outside(world.outside.length));
+    if (lastReset && lastReset > Date.now()) parts.push(T.hourglass(leftFor(lastReset - Date.now())));
+    $('status').textContent = parts.join(' · ');
+  }
+
   const bctx = $('bloom').getContext('2d');
   let last = G.performance.now(), loopErr = false;
   function loop(now) {
     // Schedule the next frame first: a bug in one frame must never freeze the room (v1.0 froze on
     // a negative first dt; v1.1 on an unknown guild). The first error goes to the console once.
     G.requestAnimationFrame(loop);
-    const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)) * speed;
+    const real = Math.max(0, Math.min(0.1, (now - last) / 1000)), dt = real * speed;
     last = now;
+    statusT += real;
+    if (statusT >= 1) { statusT = 0; showStatus(); }
     try {
       if (sim) sim.tick(dt);
       world.update(dt);

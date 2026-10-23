@@ -15,7 +15,7 @@
 
 CodeWizards is an open-source local app, in development, that turns the AI coding agents you already use into a tower of pixel-art wizards in the style of the Game Boy Color. A small process on your computer drives the official agent CLIs with your own accounts and opens the room in your browser, so your work spends the plan limits or free quotas you already have instead of pay-per-token credit. Each project is a room, each agent is a wizard, and every action is a spell you can see, approve and audit.
 
-> **Status: v1.3.2.** The room now runs on a local core: `codewizards demo` with simulated wizards, and an experimental `codewizards serve` that drives your own Claude Code on a repository. It is not on npm yet ([changelog](CHANGELOG.md)).
+> **Status: v1.4.0.** The room now runs on a local core: `codewizards demo` with simulated wizards, and an experimental `codewizards serve` that drives your own Claude Code on a repository. It is not on npm yet ([changelog](CHANGELOG.md)).
 > [Try the demo](https://poligle.github.io/codewizards/): simulated agents, interface still in Spanish.
 
 ## How it will work
@@ -70,7 +70,7 @@ What happens when you cast a spell in `codewizards serve --repo PATH`. The repos
    - **Stop**: the wizard is stopped; its branch stays for you to look at.
 5. **Who pays.** Your Claude plan, whose usage limits Claude Code shares with your chats. The mana bar is what is left of your five-hour window, as Claude Code reports it. When it runs out, the wizard does not leave: it waits in the armchair until the window resets and then carries on. If `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` is set, CodeWizards leaves it out so the plan pays; `--use-api-key` bills the API instead. If you turned on extra usage in your Claude account, work past the plan's limit is billed at API rates.
 
-The Archmage's table lives in `ranks.json`: for each rank a pinned model and an effort (Apprentice `claude-haiku-5-5` at low effort, Young Mage `claude-sonnet-5-5` at medium, Grand Sage `claude-opus-5-5` at high), its turns and a short system note. Change it in `~/.config/codewizards/ranks.json`, or pick the model and the effort for one spell in the spell book. The tasks panel has what is in progress, what is done (the history) and a notes editor for what is still to do. Leftovers are ordinary git: `git branch -D cw/t1-<name>` and `git worktree prune`. `--record` keeps each turn's raw output, with known secret formats masked, next to the room's log, to turn real runs into test recordings.
+The Archmage's table lives in `ranks.json`: for each rank a model and an effort (Apprentice `haiku` at low effort, Young Mage `sonnet` at medium, Grand Sage `opus` at high: aliases that pick the newest model your Claude Code supports, shown in the room), its turns and a short system note. Change it in `~/.config/codewizards/ranks.json`, or pick the model and the effort for one spell in the spell book. The tasks panel has what is in progress, what is done (the history) and a notes editor for what is still to do. Leftovers are ordinary git: `git branch -D cw/t1-<name>` and `git worktree prune`. `--record` keeps each turn's raw output, with known secret formats masked, next to the room's log, to turn real runs into test recordings.
 
 ## Repository layout
 

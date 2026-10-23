@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "about": "Rank table of the Archmage (step 3). model is a full Claude Code model id (pinned, so you know exactly which one works) or an alias (haiku, sonnet, opus: always the latest of each family); effort is Claude Code's reasoning effort (low, medium, high, xhigh, max). Override any field in ~/.config/codewizards/ranks.json (Linux; see docs/arquitectura.md for other systems). Estimates are input + output tokens per task, provisional until the evals measure them.",
+  "about": "Rank table of the Archmage. model is a Claude Code alias (haiku, sonnet, opus: Claude Code picks the newest model of that family it supports, and the room shows which one) or a full model id such as claude-opus-5-5, which needs a Claude Code new enough to know it. effort is Claude Code's reasoning effort (low, medium, high, xhigh, max). Override any field in ~/.config/codewizards/ranks.json (Linux; see docs/arquitectura.md for other systems). Estimates are input + output tokens per task, provisional until the evals measure them.",
   "ranks": {
     "aprendiz": {
       "label": "Aprendiz",
-      "model": "claude-haiku-5-5",
+      "model": "haiku",
       "effort": "low",
       "maxTurns": 15,
       "estimate": 30000,
@@ -12,7 +12,7 @@
     },
     "joven": {
       "label": "Mago Joven",
-      "model": "claude-sonnet-5-5",
+      "model": "sonnet",
       "effort": "medium",
       "maxTurns": 30,
       "estimate": 60000,
@@ -20,7 +20,7 @@
     },
     "sabio": {
       "label": "Gran Sabio",
-      "model": "claude-opus-5-5",
+      "model": "opus",
       "effort": "high",
       "maxTurns": 40,
       "estimate": 120000,

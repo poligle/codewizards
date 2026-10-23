@@ -2,6 +2,22 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.4.0] · 2026-10-23 · How the wizards behave
+
+Step 4 of milestone 1 (simulation and behaviour).
+
+### Added
+- The wizard's state machine, in the code (`stateOf`) and documented (auditorias/simulacion.md): arriving, walking, queued, reading, writing, presenting, waiting, confused, celebrating, resting, leaving and outside.
+- Queues: a wizard that finds a station full waits on a free tile next to it and steps up as soon as a place frees.
+- Pace: a burst of reads or writes at the same station makes the visit longer instead of chaining walks; a long backlog is compressed (always keeping the latest visit) and the wizard hurries, so the room catches up with the log without ever showing what the log does not say.
+- Scale: up to 10 wizards inside; the rest wait outside the door and come in, first come first in, when someone leaves.
+- Visible resources in the tasks panel: the project's health (moves with approvals, finished and failed tasks, errors and rejections, never with tokens), how many wizards wait outside, and the hourglass of the five-hour window.
+
+### Changed
+- The rank table is back to Claude Code aliases (haiku, sonnet, opus): a pinned claude-opus-5-5 failed with Claude Code 2.1.223, which is older than that model. Aliases pick the newest model your Claude Code supports, and the room shows which one.
+- A model newer than your Claude Code now fails with a message that says which version it needs.
+- The spell book opens empty, with a hint instead of an example spell.
+
 ## [1.3.2] · 2026-10-23 · A repository created again at the same path
 
 ### Fixed
@@ -130,6 +146,7 @@ Step 1 of milestone 1. The mockup is the same as in v1.0.
 ### Fixed
 - The mockup no longer freezes on its first frame in real browsers.
 
+[1.4.0]: https://github.com/poligle/codewizards/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/poligle/codewizards/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/poligle/codewizards/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/poligle/codewizards/compare/v1.2.2...v1.3.0

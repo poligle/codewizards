@@ -178,3 +178,21 @@
 - Decisiones de Pol: ninguna nueva.
 - Encargos: (siguiente parche) fundar salas desde la interfaz, que creará el primer commit al crear un repo nuevo.
 - Pruebas para Pol: `serve` sobre su `/tmp/prueba` nuevo, con un primer commit.
+
+## Paso 4 · Simulación y comportamiento, ronda 1 · 23/10/2026
+- Cambios (detalle en `auditorias/simulacion.md`):
+  - Máquina de estados (`world.stateOf`).
+  - Colas en las estaciones llenas.
+  - Ritmo: fusión de ráfagas y compresión del retraso.
+  - Aforo de 10 magos con espera fuera.
+  - Salud del proyecto, magos fuera y reloj en el panel.
+  - Arreglos: tabla con alias tras el error de Opus (versión de Claude Code), mensaje claro si Claude Code es viejo para un modelo, grimorio sin ejemplo.
+  - Versión 1.4.0.
+- Archivos tocados: `apps/room/src/world.js`, `render.js`, `ui.js`, `index.html` y `style.css`; `apps/core/src/router/ranks.default.json`; `apps/core/src/agents/claude-code/translate.js`; `evals/configs.json`; los tests de la sala, el router, la sala de Claude Code y el traductor; `tools/smoke.mjs`; README, CHANGELOG, `docs/agentes.md`, `auditorias/simulacion.md` (nuevo) y este traspaso.
+- Decisiones de Pol: en `docs/agentes.md`, «Decididas el 23/10/2026, en el paso 4».
+- Encargos para pasos siguientes:
+  - (paso 5) → la línea de recursos con diseño propio.
+  - (paso 6) → orbe y reloj de arena en la sala, poses de confuso y celebrando, cola junto a la puerta.
+  - (Pol) → actualizar Claude Code si quiere fijar los modelos 5.5.
+- Preguntas abiertas: si Pro incluye Opus (lo dirá la primera tarea de Gran Sabio con el alias).
+- Pruebas para Pol: las de `auditorias/simulacion.md` §6.

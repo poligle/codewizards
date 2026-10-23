@@ -67,6 +67,8 @@ const logged = page => page.evaluate(() => {
 });
 
 async function castAndFinish(page, label) {
+  check((await page.inputValue('#spell-text')) === '', `${label}: the spell book opens empty, without an example`);
+  await page.fill('#spell-text', 'Añade un modo oscuro a la página de ajustes');
   await page.click('button[data-speed="4"]');
   if (await page.isEnabled('#auto')) await page.check('#auto');
   await page.click('button.cast');

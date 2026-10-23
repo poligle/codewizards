@@ -98,3 +98,11 @@ test('miniDiff stays short', () => {
   assert.ok(d.split('\n').length < 50);
   assert.match(d, /full change is in the final diff/);
 });
+
+test('a Claude Code too old for the model gets a message that says what to do', () => {
+  const tr = new ClaudeTranslator({ agent: 'a1', task: 't1', cwd: CWD, account: 'x' });
+  tr.push({ type: 'result', subtype: 'success', is_error: true, result: "API Error: 400 Claude Code 2.1.223 does not support this model; version 2.1.280 or newer is required. Run 'claude update', or update the Claude desktop app, then try again.", usage: {} });
+  assert.equal(tr.outcome.ok, false);
+  assert.match(tr.outcome.message, /Your Claude Code \(2\.1\.223\) is too old for this model: it needs 2\.1\.280 or newer/);
+  assert.match(tr.outcome.message, /alias \(haiku, sonnet, opus\)/);
+});

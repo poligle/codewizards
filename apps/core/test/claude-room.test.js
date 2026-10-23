@@ -46,7 +46,7 @@ test('cast → wizard works in a worktree → blackboard → approve → commit 
   assert.equal(run.prompt, 'Add a greeting file');
   assert.ok(run.args.includes('dontAsk') && run.args.includes('--settings'));
   assert.deepEqual([run.args[run.args.indexOf('--model') + 1], run.args[run.args.indexOf('--effort') + 1], run.args[run.args.indexOf('--max-turns') + 1]],
-    ['claude-sonnet-5-5', 'medium', '30'], 'model, effort and turns come from the rank table');
+    ['sonnet', 'medium', '30'], 'model, effort and turns come from the rank table');
   assert.match(run.args[run.args.indexOf('--append-system-prompt') + 1], /keep the diff focused/, 'with the rank\'s note');
   await room.handle({ cmd: 'approve', task: 't1' });
   const done = has('task.done');
@@ -116,7 +116,7 @@ test('the Archmage: your choice wins, and a used-up window makes the wizard wait
   await waitFor(() => a.has('review.requested'), { what: 'review' });
   assert.equal(a.has('task.created').reason, 'chosen by you');
   const r = a.runs()[0];
-  assert.deepEqual([r.args[r.args.indexOf('--model') + 1], r.args[r.args.indexOf('--effort') + 1], r.args[r.args.indexOf('--max-turns') + 1]], ['claude-haiku-5-5', 'low', '15']);
+  assert.deepEqual([r.args[r.args.indexOf('--model') + 1], r.args[r.args.indexOf('--effort') + 1], r.args[r.args.indexOf('--max-turns') + 1]], ['haiku', 'low', '15']);
   const p = setup({ caps: { quotaWaitMs: 300 } });
   p.room.quota.five_hour = { status: 'exhausted', utilization: 1, resets_at: null };
   p.room.cast('Add a greeting file');
@@ -171,8 +171,8 @@ test('stop cancels a running wizard; outside the demo there is no auto-approval'
   assert.ok(!s.has('review.approved'));
   const h = s.room.hello();
   assert.deepEqual([h.mode, h.autoApprove, h.merge, h.accounts], ['claude-code', false, false, [{ id: 'claude-code', guild: 'anthropic', label: 'Claude Code' }]]);
-  assert.deepEqual(h.ranks.joven, { label: 'Mago Joven', model: 'claude-sonnet-5-5', effort: 'medium' });
-  assert.deepEqual(h.models, ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5']);
+  assert.deepEqual(h.ranks.joven, { label: 'Mago Joven', model: 'sonnet', effort: 'medium' });
+  assert.deepEqual(h.models, ['haiku', 'sonnet', 'opus']);
 });
 
 test('a restarted room continues the ids of its log', async () => {
@@ -227,16 +227,16 @@ test('--record keeps each turn\'s output as JSON Lines, owner-only', async () =>
 
 test('the spell book picks model and effort per spell; the user\'s effort variable cannot override it', async () => {
   const a = setup({ env: { CLAUDE_CODE_EFFORT_LEVEL: 'low' } });
-  a.room.handle({ cmd: 'cast', text: 'Add a greeting file', rank: 'aprendiz', model: 'claude-opus-5-5', effort: 'max' });
+  a.room.handle({ cmd: 'cast', text: 'Add a greeting file', rank: 'aprendiz', model: 'opus', effort: 'max' });
   await waitFor(() => a.has('review.requested'), { what: 'review' });
   const r = a.runs()[0];
-  assert.deepEqual([r.args[r.args.indexOf('--model') + 1], r.args[r.args.indexOf('--effort') + 1]], ['claude-opus-5-5', 'max']);
+  assert.deepEqual([r.args[r.args.indexOf('--model') + 1], r.args[r.args.indexOf('--effort') + 1]], ['opus', 'max']);
   assert.match(a.has('task.created').reason, /model chosen by you · effort chosen by you/);
   assert.equal(a.has('agent.summoned').effort, 'max');
   const b = setup();
   b.room.cast('Add a greeting file', { model: 'gpt-9000' });
   await waitFor(() => b.has('review.requested'), { what: 'review' });
-  assert.equal(b.runs()[0].args[b.runs()[0].args.indexOf('--model') + 1], 'claude-sonnet-5-5', 'a model outside the table is ignored');
+  assert.equal(b.runs()[0].args[b.runs()[0].args.indexOf('--model') + 1], 'sonnet', 'a model outside the table is ignored');
 });
 
 test('«Por hacer»: the room\'s notes are kept next to its log', async () => {

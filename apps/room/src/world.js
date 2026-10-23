@@ -31,6 +31,10 @@
   const DOOR = { x: -0.45, y: 10.5 };
   const ENTRY = { x: 0.5, y: 10.5 };
   const SPEED = 1.6;   // tiles per second
+  const CAPACITY = 10; // wizards inside the room at once; the rest wait outside the door (step 4)
+  const BACKLOG = 6;   // pending actions before a wizard catches up with the log
+  // The project's health moves with outcomes, never with tokens: spending more is not rewarded.
+  const HEALTH = { 'task.done': 0.08, 'review.approved': 0.04, 'review.rejected': -0.05, 'agent.error': -0.05, 'task.failed': -0.15, 'command.denied': -0.02 };
   // Events that bring in an agent the room has not seen yet (it walks in, then does the work).
   const MATERIALIZE = new Set(['agent.assigned', 'context.read', 'code.write', 'artifact.present', 'review.requested', 'agent.error', 'agent.blocked']);
 
@@ -90,7 +94,7 @@
       Object.assign(this, {
         id: o.id, guild: o.guild, rank: o.rank || 'aprendiz', x: o.x, y: o.y, dir: o.dir || 'SE',
         pose: 'idle', anim: 0, path: [], actions: [], cur: null, slot: null,
-        mood: null, flash: null, flashT: 0, glow: 0, jump: 0, task: null, lined: false, gone: false,
+        mood: null, flash: null, flashT: 0, glow: 0, jump: 0, task: null, lined: false, gone: false, outside: false, hurry: false,
       });
     }
     get emote() { return this.flashT > 0 ? this.flash : this.mood; }
@@ -108,6 +112,9 @@
       this.selected = null;
       this.rand = mulberry32(seed || 11);
       this.lastSeq = 0;
+      this.capacity = CAPACITY;
+      this.outside = [];   // wizards waiting outside the door, first come first in
+      this.health = 0.7;
       this.archi = new Wizard({ id: 'archmage', guild: 'archmage', rank: 'archmage', x: ARCHI.x, y: ARCHI.y, dir: 'S' });
     }
 
@@ -131,12 +138,64 @@
       if (this.board.lines.length > 4) this.board.lines.shift();
     }
 
+    inside() { let n = 0; for (const w of this.wizards.values()) if (!w.outside && !w.gone) n++; return n; }
+
     summon(id, guild, rank) {
       const nw = new Wizard({ id, guild: guild || 'unknown', rank: rank || 'aprendiz', x: DOOR.x, y: DOOR.y, dir: 'SE' });
       nw.actions.push({ type: 'walk', to: ENTRY });
+      if (this.inside() >= this.capacity) {
+        nw.outside = true;          // the room is full: it waits outside and its work queues up
+        this.outside.push(nw);
+      } else this.door.openUntil = this.time + 2.6;
       this.wizards.set(id, nw);
-      this.door.openUntil = this.time + 2.6;
       return nw;
+    }
+
+    admit() {
+      while (this.outside.length && this.inside() < this.capacity) {
+        const w = this.outside.shift();
+        if (!this.wizards.has(w.id)) continue;
+        w.outside = false;
+        this.door.openUntil = this.time + 2.6;
+        if (w.actions.length > BACKLOG) this.compress(w);
+      }
+    }
+
+    // Station work, with the pace of real agents: a burst of reads or writes at the same station
+    // makes the current visit longer instead of queuing walks; a long backlog is compressed so the
+    // wizard catches up with the log (step 4).
+    queueWork(w, station, work) {
+      const last = w.actions.length ? w.actions[w.actions.length - 1] : (w.cur && w.cur.type === 'work' ? w.cur : null);
+      if (last && last.type === 'work' && last.station === station) { last.min = Math.min(last.min + 0.8, 8); return; }
+      w.actions.push({ type: 'goto', station }, Object.assign({ type: 'work', station }, work));
+      if (w.actions.length > BACKLOG) this.compress(w);
+    }
+
+    // Keep the latest station visit and every non-station action (waits, celebrations, exits) in
+    // order: what is shown is still what the log says, only sooner.
+    compress(w) {
+      const acts = w.actions;
+      let lastPair = -1;
+      for (let i = acts.length - 2; i >= 0; i--) if (acts[i].type === 'goto' && acts[i + 1].type === 'work') { lastPair = i; break; }
+      w.actions = acts.filter((a, i) => !(a.type === 'goto' || (a.type === 'work' && a.station)) || i >= lastPair);
+      for (const a of w.actions) if (a.type === 'work') a.min = Math.min(a.min, 1.5);
+      w.hurry = true;
+    }
+
+    /** What the wizard is doing, in the words of the state machine (docs: auditorias/simulacion.md). */
+    stateOf(w) {
+      if (w.outside) return 'fuera';
+      const a = w.cur;
+      if (w.flashT > 0 && w.flash === '?') return 'confuso';
+      if (!a) return w.x < 0.5 ? 'llegando' : 'quieto';
+      if (a.type === 'walk') return 'llegando';
+      if (a.type === 'goto') return a.queued && !w.path.length ? 'en cola' : 'caminando';
+      if (a.type === 'work') return { read: 'leyendo', write: 'escribiendo', present: 'presentando' }[a.fx] || 'pensando';
+      if (a.type === 'wait') return 'esperando';
+      if (a.type === 'celebrate') return 'celebrando';
+      if (a.type === 'rest') return 'descansando';
+      if (a.type === 'leave') return 'saliendo';
+      return 'quieto';
     }
 
     // Puts a wizard straight at a station, without walking in or animating: how the room rebuilds
@@ -147,8 +206,8 @@
         w = new Wizard({ id, guild: guild || 'unknown', rank: rank || 'aprendiz', x: ENTRY.x, y: ENTRY.y, dir: 'SE' });
         this.wizards.set(id, w);
       }
-      const s = this.claim(w, station);
-      Object.assign(w, { x: s.x, y: s.y, dir: s.dir, path: [], cur: null, pose: 'idle', mood: null, gone: false });
+      const s = this.claim(w, station) || this.queueSpot(w, station);
+      Object.assign(w, { x: s.x, y: s.y, dir: s.dir || 'S', path: [], cur: null, pose: 'idle', mood: null, gone: false });
       w.actions.length = 0;
       w.actions.push({ type: 'wait', emote: emote || null });
       return w;
@@ -160,6 +219,7 @@
       if (!w) return;
       this.release(w);
       this.wizards.delete(id);
+      this.outside = this.outside.filter(o => o !== w);
       if (this.selected === id) this.selected = null;
     }
 
@@ -171,6 +231,7 @@
       }
       let w = ev.agent ? this.wizards.get(ev.agent) : null;
       if (!w && ev.agent && MATERIALIZE.has(ev.t)) w = this.summon(ev.agent, ev.guild, ev.rank);
+      if (HEALTH[ev.t]) this.health = Math.max(0, Math.min(1, this.health + HEALTH[ev.t]));
       switch (ev.t) {
         case 'room.opened':
           this.guild = ev.guild || this.guild;
@@ -186,13 +247,13 @@
           if (w) { w.task = ev.task; this.say(w, '…', 1.2); }
           break;
         case 'context.read':
-          if (w) w.actions.push({ type: 'goto', station: 'library' }, { type: 'work', min: 2.5, emote: 'book', fx: 'read' });
+          if (w) this.queueWork(w, 'library', { min: 2.5, emote: 'book', fx: 'read' });
           break;
         case 'code.write':
-          if (w) w.actions.push({ type: 'goto', station: 'table' }, { type: 'work', min: 3, emote: 'pen', fx: 'write' });
+          if (w) this.queueWork(w, 'table', { min: 3, emote: 'pen', fx: 'write' });
           break;
         case 'artifact.present':
-          if (w) w.actions.push({ type: 'goto', station: 'board' }, { type: 'work', min: 2, emote: 'board', fx: 'present' });
+          if (w) this.queueWork(w, 'board', { min: 2, emote: 'board', fx: 'present' });
           break;
         case 'tokens.used':
           if (w) w.glow = 1;
@@ -249,16 +310,36 @@
         const d = Math.hypot(s.x - w.x, s.y - w.y);
         if (d < bd) { bd = d; best = { s, k }; }
       });
-      if (!best) {
-        const i = Math.floor(this.rand() * list.length);
-        best = { s: list[i], k: station + i };
-      }
+      if (!best) return null;   // full: the caller queues the wizard nearby
       this.taken.set(best.k, w.id);
       w.slot = best.k;
       return best.s;
     }
 
+    // A free tile near a full station, not taken by another wizard: where the queue forms.
+    queueSpot(w, station) {
+      const s0 = STATIONS[station][0], sx = Math.floor(s0.x), sy = Math.floor(s0.y);
+      const busy = (x, y) => {
+        for (const o of this.wizards.values()) {
+          if (o === w || o.outside) continue;
+          if (o.queueAt === x + ',' + y || (Math.floor(o.x) === x && Math.floor(o.y) === y)) return true;   // taken or promised
+        }
+        return Object.values(STATIONS).some(list => list.some(p => Math.floor(p.x) === x && Math.floor(p.y) === y));
+      };
+      const seen = new Set([sx + ',' + sy]), q = [[sx, sy]];
+      while (q.length) {
+        const [x, y] = q.shift();
+        if (free(x, y) && !busy(x, y) && !(x === sx && y === sy)) return { x: x + 0.5, y: y + 0.5, dir: dirOf(s0.x - x - 0.5, s0.y - y - 0.5) || 'S' };
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const k = (x + dx) + ',' + (y + dy);
+          if (!seen.has(k) && free(x + dx, y + dy)) { seen.add(k); q.push([x + dx, y + dy]); }
+        }
+      }
+      return { x: ENTRY.x, y: ENTRY.y, dir: 'E' };
+    }
+
     release(w) {
+      w.queueAt = null;
       if (w.slot && this.taken.get(w.slot) === w.id) this.taken.delete(w.slot);
       w.slot = null;
     }
@@ -272,7 +353,9 @@
       a.t = 0;
       if (a.type === 'walk') { w.path = [a.to]; w.pose = 'walk'; }
       if (a.type === 'goto') {
-        const slot = this.claim(w, a.station);
+        let slot = this.claim(w, a.station);
+        a.queued = !slot;
+        if (!slot) { slot = this.queueSpot(w, a.station); w.mood = '…'; w.queueAt = Math.floor(slot.x) + ',' + Math.floor(slot.y); }
         a.face = slot.dir;
         w.path = w.x < 0 ? [ENTRY].concat(this.route({ x: ENTRY.x, y: ENTRY.y }, slot)) : this.route(w, slot);
         w.pose = 'walk';
@@ -288,7 +371,8 @@
     }
 
     move(w, dt) {
-      let left = dt * SPEED;
+      if (w.hurry && w.actions.length <= 1) w.hurry = false;
+      let left = dt * SPEED * (w.hurry ? 1.6 : 1);
       while (left > 0 && w.path.length) {
         const p = w.path[0], dx = p.x - w.x, dy = p.y - w.y, d = Math.hypot(dx, dy);
         const nd = dirOf(dx, dy);
@@ -307,6 +391,7 @@
     }
 
     step(w, dt) {
+      if (w.outside) return;   // waiting outside the door: nothing to animate yet
       w.anim += dt;
       if (w.flashT > 0) w.flashT -= dt;
       w.glow = Math.max(0, w.glow - dt * 1.5);
@@ -319,8 +404,22 @@
       const next = () => { w.cur = null; w.mood = null; w.jump = 0; };
       switch (a.type) {
         case 'walk':
+          if (this.move(w, dt)) { w.pose = 'idle'; w.cur = null; }
+          break;
         case 'goto':
-          if (this.move(w, dt)) { if (a.face) w.dir = a.face; w.pose = 'idle'; w.cur = null; }
+          if (!this.move(w, dt)) break;
+          if (a.queued) {
+            // In the queue: step up as soon as a place at the station is free.
+            w.pose = 'idle';
+            const keep = w.queueAt;
+            const slot = this.claim(w, a.station);
+            if (!slot) w.queueAt = keep;
+            if (slot) { a.queued = false; a.face = slot.dir; w.mood = null; w.queueAt = null; w.path = this.route(w, slot); w.pose = 'walk'; }
+            break;
+          }
+          if (a.face) w.dir = a.face;
+          w.pose = 'idle';
+          w.cur = null;
           break;
         case 'leave':
           if (this.move(w, dt)) w.gone = true;
@@ -361,6 +460,7 @@
         if (this.selected === id) this.selected = null;
         if (this.onLeave) this.onLeave(id);
       }
+      this.admit();
       this.archi.anim += dt;
       if (this.archi.flashT > 0) this.archi.flashT -= dt;
       const target = this.time < this.door.openUntil ? 1 : 0;
@@ -373,5 +473,5 @@
   }
 
   CW.World = World;
-  CW.ROOM_META = { ROOM, DIRS, STATIONS, ARCHI, DOOR, ENTRY, free, astar, dirOf, mulberry32 };
+  CW.ROOM_META = { ROOM, DIRS, STATIONS, ARCHI, DOOR, ENTRY, CAPACITY, BACKLOG, free, astar, dirOf, mulberry32 };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

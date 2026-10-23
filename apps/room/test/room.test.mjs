@@ -180,5 +180,54 @@ let log1;
   ok(M.STATIONS.table.some(s => Math.hypot(s.x - b.x, s.y - b.y) < 0.01), 'a placed wizard picks up live events as usual');
 }
 
+// 9) step 4: room capacity, queues at full stations, pace, health and states
+{
+  const w = new World(6);
+  let seq = 0;
+  const ev = (t, d) => Object.assign({ v: 2, t, seq: ++seq, ts: T0 + seq, room: 'r' }, d);
+  for (let i = 0; i < 14; i++) w.handle(ev('agent.summoned', { agent: 'c' + i, guild: 'anthropic', rank: 'aprendiz', model: 'm', account: 'x' }));
+  const inside = [...w.wizards.values()].filter(z => !z.outside).length;
+  ok(inside === M.CAPACITY && w.outside.length === 14 - M.CAPACITY, `at most ${M.CAPACITY} wizards inside; the rest wait outside (${inside} in, ${w.outside.length} out)`);
+  ok(w.stateOf(w.wizards.get('c13')) === 'fuera', 'a wizard waiting outside is in state "fuera"');
+  for (let i = 0; i < 4; i++) w.handle(ev('artifact.present', { agent: 'c' + i, task: 't' + i, artifact: 'a', diff: '+x' }));
+  for (let t = 0; t < 30; t += 0.05) w.update(0.05);
+  const four = ['c0', 'c1', 'c2', 'c3'].map(id => w.wizards.get(id));
+  const spots = four.map(z => z.x.toFixed(2) + ',' + z.y.toFixed(2));
+  ok(new Set(spots).size === 4, `no two wizards share a place at a full station (${spots.join(' ')})`);
+  ok(four.filter(z => w.stateOf(z) === 'en cola').length === 2, 'the board has two places: two wizards queue next to it');
+  ok(four.every(z => M.free(Math.floor(z.x), Math.floor(z.y))), 'the queue stands on free tiles');
+  w.handle(ev('task.cancelled', { task: 't0', agent: 'c0', by: 'user' }));
+  w.handle(ev('task.cancelled', { task: 't1', agent: 'c1', by: 'user' }));
+  for (let t = 0; t < 30; t += 0.05) w.update(0.05);
+  ok(w.outside.length === 14 - M.CAPACITY - 2, 'when two leave, two come in from outside');
+  ok(['c2', 'c3'].every(id => w.stateOf(w.wizards.get(id)) !== 'en cola'), 'and the queue moves up to the board');
+}
+{
+  const w = new World(7);
+  let seq = 0;
+  const ev = (t, d) => Object.assign({ v: 2, t, seq: ++seq, ts: T0 + seq, room: 'r' }, d);
+  w.handle(ev('agent.summoned', { agent: 'b1', guild: 'anthropic', rank: 'joven', model: 'm', account: 'x' }));
+  for (let i = 0; i < 12; i++) w.handle(ev('code.write', { agent: 'b1', file: 'f' + i, diff: '+x' }));
+  const b = w.wizards.get('b1');
+  ok(b.actions.length <= 3, `a burst of 12 writes is one longer visit to the table (${b.actions.length} actions pending)`);
+  for (let i = 0; i < 6; i++) { w.handle(ev('context.read', { agent: 'b1', files: [] })); w.handle(ev('code.write', { agent: 'b1', file: 'g', diff: '+y' })); }
+  ok(b.actions.length <= M.BACKLOG + 2 && b.hurry, `a long backlog is compressed and the wizard hurries (${b.actions.length} pending)`);
+  for (let t = 0; t < 40; t += 0.05) w.update(0.05);
+  ok(M.STATIONS.table.some(s => Math.hypot(s.x - b.x, s.y - b.y) < 0.01) && w.stateOf(b) === 'escribiendo', 'it ends where the log says: writing at the table');
+}
+{
+  const w = new World(8);
+  let seq = 0;
+  const ev = (t, d) => Object.assign({ v: 2, t, seq: ++seq, ts: T0 + seq, room: 'r' }, d);
+  const h0 = w.health;
+  w.handle(ev('tokens.used', { agent: 'x', account: 'a', input: 99999, output: 99999, cache: 0, cost_usd: 9 }));
+  ok(w.health === h0, 'spending tokens does not change the project\'s health');
+  w.handle(ev('task.failed', { task: 't1', reason: 'error', message: 'x' }));
+  const h1 = w.health;
+  ok(h1 < h0, 'a failure lowers it');
+  w.handle(ev('task.done', { agent: 'x', task: 't2', result: 'ok' }));
+  ok(w.health > h1 && w.health <= 1, 'a finished task raises it, never above 1');
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 process.exit(fails ? 1 : 0);

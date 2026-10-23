@@ -128,7 +128,7 @@
       for (const tc of A.torches) [0.10, 0.12, 0.16].forEach((a, b) => this.add(this.halos[b], tc.hx - 8, tc.hy - 8, a));
       this.runeCircle(world);
       const items = this.props.map(p => ({ d: p.depth, p }));
-      for (const w of world.wizards.values()) items.push({ d: w.x + w.y, w });
+      for (const w of world.wizards.values()) if (!w.outside) items.push({ d: w.x + w.y, w });
       items.push({ d: world.archi.x + world.archi.y, w: world.archi, archi: true });
       items.sort((a, b) => a.d - b.d);
       for (const it of items) {
@@ -140,7 +140,7 @@
         }
       }
       this.particles(world);
-      for (const w of world.wizards.values()) this.bubble(w, w.jump || 0);
+      for (const w of world.wizards.values()) if (!w.outside) this.bubble(w, w.jump || 0);
       this.bubble(world.archi, 4);
       const sel = world.selected && world.wizards.get(world.selected);
       if (sel && Math.floor(t * 3) % 2 === 0) {
@@ -240,7 +240,7 @@
     }
 
     hit(world, px, py) {
-      const ws = [...world.wizards.values()].sort((a, b) => (b.x + b.y) - (a.x + a.y));
+      const ws = [...world.wizards.values()].filter(w => !w.outside).sort((a, b) => (b.x + b.y) - (a.x + a.y));
       for (const w of ws) {
         const [sx, sy] = this.sp(w.x, w.y);
         if (px >= sx - 8 && px < sx + 8 && py >= sy - 24 - (w.jump || 0) && py <= sy + 2) return w.id;

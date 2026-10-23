@@ -25,6 +25,8 @@ const FAIL = {
 };
 // Unverified heuristic: how a plan's usage limit shows up in the result text.
 const LIMIT_TEXT = /usage limit|limit reached|out of (?:extra )?usage/i;
+// Seen with Claude Code 2.1.223 and claude-opus-5-5 (23/10/2026): a model newer than the CLI.
+const TOO_OLD = /Claude Code (\d+\.\d+\.\d+) does not support this model; version (\d+\.\d+\.\d+) or newer is required/i;
 const MAX_LINES = 40;
 const MAX_CHARS = 8000;
 // How Claude Code words a refused tool call (dontAsk mode); a command that ran and hit a file's
@@ -211,7 +213,11 @@ export class ClaudeTranslator {
       this.result = { ok: true, message: text.slice(0, 2000) };
     } else {
       const reason = this.blocked === 'auth' ? 'auth' : LIMIT_TEXT.test(text) ? 'quota' : (FAIL[msg.subtype] || 'error');
-      this.result = { ok: false, reason, message: (text || String(msg.subtype || 'Claude Code reported an error')).slice(0, 2000) };
+      const old = TOO_OLD.exec(text);
+      const readable = old
+        ? `Your Claude Code (${old[1]}) is too old for this model: it needs ${old[2]} or newer. Update Claude Code, or use an alias (haiku, sonnet, opus) in ranks.json, which always picks a model your version supports.`
+        : text;
+      this.result = { ok: false, reason, message: (readable || String(msg.subtype || 'Claude Code reported an error')).slice(0, 2000) };
       if (reason === 'quota') out.push({ t: 'quota.updated', account: this.account, status: 'exhausted', resets_at: null });
     }
     return out;

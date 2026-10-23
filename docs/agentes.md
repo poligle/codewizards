@@ -42,6 +42,7 @@ CodeWizards es una app local y open source que dirige los CLI oficiales de agent
 - Maqueta v0 del hito 0: sala, grimorio, pizarra y pergamino con agentes simulados. Hito 0 cerrado (tag `v1.0`). Desde v1.2 es la sala de la app, en `apps/room/`.
 - Seguridad del repo y CI: escaneo de secretos, acciones fijadas por SHA y ajustes de GitHub (`auditorias/seguridad.md`).
 - Paso 1 (producto y marca) hecho en v1.1: `auditorias/producto.md`.
+- Paso 4 (simulación y comportamiento, ronda 1) hecho en v1.4.0 (23/10/2026): máquina de estados del mago, colas en las estaciones, ritmo con fusión de ráfagas y puesta al día, aforo de 10 magos con espera fuera de la puerta, y salud del proyecto, magos fuera y reloj de la ventana en el panel. Detalle en `auditorias/simulacion.md`.
 - Paso 3 (orquestación y tokens, ronda 1) hecho en v1.3.0 (23/10/2026): el Archimago v1 (reglas sin modelo y tabla de rangos en `ranks.json`), cuatro rangos con el Mago Joven, la cuota real de Claude Code como maná por cuenta, la espera por cuota, el botón de integrar, el contrato v2 y 20 evals con tests ocultos. Detalle en `auditorias/orquestacion.md`.
 - Primera prueba real de `codewizards serve` (23/10/2026): Pol, en NixOS, con Claude Code 2.1.223 de nixpkgs; un «hello world» en C++ de punta a punta. Mejoras en v1.2.2: modelo real, `--merge`, `--record` y la clave de API fuera por defecto.
 - Paso 2 (arquitectura y software, fase A) hecho en v1.2: núcleo local en `apps/core/` (`codewizards demo`, `serve` y `doctor`), contrato v1 en `packages/contract/`, CI con prueba de humo en Chromium y Pages solo con la demo. Detalle en `docs/arquitectura.md` y `auditorias/software.md`.
@@ -98,6 +99,12 @@ Decididas el 23/10/2026, tras probar la v1.3.0 (`auditorias/orquestacion.md` §1
 - Panel de tareas en tres apartados: en curso (pendientes), hechas (historial) y por hacer (un editor de notas).
 - Distribución en el navegador: la sala grande en el centro con el grimorio debajo, y un panel a cada lado que se puede estrechar o ensanchar.
 - Modelo y esfuerzo se eligen: por rango en `ranks.json` (versiones fijadas: `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5`, con esfuerzo bajo, medio y alto) y por hechizo en el grimorio.
+
+Decididas el 23/10/2026, en el paso 4 (`auditorias/simulacion.md`):
+
+- La tabla de rangos vuelve a los alias `haiku`, `sonnet` y `opus`: el Opus fijado falló porque el Claude Code 2.1.223 de Pol es anterior a ese modelo, no por el plan. La sala muestra la versión exacta que usa cada mago.
+- El grimorio se abre vacío, sin hechizo de ejemplo.
+- Pol pidió hacer el paso 4 sin pasar antes por la puerta de aprobación, con estos arreglos dentro.
 
 ### Estilo vigente (GBC)
 
@@ -192,7 +199,7 @@ Seis hitos: la maqueta está hecha (v1.0) y ahora toca la especialización; Clau
 | Hito | Qué | Quién | Puerta para pasar al siguiente |
 | --- | --- | --- | --- |
 | 0 · Maqueta | Sala GBC, grimorio y pizarra con agentes simulados | Claude, en el Proyecto (hecho, v1.0) | «Adelante» de Pol a la maqueta |
-| 1 · Especialización | Cada agente pule su parte sobre la maqueta | Agentes de los pasos 1 a 7 (pasos 1, 2 y 3 hechos: v1.1, v1.2 y v1.3) | Contrato de eventos estable y maqueta pulida |
+| 1 · Especialización | Cada agente pule su parte sobre la maqueta | Agentes de los pasos 1 a 7 (pasos 1 a 4 hechos: v1.1, v1.2, v1.3 y v1.4) | Contrato de eventos estable y maqueta pulida |
 | 2 · App local | Empaquetado, CI con prueba de humo y una primera versión de prueba | Pol y paso 2 (núcleo, CI y paquete de prueba en v1.2) | CI en verde y una versión de prueba que se instala y abre la sala |
 | 3 · Claude Code real | Gremio Anthropic real con Claude Code y la cuenta de Pol, con topes de uso | Pasos 2 y 3 | Una tarea real de punta a punta, con su consumo medido |
 | 4 · Más cuentas y reparto | Codex, el CLI de Google y otros; reparto por cuota restante, medido con evals | Paso 3 | Reparto medido sin perder calidad |
@@ -337,6 +344,7 @@ Actúa como artista principal de pixel art con experiencia en las restricciones 
    - vidrieras tintadas de varios colores, manteniendo la estética actual;
    - partículas en los magos y en la mesa, saliendo de las pociones.
    Y del paso 3: el sprite del Mago Joven, que hoy se dibuja como Aprendiz.
+   Y del paso 4: el orbe de la salud del proyecto y el reloj de arena de la ventana dibujados en la sala, las poses de confuso y celebrando, y una cola visible junto a la puerta para los magos que esperan fuera.
 
 Criterios: ningún modelo generativo de imagen; nada que recuerde a logos reales; todo pasa `check.py`.
 
@@ -393,6 +401,7 @@ Preguntas para Pol:
 - `docs/arquitectura.md` (paso 2): núcleo local, seguridad, adaptadores, credenciales, ejecución, GitHub, datos, topes, pruebas, empaquetado y guías «cómo añadir».
 - `auditorias/software.md` (paso 2): diagnóstico, cambios y validación de la arquitectura.
 - `auditorias/orquestacion.md` (paso 3): el Archimago, los rangos, la cuota y los evals; `evals/README.md`: cómo se lanzan.
+- `auditorias/simulacion.md` (paso 4): la máquina de estados, las colas, el ritmo, el aforo y los recursos visibles.
 - `docs/concepto/contexto_general.md` (v3.2): visión, marca y arquitectura de partida; donde choque con este plan, manda el plan.
 - Ronda SNES (arte, generador y documentos de estilo): en el tag `v1.0`; sus correcciones de geometría están en `auditorias/arte_ronda1_snes.md`.
 - La metodología se adaptó del `agentes.md` de BaitSpace (otro proyecto de Pol; no está en este repo).

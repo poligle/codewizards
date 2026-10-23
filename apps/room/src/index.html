@@ -30,6 +30,7 @@
     <button type="button" id="to-spell" class="mini">Al grimorio</button>
     <h3>Maná por cuenta</h3>
     <ul id="mana" class="mana"></ul>
+    <p id="status" class="status" aria-live="polite"></p>
   </aside>
   <div class="split" id="split-left" data-side="left" role="separator" aria-orientation="vertical" aria-label="Ancho del panel de tareas" tabindex="0"></div>
   <section class="center" aria-label="Sala y grimorio">
@@ -45,7 +46,7 @@
       <h2 id="h-grim">Grimorio</h2>
       <form id="spell">
         <label for="spell-text" class="sr-only">Hechizo</label>
-        <textarea id="spell-text" rows="2">Añade un modo oscuro a la página de ajustes</textarea>
+        <textarea id="spell-text" rows="2" placeholder="Describe lo que quieres que hagan los magos"></textarea>
         <div class="opts">
           <label>Quién lo hace
             <select id="rank">
