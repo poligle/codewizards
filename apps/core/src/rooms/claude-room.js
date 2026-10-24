@@ -84,7 +84,7 @@ export class ClaudeRoom {
       label: this.ranks.ranks[r].label, model: this.model || this.ranks.ranks[r].model, effort: this.effort || this.ranks.ranks[r].effort || null,
     }]));
     return {
-      mode: 'claude-code', autoApprove: false, merge: this.merge, accounts: [{ id: this.account, guild: 'anthropic', label: 'Claude Code' }],
+      mode: 'claude-code', name: path.basename(this.repo), autoApprove: false, merge: this.merge, accounts: [{ id: this.account, guild: 'anthropic', label: 'Claude Code' }],
       ranks, models: this.models(), efforts: [...EFFORTS], notes: this.readNotes(),
     };
   }

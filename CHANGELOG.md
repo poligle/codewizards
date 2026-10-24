@@ -2,6 +2,18 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.5.1] · 2026-10-23 · La Torre
+
+Step 5 of milestone 1 (UI/UX), round 2.
+
+### Added
+- La Torre: `codewizards` with no command opens it in the browser. It lists your rooms, lets you enter one, or found a new one on a folder you write: on an existing repository, or in a new one that it creates with a README and a first commit. From inside a room, the "La Torre" button opens it again; changing room keeps the token out of the address bar.
+- The core keeps several rooms open at once; each browser tab is in one of them.
+- `tools/contrast.mjs`: the panels' text colours measured against WCAG 2.2 AA in both themes, checked in CI.
+
+### Changed
+- The header shows the room's repository next to the mode.
+
 ## [1.5.0] · 2026-10-23 · Files, a better diff, keyboard
 
 Step 5 of milestone 1 (UI/UX), round 1.
@@ -159,6 +171,7 @@ Step 1 of milestone 1. The mockup is the same as in v1.0.
 ### Fixed
 - The mockup no longer freezes on its first frame in real browsers.
 
+[1.5.1]: https://github.com/poligle/codewizards/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/poligle/codewizards/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/poligle/codewizards/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/poligle/codewizards/compare/v1.3.1...v1.3.2

@@ -9,6 +9,7 @@ import { killAll } from './procs.js';
 import { dataDir, ensureDir, roomDir } from './paths.js';
 import { git, repoRoot, rootCommit } from './git.js';
 import { adoptRoomDir } from './rooms/identity.js';
+import { Tower } from './rooms/tower.js';
 import { run } from './exec.js';
 import { which } from './which.js';
 import { VERSION } from './version.js';
@@ -22,6 +23,7 @@ import { loadRanks } from './router/config.js';
 export const HELP = `CodeWizards ${VERSION}: your coding agents as a tower of pixel-art wizards.
 
 Usage
+  codewizards [tower] [--port N] [--no-open] [--json] [the serve options]
   codewizards demo   [--port N] [--no-open] [--log] [--json]
   codewizards serve  --repo PATH [--port N] [--no-open] [--json] [--model NAME] [--rank aprendiz|joven|sabio]
                      [--test-command CMD] [--max-turns N] [--timeout-min N] [--max-agents N]
@@ -30,6 +32,8 @@ Usage
   codewizards doctor
   codewizards --version | --help
 
+  tower   La Torre (also with no command): list your rooms, enter one, or found a new one on a
+          repository (existing, or a new one it creates with a first commit), from the browser.
   demo    The room with simulated wizards: no agent CLI, no account, no network.
   serve   Experimental (milestone 3). Claude Code works on a copy of the repository at PATH (a git
           worktree per task); your checkout is not touched. Approving on the blackboard commits the
@@ -81,16 +85,19 @@ function say(opts, obj, text) {
   else process.stdout.write(text + '\n');
 }
 
-async function serveRoom(opts, room, store) {
-  const srv = await startServer({ room, store, port: opts.port || 0 });
-  say(opts, { event: 'listening', url: srv.url, room: store.room, mode: room.mode, version: VERSION },
-    `CodeWizards ${VERSION} · ${room.mode} room "${store.room}"\n  ${srv.url}\nCtrl+C stops the room${room.mode === 'demo' ? '' : ' and every wizard in it'}.`);
-  if (!opts['no-open'] && !openBrowser(srv.url)) process.stdout.write('Open the address above in your browser.\n');
+async function serveRoom(opts, room, store, tower = null) {
+  const srv = await startServer({ room, store, tower, port: opts.port || 0 });
+  const mode = room ? room.mode : 'tower';
+  const url = room && tower ? `${srv.url}&room=${store.room}` : srv.url;
+  say(opts, { event: 'listening', url, room: store ? store.room : null, mode, version: VERSION },
+    `CodeWizards ${VERSION} · ${room ? `${room.mode} room "${store.room}"` : 'La Torre'}\n  ${url}\nCtrl+C stops ${room && room.mode === 'demo' ? 'the room' : 'every room and every wizard in it'}.`);
+  if (!opts['no-open'] && !openBrowser(url)) process.stdout.write('Open the address above in your browser.\n');
   let stopping = false;
   const stop = async () => {
     if (stopping) return;
     stopping = true;
-    await room.shutdown();
+    if (room) await room.shutdown();
+    if (tower) await tower.shutdown();
     killAll();
     await srv.close();
     process.exit(0);
@@ -112,15 +119,11 @@ export function roomIdFor(repo) {
   return `${slug}-${crypto.createHash('sha256').update(repo).digest('hex').slice(0, 8)}`;
 }
 
-async function serve(opts) {
-  if (!opts.repo) throw new Error('serve needs --repo PATH (a git repository)');
+// What every Claude Code room of this run shares: the checked CLI, the environment, the rank table,
+// the policy and the caps. Checked once, when serve or La Torre starts.
+async function claudeSetup(opts) {
   if (opts.merge && opts['open-prs']) throw new Error('--merge and --open-prs do not go together: pick one');
-  const repo = await repoRoot(path.resolve(opts.repo)).catch(() => { throw new Error(`${opts.repo} is not a git repository`); });
-  // A wizard works on a branch made from a commit: an empty repository has nothing to branch from.
-  const root = await rootCommit(repo);
-  if (!root) {
-    throw new Error(`${repo} has no commits yet. Make a first one, for example:\n  git -C "${repo}" commit --allow-empty -m "First commit"\nand start serve again.`);
-  }
+  if (opts.rank && !['aprendiz', 'joven', 'sabio'].includes(opts.rank)) throw new Error('--rank must be aprendiz, joven or sabio');
   const keys = claudeEnv(process.env, { useApiKey: !!opts['use-api-key'] });
   const claude = await checkClaude({ env: keys.env });
   if (!claude.ok) {
@@ -132,13 +135,7 @@ async function serve(opts) {
     }[claude.problem];
     throw new Error(why);
   }
-  if (opts.rank && !['aprendiz', 'joven', 'sabio'].includes(opts.rank)) throw new Error('--rank must be aprendiz, joven or sabio');
   const ranks = loadRanks({ file: opts.ranks ? path.resolve(opts.ranks) : null });
-  const id = roomIdFor(repo);
-  const dir = roomDir(id);
-  const { archived } = adoptRoomDir(dir, { repo, root });
-  await git(repo, ['worktree', 'prune']).catch(() => {});   // forget worktrees whose folders are gone
-  const store = new EventStore({ room: id, file: path.join(dir, 'events.jsonl') });
   const policy = buildPolicy({ testCommand: opts['test-command'] || null, sandbox: !opts['no-sandbox'] });
   const caps = {
     ...(opts['max-agents'] ? { maxAgents: opts['max-agents'] } : {}),
@@ -148,28 +145,73 @@ async function serve(opts) {
     ...(opts['room-tokens'] ? { roomTokens: opts['room-tokens'] } : {}),
     ...(opts['max-budget-usd'] ? { maxBudgetUsd: opts['max-budget-usd'] } : {}),
   };
-  const say = line => { if (!opts.json) process.stdout.write(line + '\n'); };
+  return { keys, claude, ranks, policy, caps };
+}
+
+// One repository's room: its folder (archived if another repository now lives at that path), its
+// log and its ClaudeRoom.
+async function openRepoRoom(repoPath, setup, opts, say) {
+  const repo = await repoRoot(path.resolve(repoPath)).catch(() => { throw new Error(`${repoPath} is not a git repository`); });
+  // A wizard works on a branch made from a commit: an empty repository has nothing to branch from.
+  const root = await rootCommit(repo);
+  if (!root) {
+    throw new Error(`${repo} has no commits yet. Make a first one, for example:\n  git -C "${repo}" commit --allow-empty -m "First commit"\nand start again.`);
+  }
+  const id = roomIdFor(repo);
+  const dir = roomDir(id);
+  const { archived } = adoptRoomDir(dir, { repo, root });
+  if (archived) say(`A different repository lives at ${repo} now: the previous room was archived to ${archived}.`);
+  await git(repo, ['worktree', 'prune']).catch(() => {});   // forget worktrees whose folders are gone
+  const store = new EventStore({ room: id, file: path.join(dir, 'events.jsonl') });
+  const { keys, claude, ranks, policy, caps } = setup;
   const room = new ClaudeRoom({
     store, repo, dir, bin: claude.bin, policy, caps, ranks: ranks.table, model: opts.model || null, effort: opts.effort || null, rank: opts.rank || null,
     openPrs: !!opts['open-prs'], merge: !!opts.merge, record: !!opts.record, env: keys.env, log: say,
   });
-  if (archived && !opts.json) process.stdout.write(`A different repository lives at this path now: the previous room was archived to ${archived}.\n`);
-  if (!opts.json) {
-    const c = { ...DEFAULT_CAPS, ...caps };
-    const approved = opts.merge ? 'committed to its cw/ branch and fast-forwarded into your branch (--merge)'
-      : opts['open-prs'] ? 'committed to its cw/ branch, pushed, and opened as a draft pull request (--open-prs)'
-        : 'committed to its cw/ branch; bring it in with `git merge` (or use --merge / --open-prs)';
-    const billing = keys.removed.length ? `${keys.removed.join(' and ')} set: not passed to Claude Code, so your plan pays (--use-api-key to bill the API).\n`
-      : keys.found.length ? `WARNING: --use-api-key: Claude Code bills ${keys.found.join(' and ')} per token, not your plan.\n` : '';
-    process.stdout.write(`Claude Code ${claude.version} · repository ${repo}\n` +
-      `An approved change is ${approved}.\n` + billing +
-      `Archmage: ${['aprendiz', 'joven', 'sabio'].map(r => `${ranks.table.ranks[r].label} → ${opts.model || ranks.table.ranks[r].model} (${opts.effort || ranks.table.ranks[r].effort || 'default'} effort)`).join(', ')}` +
-      `${ranks.file ? ` (from ${ranks.file})` : ''}${opts.rank ? `; every spell goes to ${opts.rank}` : ''}.\n` +
-      `Caps: ${c.maxAgents} wizards at a time, ${c.maxTasks} tasks, ${c.maxTurns ? `${c.maxTurns} turns` : 'the turns of each rank'} and ${c.timeoutMs / 60000} min per task, ${c.roomTokens} tokens per room.\n` +
-      (policy.bash ? (policy.sandboxed ? 'Bash runs in Claude Code\'s sandbox (required to start).\n' : 'WARNING: --no-sandbox: Bash runs without Claude Code\'s sandbox.\n')
-        : 'Native Windows: wizards get no Bash (the sandbox needs WSL2).\n'));
+  return { id, room, store, repo };
+}
+
+function banner(opts, setup, repo) {
+  if (opts.json) return;
+  const { keys, claude, ranks, policy, caps } = setup;
+  const c = { ...DEFAULT_CAPS, ...caps };
+  const approved = opts.merge ? 'committed to its cw/ branch and fast-forwarded into your branch (--merge)'
+    : opts['open-prs'] ? 'committed to its cw/ branch, pushed, and opened as a draft pull request (--open-prs)'
+      : 'committed to its cw/ branch; bring it in with `git merge` (or use --merge / --open-prs)';
+  const billing = keys.removed.length ? `${keys.removed.join(' and ')} set: not passed to Claude Code, so your plan pays (--use-api-key to bill the API).\n`
+    : keys.found.length ? `WARNING: --use-api-key: Claude Code bills ${keys.found.join(' and ')} per token, not your plan.\n` : '';
+  process.stdout.write(`Claude Code ${claude.version}${repo ? ` · repository ${repo}` : ' · La Torre'}\n` +
+    `An approved change is ${approved}.\n` + billing +
+    `Archmage: ${['aprendiz', 'joven', 'sabio'].map(r => `${ranks.table.ranks[r].label} → ${opts.model || ranks.table.ranks[r].model} (${opts.effort || ranks.table.ranks[r].effort || 'default'} effort)`).join(', ')}` +
+    `${ranks.file ? ` (from ${ranks.file})` : ''}${opts.rank ? `; every spell goes to ${opts.rank}` : ''}.\n` +
+    `Caps: ${c.maxAgents} wizards at a time, ${c.maxTasks} tasks, ${c.maxTurns ? `${c.maxTurns} turns` : 'the turns of each rank'} and ${c.timeoutMs / 60000} min per task, ${c.roomTokens} tokens per room.\n` +
+    (policy.bash ? (policy.sandboxed ? 'Bash runs in Claude Code\'s sandbox (required to start).\n' : 'WARNING: --no-sandbox: Bash runs without Claude Code\'s sandbox.\n')
+      : 'Native Windows: wizards get no Bash (the sandbox needs WSL2).\n'));
+}
+
+async function serve(opts) {
+  if (!opts.repo) throw new Error('serve needs --repo PATH (a git repository)');
+  if (opts.merge && opts['open-prs']) throw new Error('--merge and --open-prs do not go together: pick one');
+  const say = line => { if (!opts.json) process.stdout.write(line + '\n'); };
+  const repo = await repoRoot(path.resolve(opts.repo)).catch(() => { throw new Error(`${opts.repo} is not a git repository`); });
+  if (!(await rootCommit(repo))) {   // the repository first: its problem is the one to fix
+    throw new Error(`${repo} has no commits yet. Make a first one, for example:\n  git -C "${repo}" commit --allow-empty -m "First commit"\nand start again.`);
   }
-  return serveRoom(opts, room, store);
+  const setup = await claudeSetup(opts);
+  const first = await openRepoRoom(repo, setup, opts, say);
+  banner(opts, setup, first.repo);
+  const tower = new Tower({ open: repo => openRepoRoom(repo, setup, opts, say) });
+  tower.add(first);
+  return serveRoom(opts, first.room, first.store, tower);
+}
+
+// La Torre: no room yet; the browser lists the rooms and founds new ones.
+async function towerMode(opts) {
+  const say = line => { if (!opts.json) process.stdout.write(line + '\n'); };
+  const setup = await claudeSetup(opts);
+  banner(opts, setup, null);
+  const tower = new Tower({ open: repo => openRepoRoom(repo, setup, opts, say) });
+  return serveRoom(opts, null, null, tower);
 }
 
 async function doctor() {
@@ -200,7 +242,8 @@ export async function main(argv) {
   try { opts = parseArgs(argv); } catch (err) { process.stderr.write(`codewizards: ${err.message}\n\n${HELP}`); return 2; }
   if (opts.version) { process.stdout.write(VERSION + '\n'); return 0; }
   const cmd = opts._[0];
-  if (opts.help || !cmd) { process.stdout.write(HELP); return 0; }
+  if (opts.help) { process.stdout.write(HELP); return 0; }
+  if (!cmd || cmd === 'tower') return towerMode(opts);
   if (cmd === 'demo') return demo(opts);
   if (cmd === 'serve') return serve(opts);
   if (cmd === 'doctor') return doctor();

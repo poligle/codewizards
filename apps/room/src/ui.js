@@ -44,6 +44,10 @@
     binary: 'Fichero binario: no se muestra.',
     tooBig: kb => 'Fichero grande (' + kb + ' KB): no se muestra entero.',
     loading: 'Cargando…',
+    enter: 'Entrar',
+    noRooms: 'Aún no hay salas: funda la primera.',
+    gone: 'el repositorio ya no está',
+    founding: 'Fundando la sala…',
   };
   // The Archmage's reasons come from the core in English; these are the known ones.
   const REASONS = [
@@ -343,12 +347,14 @@
   }
 
   function onHello(h) {
+    $('tower-btn').hidden = !h.tower;
+    $('tower').hidden = true;
     describeRanks(h.ranks, h.models);
     if (typeof h.notes === 'string' && doc.activeElement !== $('notes')) $('notes').value = h.notes;
     renderAccounts(Array.isArray(h.accounts) && h.accounts.length ? h.accounts : DEMO_ACCOUNTS);
     canMerge = h.mode !== 'demo' && !h.merge;
     $('files-box').hidden = h.mode === 'demo';
-    $('mode').textContent = T.modes[h.mode] || 'local';
+    $('mode').textContent = (T.modes[h.mode] || 'local') + (h.name ? ' · ' + h.name : '');
     $('auto').disabled = !h.autoApprove;           // outside the demo nothing goes in without review
     if (!h.autoApprove) $('auto').checked = false;
     $('stop').hidden = h.mode === 'demo';          // the simulator cannot be stopped; real wizards can
@@ -358,7 +364,30 @@
     if (ok) replaying = true;                     // a (re)connection replays what it missed first
   }
 
-  function onError(msg) { $('hint').textContent = msg; }
+  function onError(msg) {
+    if (!$('tower').hidden) { $('found-msg').textContent = msg; return; }
+    $('hint').textContent = msg;
+  }
+
+  // La Torre: the rooms, and founding one (on an existing repository or in a new one).
+  let inRoom = false;
+  function onTower(msg) {
+    inRoom = !!msg.current;
+    const ul = $('tower-rooms');
+    ul.textContent = '';
+    for (const r of msg.rooms || []) {
+      const li = doc.createElement('li');
+      if (r.id === msg.current) li.className = 'here';
+      li.innerHTML = '<button type="button" class="mini" data-room="' + esc(r.id) + '"' + (r.exists ? '' : ' disabled') + '>' + esc(T.enter) + '</button> <span><b>' + esc(r.name) + '</b><br><small>' +
+        esc(r.repo) + (r.exists ? '' : ' · ' + esc(T.gone)) + '</small></span>';
+      ul.appendChild(li);
+    }
+    if (!ul.children.length) ul.innerHTML = '<li class="empty">' + esc(T.noRooms) + '</li>';
+    $('tower-close').hidden = !inRoom;
+    $('found-msg').textContent = '';
+    $('tower').hidden = false;
+    $(inRoom ? 'tower-close' : 'found-path').focus();
+  }
 
   // The file explorer: the tree of what is committed on your branch; a file opens on the blackboard.
   function renderFiles(list) {
@@ -383,7 +412,7 @@
   });
 
   if (!live) { renderAccounts(DEMO_ACCOUNTS); describeRanks(sim.ranks(), []); }
-  const bus = live ? CW.net.connect({ onEvent, onHello, onStatus, onError, onLive, onFiles }) : (() => {
+  const bus = live ? CW.net.connect({ onEvent, onHello, onStatus, onError, onLive, onFiles, onTower }) : (() => {
     sim.on(onEvent);
     let saved = '';
     try { saved = G.localStorage.getItem('cw-notes') || ''; } catch (e) { /* sin almacenamiento */ }
@@ -425,6 +454,18 @@
     bus.cast(text, { rank: $('rank').value, model: $('model').value, effort: $('effort').value });
     if (!live) $('hint').textContent = T.hint;
   });
+  $('tower-btn').addEventListener('click', () => bus.rooms());
+  $('tower-close').addEventListener('click', () => { $('tower').hidden = true; });
+  $('tower-rooms').addEventListener('click', e => { const b = e.target.closest('[data-room]'); if (b) bus.goTo(b.getAttribute('data-room')); });
+  $('found').addEventListener('submit', e => {
+    e.preventDefault();
+    const p = $('found-path').value.trim();
+    if (!p) return;
+    $('found-msg').textContent = T.founding;
+    bus.found(p, doc.querySelector('input[name="found-kind"]:checked').value === 'new');
+  });
+  doc.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('tower').hidden && inRoom) $('tower').hidden = true; });
+
   // Ctrl/Cmd + Enter casts from the spell box (keyboard use, step 5).
   $('spell-text').addEventListener('keydown', e => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('spell').requestSubmit(); }

@@ -37,6 +37,9 @@ export function sanitize(m) {
   const str = (v, max) => typeof v === 'string' && v.length <= max;
   switch (m.cmd) {
     case 'hello': return { cmd: 'hello', since: Number.isSafeInteger(m.since) && m.since > 0 ? m.since : 0 };
+    case 'rooms': return { cmd: 'rooms' };
+    case 'enter': return typeof m.room === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/.test(m.room) ? { cmd: 'enter', room: m.room } : null;
+    case 'found': return str(m.path, 1024) && m.path.trim() && !m.path.includes('\0') ? { cmd: 'found', path: m.path, create: m.create === true } : null;
     case 'cast': {
       if (!(str(m.text, 4000) && m.text.trim())) return null;
       if (m.rank !== undefined && !RANK.has(m.rank)) return null;
@@ -67,7 +70,7 @@ export function sanitize(m) {
  *   store: import('./store.js').EventStore, port?: number, token?: string}} o
  * @returns {Promise<{url: string, port: number, token: string, close: () => Promise<void>}>}
  */
-export function startServer({ room, store, port = 0, token = newToken() }) {
+export function startServer({ room = null, store = null, tower = null, port = 0, token = newToken() }) {
   let actual = port;
   const hosts = () => new Set([`127.0.0.1:${actual}`, `localhost:${actual}`]);
   const origins = () => new Set([`http://127.0.0.1:${actual}`, `http://localhost:${actual}`]);
@@ -116,34 +119,51 @@ export function startServer({ room, store, port = 0, token = newToken() }) {
     return undefined;
   });
 
+  // Each connection is in one room (or in La Torre, choosing one). `serve` and `demo` start it in
+  // their room; `codewizards` alone starts it in La Torre (step 5, round 2).
   wss.on('connection', ws => {
-    let subscribed = false;
+    let cur = room ? { room, store } : null, subscribed = false, off = null;
     const out = obj => { if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(obj)); };
-    out({ ctl: 'hello', room: store.room, version: APP_VERSION, ...room.hello() });
-    const off = store.on(ev => { if (subscribed) out(ev); });
+    const fail = err => out({ ctl: 'error', message: String((err && err.message) || err).slice(0, 300) });
+    const hello = () => out({ ctl: 'hello', room: cur.store.room, version: APP_VERSION, tower: !!tower, ...cur.room.hello() });
+    const bind = r => { if (off) off(); cur = r; subscribed = false; off = cur.store.on(ev => { if (subscribed) out(ev); }); };
+    const replay = since => {
+      // What happened before this moment comes first, then `live`: the room rebuilds itself from the
+      // log without animating it, and only what follows is shown as it happens.
+      for (const ev of cur.store.since(since)) out(ev);
+      out({ ctl: 'live', seq: cur.store.seq });
+      subscribed = true;
+    };
+    const towerList = () => out({ ctl: 'tower', rooms: tower ? tower.list() : [], current: cur ? cur.store.room : null });
+    if (cur) { bind(cur); hello(); } else towerList();
     ws.on('message', (data, isBinary) => {
       if (isBinary) return;
       let m;
       try { m = JSON.parse(data.toString('utf8')); } catch { return; }
       const cmd = sanitize(m);
       if (!cmd) { out({ ctl: 'error', message: 'unknown or malformed command' }); return; }
-      if (cmd.cmd === 'hello') {
-        // What happened before this moment comes first, then `live`: the room rebuilds itself from the
-        // log without animating it, and only what follows is shown as it happens.
-        for (const ev of store.since(cmd.since)) out(ev);
-        out({ ctl: 'live', seq: store.seq });
-        subscribed = true;
+      if (cmd.cmd === 'rooms') { towerList(); return; }
+      if (cmd.cmd === 'enter') {
+        if (!tower) { fail('this core has a single room'); return; }
+        Promise.resolve().then(() => tower.enter(cmd.room)).then(r => { bind(r); hello(); replay(0); }).catch(fail);
         return;
       }
+      if (cmd.cmd === 'found') {
+        if (!tower) { fail('this core has a single room'); return; }
+        Promise.resolve().then(() => tower.found(cmd)).then(r => out({ ctl: 'founded', room: r.id })).catch(fail);
+        return;
+      }
+      if (!cur) { if (cmd.cmd === 'hello') towerList(); else fail('enter a room first'); return; }
+      if (cmd.cmd === 'hello') { replay(cmd.since); return; }
       if (cmd.cmd === 'files' || cmd.cmd === 'file') {
-        Promise.resolve().then(() => (room.query ? room.query(cmd) : null))
-          .then(r => out(r || { ctl: 'error', message: 'this room has no files to show' }))
-          .catch(err => out({ ctl: 'error', message: String((err && err.message) || err).slice(0, 300) }));
+        Promise.resolve().then(() => (cur.room.query ? cur.room.query(cmd) : null))
+          .then(r => out(r || { ctl: 'error', message: 'this room has no files to show' })).catch(fail);
         return;
       }
-      Promise.resolve().then(() => room.handle(cmd)).catch(err => out({ ctl: 'error', message: String((err && err.message) || err).slice(0, 300) }));
+      const target = cur.room;
+      Promise.resolve().then(() => target.handle(cmd)).catch(fail);
     });
-    ws.on('close', off);
+    ws.on('close', () => { if (off) off(); });
     ws.on('error', () => {});
   });
 

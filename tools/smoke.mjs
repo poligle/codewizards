@@ -3,7 +3,8 @@
 //   B. the same demo on a phone (390 × 844, ×1);
 //   C. the live room served by the core (`codewizards demo`), events over the WebSocket;
 //   D. `codewizards serve` on a throw-away git repo with the tests' fake Claude Code: cast, the diff
-//      on the blackboard, approve, and the commit lands on the task branch.
+//      on the blackboard, approve, and the commit lands on the task branch;
+//   E. `codewizards` alone: La Torre, founding a room in a new repository and entering it.
 // Fails on any page error, console error or request that leaves the machine. Also checks that a
 // spell completes, that an unknown guild or a repeated event never freezes the room, that CRT is
 // remembered, that the token leaves the address bar and that another origin cannot connect.
@@ -224,7 +225,7 @@ async function claudeRoom(browser) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const w = watch(page, u => u.startsWith(origin) || u.startsWith(origin.replace('http:', 'ws:')));
     await page.goto(info.url);
-    await page.waitForFunction(() => document.getElementById('mode').textContent.trim() === 'Claude Code', null, { timeout: 10000 })
+    await page.waitForFunction(() => /^Claude Code/.test(document.getElementById('mode').textContent.trim()), null, { timeout: 10000 })
       .then(() => check(true, 'D serve: room in Claude Code mode'), () => check(false, 'D serve: room in Claude Code mode'));
     check(await page.isDisabled('#auto'), 'D serve: no auto-approval outside the demo');
     check(await page.isVisible('#stop'), 'D serve: the stop button is there for real wizards');
@@ -266,6 +267,38 @@ async function claudeRoom(browser) {
   }
 }
 
+async function towerRoom(browser) {
+  const env = {
+    ...process.env, CW_CLAUDE_BIN: path.join(ROOT, 'apps', 'core', 'test', 'fixtures', 'fake-claude.mjs'),
+    CODEWIZARDS_HOME: fs.mkdtempSync(path.join(os.tmpdir(), 'cw-smoke-tower-')),
+    GIT_AUTHOR_NAME: 'Smoke', GIT_AUTHOR_EMAIL: 'smoke@example.invalid', GIT_COMMITTER_NAME: 'Smoke', GIT_COMMITTER_EMAIL: 'smoke@example.invalid',
+  };
+  const { child, info } = await startCore([], env);
+  try {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    const w = watch(page, u => u.startsWith(new URL(info.url).origin) || u.startsWith(new URL(info.url).origin.replace('http:', 'ws:')));
+    await page.goto(info.url);
+    const shown = await page.waitForSelector('#tower:not([hidden])', { timeout: 10000 }).then(() => true, () => false);
+    check(shown && !(await page.isVisible('#tower-close')), 'E tower: with no room yet, La Torre opens and asks to choose or found one');
+    const dir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'cw-smoke-new-')), 'mi-proyecto');
+    await page.fill('#found-path', dir);
+    await page.check('input[name="found-kind"][value="new"]');
+    await page.click('#found button[type="submit"]');
+    const entered = await page.waitForFunction(() => /Claude Code · mi-proyecto/.test(document.getElementById('mode').textContent), null, { timeout: 15000 }).then(() => true, () => false);
+    check(entered && fs.existsSync(path.join(dir, '.git')), 'E tower: founding in a new repository creates it and enters its room');
+    check(!page.url().includes('token'), 'E tower: the token stays out of the address bar after changing room');
+    await page.click('#tower-btn');
+    await page.waitForSelector('#tower:not([hidden])', { timeout: 10000 });
+    check(/mi-proyecto/.test(await page.textContent('#tower-rooms .here')), 'E tower: La Torre lists the room you are in');
+    await page.keyboard.press('Escape');
+    check(await page.isHidden('#tower'), 'E tower: Escape closes it when you are in a room');
+    check(w.errors.length === 0, `E tower: no page or console errors ${w.errors.join(' | ')}`);
+    await page.close();
+  } finally {
+    child.kill('SIGTERM');
+  }
+}
+
 const statics = await startStatic();
 STATIC = statics.url;
 const browser = BROWSER === 'firefox' ? await firefox.launch()
@@ -276,6 +309,7 @@ try {
   await mobileDemo(browser);
   await liveRoom(browser);
   await claudeRoom(browser);
+  await towerRoom(browser);
 } catch (err) {
   check(false, 'smoke test crashed: ' + (err && err.stack || err));
 } finally {

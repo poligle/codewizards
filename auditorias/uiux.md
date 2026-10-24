@@ -1,6 +1,6 @@
 # UI/UX · paso 5, ronda 1
 
-23/10/2026 · Estado: entregado para revisión de Pol · Versión v1.5.0. El paso 4 queda validado por Pol el 23/10/2026; el parche del paso 5 va encima del suyo.
+23/10/2026 · Estado: entregado para revisión de Pol · Versión v1.5.0; ronda 2 en v1.5.1 (§5). El paso 4 queda validado por Pol el 23/10/2026; el parche del paso 5 va encima del suyo.
 
 ## 0. En pocas líneas
 
@@ -65,3 +65,40 @@ Clics por tarea frecuente:
    - despliega «Archivos del repo» y abre un fichero;
    - lanza un hechizo con Ctrl + Intro;
    - revisa el diff fichero a fichero.
+
+## 5. Ronda 2 (v1.5.1)
+
+**La Torre.**
+- `codewizards` sin orden la abre en el navegador.
+- Lista las salas que tienes (las archivadas no salen) y permite entrar en una.
+- Para fundar una sala escribes la carpeta y eliges:
+  - sobre un repo existente, que necesita al menos un commit;
+  - en un repo nuevo: crea la carpeta, un README y el primer commit con tu identidad de git.
+- Dentro de una sala, el botón «La Torre» la vuelve a abrir. Escape la cierra si ya estás en una sala.
+- Cambiar de sala abre una página nueva para esa sala, con su propio estado, y el token sigue fuera de la barra de direcciones.
+
+**Núcleo.**
+- Varias salas abiertas a la vez; cada pestaña está en una.
+- Órdenes nuevas: `rooms`, `enter` y `found`, protegidas con el mismo token y la misma comprobación de origen.
+- `serve --repo` sigue abriendo directamente su sala, y desde ella se puede ir a La Torre.
+
+**Contraste.** `tools/contrast.mjs` mide los textos de los paneles en los dos temas. Todos llegan a 4,5:1, tras corregir el botón de fundar, que se quedaba en 3,52:1 en el tema claro. Corre en la CI.
+
+**Prueba con desarrolladores (3 a 5): guion para Pol.**
+- **Tareas**, cronometradas, contando clics y errores y sin ayuda:
+  1. Fundar una sala en un repo nuevo.
+  2. Lanzar un hechizo pequeño eligiendo el Aprendiz.
+  3. Revisar el diff y rechazarlo con un comentario.
+  4. Aprobar la segunda entrega e integrarla en su rama.
+  5. Abrir un fichero del repo.
+  6. Encontrar cuánto queda de la ventana de 5 h.
+- **Al final:** la escala SUS (10 preguntas) y una pregunta abierta, «¿qué te sobra y qué echas en falta?».
+- **Umbrales para dar el paso por bueno:**
+  - 5 de las 6 tareas sin ayuda;
+  - aprobar e integrar en menos de 4 clics;
+  - SUS de 70 o más.
+
+**Validación.**
+- `npm test`: 81 tests del núcleo (más los del contrato) y 5178 comprobaciones de la sala.
+- Prueba de humo: 50/50. Incluye el escenario E: La Torre sin sala, fundar en un repo nuevo, entrar, volver a La Torre y salir con Escape.
+- Contraste: todos los pares en verde.

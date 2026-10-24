@@ -143,3 +143,35 @@ test('sanitize accepts the known commands and nothing else', () => {
   assert.deepEqual(sanitize({ cmd: 'hello', since: -4 }), { cmd: 'hello', since: 0 });
   for (const bad of [null, [], 'cast', { cmd: '__proto__' }, { cmd: 'stop', task: 't1; rm' }]) assert.equal(sanitize(bad), null);
 });
+
+test('La Torre: without a room the client is offered the rooms, can found one and enter it', async () => {
+  const stores = new Map();
+  const make = id => { const store = new EventStore({ room: id }); const room = new DemoRoom({ store, seed: 3, tickMs: 0 }); stores.set(id, { id, store, room }); return stores.get(id); };
+  const tower = {
+    list: () => [...stores.keys()].map(id => ({ id, name: id, repo: '/r/' + id, open: true, exists: true })),
+    found: async ({ path: p, create }) => make(create ? 'new-' + p.split('/').pop() : 'old'),
+    enter: async id => stores.get(id) || (() => { throw new Error('there is no such room'); })(),
+    shutdown: async () => {},
+  };
+  const srv = await startServer({ tower });
+  try {
+    const a = connect(srv);
+    await a.opened;
+    await waitFor(() => a.msgs.some(m => m.ctl === 'tower'), { what: 'tower' });
+    assert.deepEqual(a.msgs[0], { ctl: 'tower', rooms: [], current: null });
+    a.ws.send(JSON.stringify({ cmd: 'cast', text: 'x' }));
+    await waitFor(() => a.msgs.some(m => m.ctl === 'error' && /enter a room first/.test(m.message)), { what: 'no room yet' });
+    a.ws.send(JSON.stringify({ cmd: 'found', path: '/home/pol/torre', create: true }));
+    await waitFor(() => a.msgs.some(m => m.ctl === 'founded'), { what: 'founded' });
+    assert.equal(a.msgs.find(m => m.ctl === 'founded').room, 'new-torre');
+    a.ws.send(JSON.stringify({ cmd: 'enter', room: 'new-torre' }));
+    await waitFor(() => a.msgs.some(m => m.ctl === 'live'), { what: 'entered' });
+    const h = a.msgs.find(m => m.ctl === 'hello');
+    assert.deepEqual([h.room, h.tower], ['new-torre', true]);
+    a.ws.send(JSON.stringify({ cmd: 'enter', room: 'nope' }));
+    await waitFor(() => a.msgs.some(m => m.ctl === 'error' && /no such room/.test(m.message)), { what: 'unknown room' });
+    a.ws.close();
+  } finally { await srv.close(); }
+  assert.deepEqual(sanitize({ cmd: 'found', path: '/a/b', create: 'yes' }), { cmd: 'found', path: '/a/b', create: false });
+  assert.equal(sanitize({ cmd: 'enter', room: '../x' }), null);
+});

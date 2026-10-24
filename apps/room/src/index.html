@@ -10,7 +10,7 @@
 </head>
 <body>
 <header class="top">
-  <h1>CodeWizards <span id="mode">demo</span></h1>
+  <h1>CodeWizards <span id="mode">demo</span> <button type="button" id="tower-btn" class="mini" hidden>La Torre</button></h1>
   <div class="ctrls">
     <div class="seg" role="group" aria-label="Velocidad de la simulación">
       <button type="button" data-speed="1" aria-pressed="true">×1</button><button type="button" data-speed="2" aria-pressed="false">×2</button><button type="button" data-speed="4" aria-pressed="false">×4</button>
@@ -19,6 +19,26 @@
     <button type="button" class="switch" id="crt" aria-pressed="true"><span class="knob" aria-hidden="true"></span>CRT</button>
   </div>
 </header>
+<div id="tower" class="tower" hidden role="dialog" aria-modal="true" aria-labelledby="h-tower">
+  <div class="panel tower-box">
+    <h2 id="h-tower">La Torre</h2>
+    <p class="hint">Cada sala es un repositorio. Entra en una o funda otra.</p>
+    <h3>Entrar en una sala</h3>
+    <ul id="tower-rooms" class="tower-rooms"></ul>
+    <h3>Fundar sala</h3>
+    <form id="found">
+      <label for="found-path">Carpeta (ruta completa)</label>
+      <input id="found-path" type="text" autocomplete="off" spellcheck="false" placeholder="/home/…/proyectos/mi-repo">
+      <fieldset class="kinds"><legend class="sr-only">Repositorio</legend>
+        <label><input type="radio" name="found-kind" value="existing" checked> Sobre un repo existente</label>
+        <label><input type="radio" name="found-kind" value="new"> En un repo nuevo (lo crea con un primer commit)</label>
+      </fieldset>
+      <button type="submit" class="found-go">Fundar sala</button>
+      <p id="found-msg" class="hint" role="status"></p>
+    </form>
+    <p><button type="button" id="tower-close" class="mini">Volver a la sala</button></p>
+  </div>
+</div>
 <main class="layout" id="layout">
   <aside class="panel side" id="left" aria-labelledby="h-tasks">
     <h2 id="h-tasks">Tareas</h2>

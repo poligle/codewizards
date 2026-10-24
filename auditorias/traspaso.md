@@ -211,3 +211,16 @@
   - (paso 5, ronda 2) → auditoría WCAG 2.2 AA y prueba con 3 a 5 desarrolladores.
   - (paso 6) → lo ya apuntado en su prompt.
 - Pruebas para Pol: las de `auditorias/uiux.md` §4.
+
+## Paso 5 · UI/UX, ronda 2 · 23/10/2026
+- Cambios (detalle en `auditorias/uiux.md` §5):
+  - La Torre: listar salas, entrar, y fundar sobre un repo existente o en uno nuevo.
+  - Núcleo con varias salas a la vez.
+  - Contraste WCAG medido en la CI.
+  - Guion de la prueba con desarrolladores.
+  - Versión 1.5.1.
+- Encargos:
+  - (Pol) → hacer la prueba con 3 a 5 desarrolladores con ese guion.
+  - (paso 6) → lo apuntado en su prompt.
+  - (paso 7) → los textos nuevos de La Torre, en inglés.
+- Pruebas para Pol: aplicar `paso-4.patch`, `paso-5.patch` y `paso-5b.patch` en orden; `codewizards` sin orden, fundar una sala en un repo nuevo y entrar.
