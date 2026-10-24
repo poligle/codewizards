@@ -37,11 +37,12 @@ SCENE = Pal(SCENE_E, 'gbc-escenario')
 GUILDS = {   # paleta OBJ del gremio: luz/brillo del orbe, base, oscuro
     'anthropic': ('#f8b860', '#d86828', '#502010'),
     'openai':    ('#90d8f8', '#3878e0', '#102058'),
-    'gemini':    ('#f8a088', '#d82848', '#500818'),
+    'google':    ('#f8a088', '#d82848', '#500818'),
     'deepseek':  ('#a8a8f8', '#5048c0', '#181040'),
     'qwen':      ('#a8f0a0', '#38a058', '#103820'),
-    'copilot':   ('#a0f8f0', '#18b0b8', '#083840'),
     'meta':      ('#e0a8f8', '#8838c8', '#280848'),
+    # The 8th sprite palette, free since Copilot left (paso 1): any guild CodeWizards does not know.
+    'unknown':   ('#d0d0d8', '#9ca0b8', '#646888'),
 }
 COMMON = (('W', '#f8f8f0'), ('S', '#f0b088'), ('T', '#a87040'))
 
@@ -53,9 +54,20 @@ def gpal(g):
 
 GP = {g: gpal(g) for g in GUILDS}
 
-ROOM, HW, TW, BASE = 12, 40, 0.25, 3
-OX, OY = 104, 46
-CW, CH = 208, 152
+# Step 6e (final art): a rectangular room, 16 tiles along x (the back wall on the right, with the
+# windows and the blackboard) by 12 along y (the left wall, with the library and the door).
+RW, RD, HW, TW, BASE = 16, 12, 40, 0.25, 3
+ROOM = max(RW, RD)
+OX, OY = RD * 8 + 8, 46
+CW, CH = OX + RW * 8 + 8, OY + (RW + RD) * 4 + 10
+
+
+def in_room(x, y):
+    return 0 <= x < RW and 0 <= y < RD
+
+
+WALLS = [('R', 0, 0, RW), ('L', 0, 0, RD)]
+DOOR_X = 0                   # the door is in the left wall, near the front
 
 
 def room_canvas(pal=SCENE):
@@ -79,7 +91,35 @@ def floor_tex(x, y):
     return tex
 
 
-DOOR_I0, WIN_I0 = 76, 36
+DOOR_I0 = 72                 # along the left wall: the door spans y 9-11
+# Two stained-glass windows on the back wall, either side of the blackboard (u = px along x).
+WINDOWS = [8, 100]
+WIN_W, WIN_Z0, WIN_Z1 = 24, 9, 38
+WIN_I0, WIN_FIXED = WINDOWS[0], 0
+# The blackboard: centred on the back wall, from a wizard's knees to above its hat.
+BOARD_U0, BOARD_W, BOARD_Z0, BOARD_H = 44, 48, 7, 24
+GLASS_LIGHT = {'r': 'r0', 'b': 'b0', 'g': 'g0', 'x': 'x0', 'p': 'p0'}
+GLASS = None   # replaced by the mosaic below (kept for the interface's light colours)
+
+
+def _cells(seed, n, w, h):
+    import random
+    rnd = random.Random(seed)
+    return [(rnd.uniform(0, w), rnd.uniform(0, h), 'rbgxp'[rnd.randrange(5)]) for _ in range(n)]
+
+
+_MOSAIC = _cells(5, 12, WIN_W, WIN_Z1 + 6 - WIN_Z0)
+
+
+def _cell_at(u, v):
+    best, bi, second = 1e9, 0, 1e9
+    for i, (cx, cy, _) in enumerate(_MOSAIC):
+        d = (u + 0.5 - cx) ** 2 + (v + 0.5 - cy) ** 2
+        if d < best:
+            best, second, bi = d, best, i
+        elif d < second:
+            second = d
+    return bi, second - best
 
 
 def _parch(u, a, b, zs, R):
@@ -117,34 +157,45 @@ def top_edge(u, z, ti):
     return ti - z < 1.0
 
 
+def _lancet(u, a, b, zs):
+    """Top of a pointed (gothic) arch between a and b, springing at zs: each half is an arc centred on
+    the other side's springing point."""
+    x = u + 0.5
+    if x < a or x > b:
+        return None
+    R = (b - a) * 0.85
+    cx = b if x < (a + b) / 2 else a
+    v = R * R - (x - cx) ** 2
+    return zs + (math.sqrt(v) if v > 0 else 0)
+
+
 def window_texel(u, z):
-    ti = _parch(u, 2, 22, 26, 11)
-    to = _parch(u, 0, 24, 26, 13)
-    if ti is not None and 10 <= z < ti:
-        if u in (8, 15) and z < 30:
+    """A gothic lancet, 24 px wide: a stone frame, then a mosaic of coloured panes (one GBC background
+    palette each) joined by thin lead lines, the light tone where the glass catches the sun."""
+    spring = WIN_Z1 - 16
+    to = _lancet(u, 0, WIN_W, spring)                  # outer stone arch
+    ti = _lancet(u, 2, WIN_W - 2, spring)              # inner glass arch
+    if ti is not None and WIN_Z0 + 2 <= z < min(ti, WIN_Z1 + 6):
+        v = z - WIN_Z0
+        if u in (11, 12) and z < spring + 2:
+            return 'w0' if u == 11 else 'w1'            # stone mullion
+        if z == spring + 2 or z == WIN_Z0 + 2 + (spring - WIN_Z0) // 2:
+            return 'K'                                  # horizontal leads
+        i, gap = _cell_at(u, v)
+        if gap < 2.2:
+            return 'K'                                  # lead between panes
+        fam = _MOSAIC[i][2]
+        lit = (u * 3 + v * 5) % 9 == 0 or (v > (spring - WIN_Z0) and (u + v) % 4 == 0)
+        return fam + ('0' if lit else '1')
+    if to is not None and WIN_Z0 <= z < to:
+        if z < WIN_Z0 + 2:
             return 'w0'
-        d = math.hypot(u + 0.5 - 12, z + 0.5 - 32)
-        if z >= 29:
-            if d < 3.0:
-                return 'r0' if d < 1.2 else 'p1'
-            if d < 3.9:
-                return 'K'
-            if z >= 30 and abs(u + 0.5 - 12) > 4:
-                return 'w0'
-        if (u + z) % 7 == 0:
-            return 'b0'
-        if z < 14:
-            return 'b2' if u in (2, 21) else 'b1'
-        return 'b1'
-    if to is not None and 8 <= z < to:
-        if z < 10:
-            return 'w0'
-        return 'w0' if u in (1, 22) or z >= 26 else 'w1'
+        return 'w0' if u in (0, WIN_W - 1) else 'w1'
     return None
 
 
-GNAMES = {'anthropic': 'Anthropic', 'openai': 'OpenAI', 'gemini': 'Gemini', 'deepseek': 'DeepSeek',
-          'qwen': 'Qwen', 'copilot': 'Copilot', 'meta': 'Meta'}
+GNAMES = {'anthropic': 'Anthropic', 'openai': 'OpenAI', 'google': 'Google', 'deepseek': 'DeepSeek',
+          'qwen': 'Qwen', 'meta': 'Meta', 'unknown': 'Unknown'}
 FLOOR_V = ['base', 'cracked', 'moss', 'stain', 'worn', 'plain']
 FLOOR_FILES = {'base': 'Floor_Base_01', 'cracked': 'Floor_Cracked_02', 'moss': 'Floor_Moss_03',
                'stain': 'Floor_Stain_04', 'worn': 'Floor_Worn_05', 'plain': 'Floor_Plain_06'}
@@ -178,9 +229,11 @@ def floor_layout(seed=5):
     grid = {}
     for y in range(ROOM):
         for x in range(ROOM):
+            if not in_room(x, y):
+                continue
             base = 'base' if (x + y) % 2 == 0 else 'plain'
             v = base
-            near = x < 2 or y < 2 or x > ROOM - 3 or y > ROOM - 3
+            near = not all(in_room(x + dx, y + dy) for dx in (-2, 0, 2) for dy in (-2, 0, 2))
             if hsh('gfl', x, y, seed) < (0.32 if near else 0.14):
                 opts = ['cracked', 'stain', 'worn'] + (['moss'] if near else [])
                 c = opts[int(hsh('gfv', x, y, seed) * len(opts))]
@@ -222,7 +275,7 @@ def wall_var_texel(side, i, z, v):
 
 def wall_layout(side, seed=5):
     out, run = [], 0
-    for n in range(ROOM // 2):
+    for n in range((RD if side == 'L' else RW) // 2):
         v = 'base'
         if n > 0 and run < 2 and hsh('gwl', side, n, seed) < 0.34:
             opts = ['cracked', 'moss', 'damaged']
@@ -231,24 +284,28 @@ def wall_layout(side, seed=5):
                 v = opts[(opts.index(v) + 1) % 3]
         run = run + 1 if v != 'base' else 0
         out.append(v)
-    a, b = (DOOR_I0, DOOR_I0 + 15) if side == 'L' else (WIN_I0, WIN_I0 + 23)
-    blocked = set(range(a // 16, b // 16 + 1))
+    spans = [(DOOR_I0, DOOR_I0 + 15)] if side == 'L' else [(w, w + WIN_W - 1) for w in WINDOWS] + [(BOARD_U0, BOARD_U0 + BOARD_W - 1)]
+    blocked = {k for a, b in spans for k in range(a // 16, b // 16 + 1)}
     for k in blocked:
         out[k] = 'base'
     if all(v == 'base' for v in out):
-        out[max(k for k in range(len(out)) if k not in blocked)] = 'cracked'
+        free_blocks = [k for k in range(len(out)) if k not in blocked]
+        if free_blocks:
+            out[max(free_blocks)] = 'cracked'
     return out
 
 
-def wall_texel(side, i, z, door_closed=True, variants=None):
-    if side == 'L' and DOOR_I0 <= i < DOOR_I0 + 16:
+def wall_texel(side, i, z, door_closed=True, variants=None, fixed=0):
+    if side == 'L' and fixed == DOOR_X and DOOR_I0 <= i < DOOR_I0 + 16:
         k = door_texel(i - DOOR_I0, z, door_closed)
         if k:
             return k
-    if side == 'R' and WIN_I0 <= i < WIN_I0 + 24:
-        k = window_texel(i - WIN_I0, z)
-        if k:
-            return k
+    if side == 'R':
+        for w0 in WINDOWS:
+            if w0 <= i < w0 + WIN_W:
+                k = window_texel(i - w0, z)
+                if k:
+                    return k
     return wall_var_texel(side, i, z, variants[i // 16] if variants else 'base')
 
 
@@ -257,22 +314,38 @@ def room_layout(seed=5):
 
 
 def render_room(door_closed=True, seed=5):
+    """The Greek-cross room: the plinth under the open front edges, the floor, then the walls the camera
+    sees (far to near), each with its top and the thickness at its far end."""
     lay = room_layout(seed)
     cv = room_canvas()
     t = TW
-    cv.face((0, ROOM, -BASE), (ROOM, 0, 0), (0, 0, BASE), ROOM * 8, BASE, lambda i, j: 'f1' if j == BASE - 1 else 'f2')
-    cv.face((ROOM, ROOM, -BASE), (0, -ROOM, 0), (0, 0, BASE), ROOM * 8, BASE, lambda i, j: 'f2' if j == BASE - 1 else 'K')
     for y in range(ROOM):
         for x in range(ROOM):
-            cv.face((x, y, 0), (1, 0, 0), (0, 1, 0), 8, 8, floor_tex_v(lay['suelo'][(x, y)]))
-    cv.face((0, 0, 0), (0, ROOM, 0), (0, 0, HW), ROOM * 8, HW, lambda i, z: wall_texel('L', i, z, door_closed, lay['muro_L']))
-    cv.face((0, 0, 0), (ROOM, 0, 0), (0, 0, HW), ROOM * 8, HW, lambda i, z: wall_texel('R', i, z, door_closed, lay['muro_R']))
-    cv.face((-t, -t, HW), (ROOM + t, 0, 0), (0, t, 0), round((ROOM + t) * 8), 2, lambda i, j: 'w0' if j else 'w1')
-    cv.face((-t, 0, HW), (0, ROOM, 0), (t, 0, 0), ROOM * 8, 2, lambda i, j: 'w0' if j else 'w1')
-    cv.face((-t, ROOM, -BASE), (t, 0, 0), (0, 0, HW + BASE), 2, HW + BASE, lambda i, j: 'w1')
-    cv.face((ROOM, 0, -BASE), (0, -t, 0), (0, 0, HW + BASE), 2, HW + BASE, lambda i, j: 'w2')
-    sx0 = (WIN_I0 + 2) / 8.0 - 0.125
-    cv.box(sx0, 0, 7, (20 / 8.0) + 0.25, 0.25, 2, top='w0', left='w1', right='w2')
+            if not in_room(x, y):
+                continue
+            if not in_room(x, y + 1):
+                cv.face((x, y + 1, -BASE), (1, 0, 0), (0, 0, BASE), 8, BASE, lambda i, j: 'f1' if j == BASE - 1 else 'f2')
+            if not in_room(x + 1, y):
+                cv.face((x + 1, y + 1, -BASE), (0, -1, 0), (0, 0, BASE), 8, BASE, lambda i, j: 'f2' if j == BASE - 1 else 'K')
+    for y in range(ROOM):
+        for x in range(ROOM):
+            if in_room(x, y):
+                cv.face((x, y, 0), (1, 0, 0), (0, 1, 0), 8, 8, floor_tex_v(lay['suelo'][(x, y)]))
+    for side, fixed, a, b in sorted(WALLS, key=lambda w: w[1] + w[2]):
+        n = (b - a) * 8
+        if side == 'L':
+            cv.face((fixed, a, 0), (0, b - a, 0), (0, 0, HW), n, HW,
+                    lambda i, z, a=a, f=fixed: wall_texel('L', a * 8 + i, z, door_closed, lay['muro_L'], f))
+            cv.face((fixed - t, a - (t if a == 0 else 0), HW), (0, b - a + (t if a == 0 else 0), 0), (t, 0, 0), n, 2, lambda i, j: 'w0' if j else 'w1')
+            cv.face((fixed - t, b, -BASE), (t, 0, 0), (0, 0, HW + BASE), 2, HW + BASE, lambda i, j: 'w1')
+        else:
+            cv.face((a, fixed, 0), (b - a, 0, 0), (0, 0, HW), n, HW,
+                    lambda i, z, a=a, f=fixed: wall_texel('R', a * 8 + i, z, door_closed, lay['muro_R'], f))
+            cv.face((a - (t if a == 0 else 0), fixed - t, HW), (b - a + (t if a == 0 else 0), 0, 0), (0, t, 0), n, 2, lambda i, j: 'w0' if j else 'w1')
+            cv.face((b, fixed, -BASE), (0, -t, 0), (0, 0, HW + BASE), 2, HW + BASE, lambda i, j: 'w2')
+    for w0 in WINDOWS:
+        cv.box(w0 / 8.0 - 0.0625, 0, WIN_Z0 - 2, WIN_W / 8.0 + 0.125, 0.25, 2, top='w0', left='w1', right='w2')
+    blackboard_wall(cv)
     cv.outline('K')
     return cv
 
@@ -341,8 +414,8 @@ def shelf_front(i, j):
     return 'K'
 
 
-def bookshelf(cv, x0, y0):
-    cv.box(x0, y0, 0, 0.5, 3, 32, top=lambda i, j: 'o0' if i == 3 else 'o1',
+def bookshelf(cv, x0, y0, length=3.0):
+    cv.box(x0, y0, 0, 0.5, length, 32, top=lambda i, j: 'o0' if i == 3 else 'o1',
            left=lambda i, j: 'o0' if (i == 3 or j == 31) else 'o1', right=shelf_front)
 
 
@@ -433,11 +506,11 @@ def torch(cv, side, pos, z, f=0):
 
 EMB = {'anthropic': [".....", "##.##", "#.#.#", "#.#.#", "##.##"],
        'openai': ["..#..", "..#..", ".#.#.", "#...#", "#####"],
-       'gemini': ["#####", ".#.#.", ".#.#.", ".#.#.", "#####"],
+       'google': ["#####", ".#.#.", ".#.#.", ".#.#.", "#####"],
        'deepseek': [".##..", "#....", "#....", "#....", ".##.."],
        'qwen': ["..#..", ".#.#.", "#...#", ".#.#.", "..#.."],
-       'copilot': ["##.##", "#...#", "..#..", "#...#", "##.##"],
-       'meta': [".....", ".###.", "#.#.#", ".###.", "....."]}
+       'meta': [".....", ".###.", "#.#.#", ".###.", "....."],
+       'unknown': [".###.", "#...#", "..##.", ".....", "..#.."]}
 
 
 def banner(cv, side, pos, g, z0=17):
@@ -479,7 +552,7 @@ WIZ = {
            ".T.KLMMMMKKMMMK.", ".T.KLMMMMMMMMMK.", ".T..KKKKKKKKKK..", ".T....KKK.KKK..."],
     'E': ["................", "..KK............", ".KLMK...........", "..KLMK.......T..", "...KLMK......T..",
           "...KLMMK.....T..", "...KLMMMK....T..", "..KLMMMMMK...T..", ".KLLLLLLLLKK.T..", "KMMMMMMMMMMMKT..",
-          ".KKKKKKKSSSSKT..", "KLMMMKWWKKKK.T..", "KLMMMKWWWWK..T..", "KLMMMKWWWWWK.T..", "KLMMKMMMMMMSSK..",
+          ".KKKKKKKSSSSKT..", "KLMMMKWWKKKK.T..", "KLMMMKWWWWK..T..", "KLMMMKWWWWWK.T..", "KLMMKMMMMMMSSSK.",
           "KLMMMKKWWWKMKT..", "KLMMMMKWWWKMKT..", ".KLMMMMKWWKMKT..", ".KLMMMMMKWKMKT..", ".KLMMMMMMKKMKT..",
           ".KLMMMMMMMMMKT..", "..KLMMMMMMMMKT..", "..KKKKKKKKKKKT..", "....KKK.KKK..T.."],
     'NE': ["................", "................", "..KK............", ".KLMK...........", "..KLMKK.......T.",
@@ -489,13 +562,18 @@ WIZ = {
            ".KLMMMMMMMMMMKT.", "..KLMMMMMMMMMKT.", "..KKKKKKKKKKKKT.", "...KKK..KKK...T."],
     'N': ["................", "....KK..........", "...KLMK.........", "....KLMK......T.", "....KLMMK.....T.",
           "....KLMMMK....T.", "...KLMMMMMK...T.", "...KLMMMMMMK..T.", ".KKLMMMMMMMMKKT.", "KLLLLLLLLLLLLKT.",
-          "KMMMMMMMMMMMMKT.", ".KKKKKKKKKKKK.T.", "KLMMMMMMMMMMMKT.", "KLMMMMMMMMMMMKT.", "KLMMMMMMMMMMKSSK",
+          "KMMMMMMMMMMMMKT.", ".KKKKKKKKKKKK.T.", "KLLLMMMMMMMMMKT.", "KLLMMMMMMMMMMKT.", "KLMMMMMMMMMMKSSK",
           ".KLMMMMMMMMMMKT.", ".KLMMMMMMMMMMKT.", ".KLMMMMMKMMMMKT.", ".KLMMMMMKMMMMKT.", ".KLMMMMMKMMMMKT.",
           ".KLMMMMMMMMMMKT.", "..KLMMMMMMMMMKT.", "..KKKKKKKKKKKKT.", "...KKK..KKK...T."],
 }
 ORB = {'S': (1, 1), 'SE': (1, 1), 'E': (13, 1), 'NE': (14, 2), 'N': (14, 1)}
 STAR = {'S': (9, 5), 'SE': (6, 6), 'E': (5, 6), 'NE': (5, 6), 'N': (6, 5)}   # estrella del Gran Sabio en el sombrero
-RANKS = ['aprendiz', 'sabio', 'archimago']
+RANKS = ['aprendiz', 'joven', 'sabio', 'archimago']
+# Step 6: the poses, in the order of the room's atlas (4 frames each).
+POSES = ['idle', 'walk', 'work', 'read', 'write', 'present', 'confused', 'celebrate', 'sit']
+BOOK = {'S': (6, 15), 'SE': (8, 15), 'E': (9, 13)}     # the open book, held at the chest
+QUILL = {'S': (11, 14), 'SE': (12, 14), 'E': (12, 12)}  # the writing hand
+LEAN = {'S': 0, 'SE': 1, 'E': 1, 'NE': 1, 'N': 0}      # presenting: the upper body leans forward
 ARCHI = ('#f8f0a0', '#c89830', '#402808')   # túnica del Archimago: oro viejo
 MIRROR = {'SW': 'SE', 'W': 'E', 'NW': 'NE'}
 DIRS = ['S', 'SE', 'E', 'NE', 'N', 'NW', 'W', 'SW']
@@ -514,67 +592,137 @@ def _orb(cv, x, y, big):
     cv.set(x, y, 'W')
 
 
+def orb_at(base, rank):
+    """Where the orb sits on the sprite (before mirroring): the Apprentice's staff is shorter."""
+    ox, oy = ORB[base]
+    if rank == 'aprendiz':
+        oy += 4
+    if rank == 'archimago':
+        oy *= 2
+    return ox, oy
+
+
+def _stretch(rows):
+    """The Archmage's tall hat: the cone (rows 0-7) twice as tall, so the sprite is 16 x 32."""
+    return [list(rows[j // 2]) for j in range(16)] + [list(r) for r in rows[8:]]
+
+
 def frame(g, d, pose='idle', f=0, rank='aprendiz'):
-    """Fotograma 16 x 24 del mago del gremio g. idle: orbe que late y cabezada; walk: rebote y pasos;
-    work: orbe encendido y chispa que gira. rank: aprendiz | sabio (estrella en el sombrero, orbe grande)
-    | archimago (como sabio; paleta propia en el motor)."""
+    """Fotograma del mago del gremio g (16 x 24; el Archimago, 16 x 32).
+    Rangos por silueta (paso 6): aprendiz, sombrero corto y bastón corto con orbe pequeño; joven, sombrero
+    entero con cinta clara; sabio, estrella, orbe grande y barba larga; archimago, como el sabio con el
+    sombrero el doble de alto. Poses: idle, walk, work, read (libro abierto), write (pluma), present (se
+    inclina y el orbe chispea), confused (la cabeza se tambalea), celebrate (salta y chispea), sit."""
     base = MIRROR.get(d, d)
     rows = [list(r) for r in WIZ[base]]
-    if rank != 'aprendiz':
+    ox, oy = ORB[base]
+    if rank == 'aprendiz':
+        for j in range(3):
+            rows[j] = [c if c == 'T' else '.' for c in rows[j]]
+        for j in range(oy + 4):
+            if rows[j][ox] == 'T':
+                rows[j][ox] = '.'
+    elif rank == 'joven':
+        rows[7] = ['L' if c == 'M' else c for c in rows[7]]
+    if rank in ('sabio', 'archimago'):
         sx_, sy_ = STAR[base]
         for (dx, dy) in ((0, -1), (-1, 0), (0, 0), (1, 0), (0, 1)):
             rows[sy_ + dy][sx_ + dx] = 'W'
-    cv = Canvas(16, 24, GP[g])
-    bob = 0
-    if pose == 'walk':
-        bob = [0, -1, 0, -1][f % 4]
-    nod = 1 if (pose in ('idle', 'work') and f % 4 in (1, 2)) else 0
+        for i, c in enumerate(rows[19]):
+            if c == 'W':
+                rows[20][i] = 'W'
+                if rows[21][i] == 'M':
+                    rows[21][i] = 'K'
+    if pose == 'read' and base in BOOK:
+        bx, by = BOOK[base]
+        for j, line in enumerate(("TWWT", "TWWT", "TTTT")):
+            for i, c in enumerate(line):
+                rows[by + j][bx + i] = c
+        if f % 2:
+            rows[by][bx + 1] = 'K'   # a page turns
+    if pose == 'write' and base in QUILL:
+        qx, qy = QUILL[base]
+        rows[qy][qx] = 'S'
+        rows[qy - 1][qx + 1] = 'W'
+        rows[qy - 2][qx + 2] = 'W'
+        rows[qy + 1][qx - 1 + (f % 2)] = 'K'   # the tip moves as it writes
+    top = 0
+    if rank == 'archimago':
+        rows, top = _stretch(rows), 8
+    H = 24 + top
+    ox, oy = orb_at(base, rank)
+    cv = Canvas(16, H, GP[g])
+    bob = {'walk': (0, -1, 0, -1), 'celebrate': (0, -1, -2, -1)}.get(pose, (0, 0, 0, 0))[f % 4]
+    sit = 3 if pose == 'sit' else 0
+    nod = 1 if (pose in ('read', 'write') or (pose in ('idle', 'work') and f % 4 in (1, 2))) else 0
+    shift = LEAN[base] if pose == 'present' else ((-1, 1)[f % 2] if pose == 'confused' else 0)
     for j, row in enumerate(rows):
+        jr = j - top
         for i, ch in enumerate(row):
-            if ch == '.':
+            if ch == '.' or (sit and jr >= 22):
                 continue
-            yy = j + bob
-            if j == 23:
+            yy = j + bob + sit
+            if pose == 'walk' and jr == 23:
                 yy = j
-            if nod and j <= 13 and ch != 'T':
-                yy = j + 1
-            cv.set(i, yy, ch)
-    if nod:
-        for i, ch in enumerate(rows[0]):
-            if ch != '.' and ch != 'T':
-                cv.set(i, 0, None)
+            if nod and jr <= 13 and ch != 'T':
+                yy = j + 1 + sit
+            xx = i + (shift if (jr <= 14 and ch != 'T') else 0)
+            if 0 <= xx < 16 and 0 <= yy < H:
+                cv.set(xx, yy, ch)
     if pose == 'walk':
-        foot = rows[23]
+        foot = rows[H - 1]
         xs = [i for i, ch in enumerate(foot) if ch == 'K']
         if xs:
             mid = (min(xs) + max(xs)) / 2.0
-            lift_left = (f % 4 == 0)
-            lift_right = (f % 4 == 2)
+            lift_left, lift_right = (f % 4 == 0), (f % 4 == 2)
             for i in xs:
                 if (i < mid and lift_left) or (i > mid and lift_right):
-                    cv.set(i, 23, None)
+                    cv.set(i, H - 1, None)
                     if base in ('E', 'SE'):
-                        cv.set(i + 1, 23, 'K')
-    ox, oy = ORB[base]
-    if pose == 'work':
+                        cv.set(i + 1, H - 1, 'K')
+    if pose in ('work', 'present', 'celebrate') or rank in ('sabio', 'archimago'):
         big = True
-    elif rank != 'aprendiz':
-        big = True
+    elif pose == 'idle':
+        big = (f % 2 == 1)
+    elif pose == 'walk':
+        big = (f % 4 in (1, 2))
     else:
-        big = (f % 2 == 1) if pose == 'idle' else (f % 4 in (1, 2))
-    _orb(cv, ox, oy + bob, big=big)
-    if pose == 'work':
+        big = False
+    ox2, oy2 = ox + (shift if pose == 'present' else 0), oy + bob + sit
+    _orb(cv, ox2, oy2, big=big)
+    if pose in ('work', 'present'):
         dx, dy = ((0, -3), (3, 0), (0, 3), (-3, 0))[f % 4]
-        cv.set(ox + dx, oy + dy, 'W')
+        cv.set(ox2 + dx, oy2 + dy, 'W')
+    if pose == 'celebrate':
+        for dx, dy in (((-3, -2), (3, 1)), ((3, -2), (-3, 1)))[f % 2]:
+            cv.set(ox2 + dx, oy2 + dy, 'W')
     if d in MIRROR:
         cv = cv.flip_h()
     return cv
 
 
 # ------------------------------------------------------------------ escena
-LAYOUT = {'shelves': [1.0, 5.25], 'torches': [('L', 4.625, 26), ('R', 1.75, 26), ('R', 9.5, 26)],
-          'banners': [('R', 3.25), ('R', 8.375)], 'table': (4.5, 3.0), 'board': (10.0, 2.0),
-          'chair': (8.25, 6.0), 'carpet': (4.0, 6.75)}
+# Step 6b: where things stand in the cross (library arm, apse, crossing, rest arm, nave).
+# The library on the left wall (two shelves of different lengths, a torch between), the door near
+# its front end; the back wall with a window, the blackboard and a window; the table and the
+# Archmage's circle in the middle; the rest corner with benches and the armchair at the front right.
+LAYOUT = {'shelves': [(0.6, 3.0), (4.6, 2.0)], 'torches': [('L', 4.15, 26), ('L', 8.4, 26), ('R', 4.7, 26), ('R', 12.0, 26)],
+          'banners': [('L', 7.0)], 'table': (3.2, 4.6), 'chair': (11.0, 9.6), 'carpet': (6.0, 6.5),
+          'benches': [(12.2, 5.4, 2.6, 0.5), (12.2, 8.0, 2.6, 0.5)], 'pedestal': (5.2, 1.0)}
+# The engine's plan (apps/room/src/plan.gen.js is generated from it): what blocks the way, where each
+# station's places are, the Archmage, the door, the entry and the queue outside the door.
+PLAN = {
+    'w': RW, 'd': RD,
+    'blocked': [(0, 0, 0, 3), (0, 4, 0, 6), (3, 4, 5, 6), (5, 0, 5, 0), (11, 9, 11, 9), (12, 5, 14, 5), (12, 8, 14, 8), (7, 7, 8, 8)],
+    'stations': {
+        'library': [(1.3, 1.4, 'NW'), (1.3, 2.9, 'NW'), (1.3, 5.0, 'NW'), (1.3, 6.2, 'NW')],
+        'table': [(3.6, 3.6, 'SW'), (4.9, 3.6, 'SW'), (3.6, 7.4, 'NE'), (4.9, 7.4, 'NE')],
+        'board': [(5.1, 2.0, 'NE'), (11.9, 1.6, 'NW')],
+        'rest': [(12.6, 6.4, 'N'), (13.9, 6.4, 'N'), (12.6, 7.4, 'S'), (13.9, 7.4, 'S'), (11.3, 10.6, 'N'), (13.0, 9.3, 'N')],
+    },
+    'archi': (8.0, 8.0), 'door': (-0.45, 10.0), 'entry': (0.5, 10.0),
+    'queue': [],
+}
 
 
 def _rgba(fn, pal=SCENE):
@@ -623,15 +771,19 @@ class Room:
         bcv.outline('K')
         self.banners = bcv.rgba()
         objs = []
-        for y in LAYOUT['shelves']:
-            objs.append((0.25 + y + 1.5, self._prop(lambda cv, y=y: bookshelf(cv, 0, y))))
+        for y, ln in LAYOUT['shelves']:
+            objs.append((0.25 + y + ln / 2, self._prop(lambda cv, y=y, ln=ln: bookshelf(cv, 0, y, ln))))
+        cv0 = room_canvas()
+        window_light(cv0)
         tx, ty = LAYOUT['table']
         objs.append((tx + 1 + ty + 0.75, self._prop(lambda cv: lab_table(cv, tx, ty))))
         cx, cy = LAYOUT['chair']
         objs.append((cx + cy + 1, self._prop(lambda cv: armchair(cv, cx, cy))))
-        bx, by = LAYOUT['board']
-        objs.append((bx + by, self._prop(lambda cv: blackboard(cv, bx, by))))
-        self.objs = objs
+        for (x0, y0, dx, dy) in LAYOUT['benches']:
+            objs.append((x0 + y0 + max(dx, dy), self._prop(lambda cv, a=(x0, y0, dx, dy): bench(cv, *a))))
+        px, py = LAYOUT['pedestal']
+        objs.append((px + py + 0.6, self._prop(lambda cv: pedestal(cv, px, py))))
+        self.objs = objs   # the blackboard hangs on the apse wall: it is part of the room (step 6b)
         self.torch = {}
 
     def _prop(self, fn):
@@ -782,13 +934,13 @@ def door_frames():
     out = []
     for th in (0, 30, 60, 90):
         cv = _bigcv()
-        cv.face((0, y0, 0), (0, 2, 0), (0, 0, 26), 16, 26, lambda i, z, th=th: door_texel(i, z, th == 0))
+        cv.face((DOOR_X, y0, 0), (0, 2, 0), (0, 0, 26), 16, 26, lambda i, z, th=th: door_texel(i, z, th == 0))
         if th:
             lv = _bigcv()
             r, w = math.radians(th), 0.75
             ya, yb = (DOOR_I0 + 2) / 8.0, (DOOR_I0 + 14) / 8.0
-            lv.face((0, yb, 0), (w * math.sin(r), -w * math.cos(r), 0), (0, 0, 23), 6, 23, lambda i, j: door_leaf(13 - i, j))
-            lv.face((0, ya, 0), (w * math.sin(r), w * math.cos(r), 0), (0, 0, 23), 6, 23, lambda i, j: door_leaf(2 + i, j))
+            lv.face((DOOR_X, yb, 0), (w * math.sin(r), -w * math.cos(r), 0), (0, 0, 23), 6, 23, lambda i, j: door_leaf(13 - i, j))
+            lv.face((DOOR_X, ya, 0), (w * math.sin(r), w * math.cos(r), 0), (0, 0, 23), 6, 23, lambda i, j: door_leaf(2 + i, j))
             lv.outline('K')
             cv.blit(lv, 0, 0)
         out.append(cv)
@@ -803,27 +955,28 @@ def window_sprite():
     return cv
 
 
-LIGHT = (4.5, 1.0, 4.0, 4.0)
+LIGHTS = [(w / 8.0, 0.0, 4.5, 5.0) for w in WINDOWS]
 
 
-def window_light_tex(x0, y0):
-    """Luz que entra en +y y baja 45 grados, con una deriva de 0,25 en x."""
+def window_light_tex(x0, y0, w0):
+    """The light of the window starting at u = w0: it enters along +y and falls 45 degrees, drifting
+    0,25 in x, and takes the colour of the pane it passed through."""
     def tex(i, j):
         x, y = x0 + (i + 0.5) / 8.0, y0 + (j + 0.5) / 8.0
-        u = int(math.floor(8.0 * (x - 0.25 * y) - WIN_I0))
-        z = int(math.floor(8.0 * y))
-        if not 0 <= u < 24:
+        u = int(math.floor(8.0 * (x - 0.25 * y))) - w0
+        z = int(math.floor(8.0 * y)) + WIN_Z0
+        if not 0 <= u < WIN_W:
             return None
         k = window_texel(u, z)
-        if k is None or k in ('w0', 'w1', 'w2', 'K'):
+        if k is None or k[0] in ('w', 'K'):
             return None
-        return {'p1': 'p1', 'r0': 'r0'}.get(k, 'b0')
+        return GLASS_LIGHT.get(k[0], 'b0')
     return tex
 
 
 def window_light(cv):
-    x0, y0, dx, dy = LIGHT
-    cv.face((x0, y0, 0), (dx, 0, 0), (0, dy, 0), int(dx * 8), int(dy * 8), window_light_tex(x0, y0))
+    for (x0, y0, dx, dy), w0 in zip(LIGHTS, WINDOWS):
+        cv.face((x0, y0, 0), (dx, 0, 0), (0, dy, 0), int(dx * 8), int(dy * 8), window_light_tex(x0, y0, w0))
 
 
 def bookshelf_R(cv, x0, y0):
@@ -850,4 +1003,185 @@ def disc(r, size, key):
         for x in range(size):
             if math.hypot(x + 0.5 - c, y + 0.5 - c) < r:
                 cv.set(x, y, key)
+    return cv
+
+
+# ------------------------------------------------------------------ paso 6b: muebles nuevos e interfaz
+def bench(cv, x0, y0, dx, dy):
+    """A wooden bench in the rest arm: seat and legs, in the room's perspective."""
+    for (lx, ly) in ((0.1, 0.1), (dx - 0.25, dy - 0.25), (0.1, dy - 0.25), (dx - 0.25, 0.1)):
+        cv.box(x0 + lx, y0 + ly, 0, 0.15, 0.15, 4, top=None, left='o1', right='o2')
+    cv.box(x0, y0, 4, dx, dy, 2, top=lambda i, j: 'o1' if i % 6 == 5 else 'o0', left='o1', right='o2')
+
+
+def pedestal(cv, x0, y0):
+    """The stone pedestal of the project's health orb (the orb itself is drawn by the engine)."""
+    cv.box(x0 - 0.1, y0 - 0.1, 0, 0.7, 0.7, 2, top='w1', left='w1', right='w2')
+    cv.box(x0 + 0.1, y0 + 0.1, 2, 0.3, 0.3, 9, top='w0', left='w1', right='w2')
+    cv.box(x0 - 0.05, y0 - 0.05, 11, 0.6, 0.6, 2, top='w0', left='w1', right='w2')
+
+
+HOURGLASS = ["oooooo", ".KbbK.", ".KbbK.", "..Kb..", "..bK..", ".KbbK.", ".KbbK.", "oooooo"]
+
+
+def hourglass(level):
+    """6 x 8 hourglass; level 0 (all the sand on top) .. 4 (all below): the time left in the window."""
+    cv = Canvas(6, 8, SCENE)
+    for j, row in enumerate(HOURGLASS):
+        for i, ch in enumerate(row):
+            if ch != '.':
+                cv.set(i, j, {'o': 'o1', 'K': 'K', 'b': 'b0'}[ch])
+    top = [(2, 1), (3, 1), (2, 2), (3, 2)][: 4 - level]
+    bottom = [(2, 6), (3, 6), (2, 5), (3, 5)][:level]
+    for (i, j) in top + bottom:
+        cv.set(i, j, 'x1')
+    if 0 < level < 4:
+        cv.set(3, 3, 'x1')
+    return cv
+
+
+# The interface kit (step 6c): a 24 x 24 nine-slice frame, 8 x 8 icons and a wand cursor, in the
+# room's stone, wood and gold. apps/room/build.py turns them into src/ui.gen.css.
+def ui_frame():
+    cv = Canvas(24, 24, SCENE)
+    for y in range(24):
+        for x in range(24):
+            edge = min(x, y, 23 - x, 23 - y)
+            if edge in (0, 3):
+                cv.set(x, y, 'K')
+            elif edge == 1:
+                cv.set(x, y, 'w0' if (x < 2 or y < 2) else 'w2')
+            elif edge == 2:
+                cv.set(x, y, 'w1' if (x + y) % 4 else 'w2')
+    for (cx, cy) in ((2, 2), (21, 2), (2, 21), (21, 21)):
+        for (dx, dy) in ((0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)):
+            cv.set(cx + dx, cy + dy, 'x0' if (dx, dy) == (0, 0) else 'x1')
+    return cv
+
+
+ICONS = {
+    'tasks':    (["KKKKKK..", "KooooK..", "KoppoK..", "KooooK..", "KoppoK..", "KooooKK.", ".KKKKKoK", "......KK"], {'o': 'o0', 'p': 'o2'}),
+    'mana':     (["..KK....", "..KK....", ".KbbK...", "KbbbbK..", "KbBbbK..", "KbbbbK..", ".KKKK...", "........"], {'b': 'b1', 'B': 'b0'}),
+    'health':   ([".KK.KK..", "KrrKrrK.", "KrRrrrK.", "KrrrrrK.", ".KrrrK..", "..KrK...", "...K....", "........"], {'r': 'r1', 'R': 'r0'}),
+    'time':     (["KKKKKK..", ".KbbK...", ".KxxK...", "..Kx....", "..Kb....", ".KbbK...", ".KxxK...", "KKKKKK.."], {'b': 'b0', 'x': 'x1'}),
+    'archmage': (["....K...", "...KpK..", "..KpxpK.", "..KpppK.", ".KppppK.", "KppppppK", "KKKKKKKK", "........"], {'p': 'p1', 'x': 'x0'}),
+    'tower':    (["K.K.K...", "KwKwK...", "KwwwK...", ".KwK....", ".KwK....", ".KwK....", "KwwwK...", "KKKKK..."], {'w': 'w0'}),
+    'scroll':   ([".KKKKK..", "KppppK..", ".KppppK.", ".KpppK..", ".KppppK.", "KppppK..", ".KKKKK..", "........"], {'p': 'p0'}),
+    'quill':    (["......KK", ".....KwK", "....KwK.", "...KwK..", "..KwK...", ".KoK....", "Ko......", "K......."], {'w': 'w0', 'o': 'o1'}),
+    'board':    (["KKKKKKKK", "KgggggoK", "KgwggggK", "KggwwggK", "KgggggoK", "KKKKKKKK", ".K....K.", ".K....K."], {'g': 'g2', 'w': 'g0', 'o': 'o0'}),
+}
+
+
+def ui_icon(name):
+    rows, keys = ICONS[name]
+    cv = Canvas(8, 8, SCENE)
+    for j, row in enumerate(rows):
+        for i, ch in enumerate(row):
+            if ch != '.':
+                cv.set(i, j, 'K' if ch == 'K' else keys[ch])
+    return cv
+
+
+def ui_cursor():
+    """16 x 16 wand: the tip is the hotspot (0, 0)."""
+    cv = Canvas(16, 16, SCENE)
+    for (x, y) in ((0, 0), (1, 0), (0, 1), (1, 1), (2, 1), (1, 2)):
+        cv.set(x, y, 'x0')
+    for (x, y) in ((2, 0), (0, 2), (3, 3), (2, 3), (3, 2)):
+        cv.set(x, y, 'x1')
+    for n in range(4, 13):
+        cv.set(n, n, 'o1')
+        cv.set(n + 1, n, 'K')
+        cv.set(n, n + 1, 'K')
+    cv.set(13, 13, 'K')
+    return cv
+
+
+
+def blackboard_wall(cv):
+    """The blackboard, hung on the back wall in the room's perspective: a slate panel in a thick wooden
+    frame that stands 2 px off the wall (its top and right edges show), and a chalk tray with three
+    chalks and an eraser. The chalk writing is the engine's (font.py, along the wall's slope)."""
+    x0, w = BOARD_U0 / 8.0, BOARD_W / 8.0
+    d = 0.25
+    def face(i, j):                                     # i along x (px), j from the bottom (px)
+        W, H = BOARD_W, BOARD_H
+        if j < 3 or j >= H - 3 or i < 3 or i >= W - 3:   # the frame, lit from the window side
+            if j >= H - 1 or i < 1:
+                return 'o0'
+            if j < 1 or i >= W - 1:
+                return 'o2'
+            return 'o0' if (j == H - 2 or i == 1) else 'o1'
+        if (i * 7 + j * 3) % 37 == 0 or (8 <= i <= 20 and 9 <= j <= 13 and (i + j) % 3 == 0):
+            return 'g1'                                 # a little dust, and a smudge where it was wiped
+        return 'g2'
+    cv.box(x0, 0, BOARD_Z0, w, d, BOARD_H, top=lambda i, j: 'o0', left=face, right=lambda i, j: 'o2')
+    cv.box(x0 + 0.125, 0, BOARD_Z0 - 2, w - 0.25, 0.5, 2, top=lambda i, j: 'o1' if j else 'o0', left='o1', right='o2')
+    for k, (u, key) in enumerate(((10, 'w0'), (14, 'x0'), (30, 'b0'))):
+        tx, ty = cv.sp(x0 + u / 8.0, 0.4, BOARD_Z0)
+        for n in range(3):
+            cv.set(int(tx) + n, int(ty) + n // 2 - 1, key)
+    ex, ey = cv.sp(x0 + 4.4, 0.35, BOARD_Z0)
+    for (a, b) in ((0, 0), (1, 0), (2, 1), (3, 1), (0, -1), (1, -1), (2, 0), (3, 0)):
+        cv.set(int(ex) + a, int(ey) + b - 1, 'o2' if b == 0 else 'p1')
+
+
+# ------------------------------------------------------------------ paso 6e: pergaminos de la interfaz
+def _noise(x, y, seed=0):
+    return ((x * 73856093) ^ (y * 19349663) ^ (seed * 83492791)) % 101
+
+
+def ui_rod():
+    """8 x 12, repeats along x: a turned wooden rod, lit from above."""
+    shade = ['K', 'o0', 'o0', 'o1', 'o1', 'o1', 'o1', 'o1', 'o2', 'o2', 'o2', 'K']
+    cv = Canvas(8, 12, SCENE)
+    for y, k in enumerate(shade):
+        for x in range(8):
+            cv.set(x, y, 'o2' if (k == 'o1' and _noise(x, y, 3) < 9) else k)
+    return cv
+
+
+KNOB = ["....KKKK....", "...KxxxxK...", "..KxXXxxxK..", ".KxXxxxxxxK.", ".KxxxxxxxxK.", "KoxxxxxxxxoK",
+        "Koooxxxxx2oK", "Ko0oo22222oK", ".Ko0ooooo2K.", ".KooooooooK.", "..K222222K..", "...KKKKKK..."]
+
+
+def ui_knob(right=False):
+    """12 x 12: the gilded end of the rod (the right one is the left one mirrored)."""
+    cv = Canvas(12, 12, SCENE)
+    for y, row in enumerate(KNOB):
+        for x, ch in enumerate(row):
+            if ch != '.':
+                cv.set(11 - x if right else x, y, {'K': 'K', 'x': 'x1', 'X': 'x0', 'o': 'o1', '0': 'o0', '2': 'o2'}[ch])
+    return cv
+
+
+def ui_paper():
+    """24 x 24 nine-slice of old parchment: a torn, darkened edge and fibres in the middle."""
+    cv = Canvas(24, 24, SCENE)
+    for y in range(24):
+        for x in range(24):
+            e = min(x, y, 23 - x, 23 - y)
+            n = _noise(x, y, 7)
+            if e == 0:
+                k = None if n < 30 else 'o2'
+            elif e == 1:
+                k = 'o2' if n < 25 else 'o1'
+            elif e == 2:
+                k = 'o1' if n < 35 else 'o0'
+            elif e <= 4:
+                k = 'o0' if n < 40 else 'p0'
+            else:
+                k = 'o0' if n < 4 else 'p0'
+            if k:
+                cv.set(x, y, k)
+    return cv
+
+
+def ui_roll():
+    """8 x 10, repeats along x: the paper rolled up under the rod."""
+    shade = ['K', 'p0', 'p0', 'p0', 'o0', 'p0', 'o0', 'o0', 'o1', 'K']
+    cv = Canvas(8, 10, SCENE)
+    for y, k in enumerate(shade):
+        for x in range(8):
+            cv.set(x, y, 'o1' if (k == 'p0' and _noise(x, y, 5) < 7) else k)
     return cv

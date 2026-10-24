@@ -101,7 +101,7 @@ def build_env():
     sheet(fr[::-1], '01_tiles/props/Door_Closing_Sheet.png', frames=4, ms=250, una_vez=True, ancla=an)
     c, an = one(G.window_sprite(), G.WIN_I0 / 8.0, 0)
     save(c, '01_tiles/props/Window_Gothic_01.png', ancla=an, nota='muro derecho; ancla = (4.5, 0, 0)')
-    c, an = one(prop(G.window_light, outline=False), G.LIGHT[0], G.LIGHT[1])
+    c, an = one(prop(G.window_light, outline=False), G.LIGHTS[0][0], G.LIGHTS[0][1])
     save(c, '01_tiles/props/Window_Light_Effect.png', ancla=an, mezcla='aditiva 20-25 %', nota='suelo; ancla = (4.5, 1, 0)')
     print('· mobiliario')
     for name, fn, outline in (('Bookshelf_Base_L', lambda cv: G.bookshelf(cv, 0, 0), True),
@@ -125,7 +125,7 @@ def build_env():
     at, cols = font.atlas(G.SCENE, 'p0')
     save(at, '03_effects/Pixel_Font_3x5.png', celda=[4, 6], columnas=cols, orden=''.join(font.ORDER))
     print('· estandartes')
-    for g in G.GUILDS:
+    for g in [g for g in G.GUILDS if g != 'unknown']:   # no banner for an unknown guild
         for side in ('L', 'R'):
             cv = prop(lambda c: G.banner(c, side, 1.0, g), pal=G.GP[g])
             c, an = one(cv, *((1.0, 0) if side == 'R' else (0, 1.0)))
@@ -141,13 +141,20 @@ def build_env():
                       'muro_L': lay['muro_L'], 'muro_R': lay['muro_R']})
 
 
+RANK_NAMES = {'aprendiz': 'Apprentice', 'joven': 'Young_Mage', 'sabio': 'Grand_Sage', 'archimago': 'Archmage'}
+
+
 def build_chars():
-    print('· aprendices (7 gremios)')
-    for g in G.GUILDS:
-        for pose, ms in (('idle', 250), ('walk', 125)):
-            rows = [[G.frame(g, d, pose, f) for f in range(4)] for d in G.DIRS]
-            rel = f'02_characters/apprentice/{g}/Apprentice_{G.GNAMES[g]}_{pose.capitalize()}_Sheet.png'
-            sheet(rows, rel, G.GP[g], grid=True, frames=4, ms=ms, filas=G.DIRS, ancla=[8, 23])
+    # Paso 6: one sheet per rank and pose, in the Anthropic palette; any guild is the same pixels with
+    # its .gpl (palettes/gbc_gremio_<guild>.gpl), as the room does.
+    print('· magos (4 rangos, 9 poses)')
+    for rank in G.RANKS:
+        poses = ('idle', 'work') if rank == 'archimago' else G.POSES
+        h = 32 if rank == 'archimago' else 24
+        for pose in poses:
+            rows = [[G.frame('anthropic', d, pose, f, rank) for f in range(4)] for d in G.DIRS]
+            rel = f'02_characters/{RANK_NAMES[rank].lower()}/{RANK_NAMES[rank]}_{pose.capitalize()}_Sheet.png'
+            sheet(rows, rel, G.GP['anthropic'], grid=True, frames=4, ms=125 if pose == 'walk' else 250, filas=G.DIRS, ancla=[8, h - 1])
 
 
 def build_palettes():
@@ -190,8 +197,8 @@ def contact(items, path, width=360, scale=4, bg=(40, 36, 52)):
 def actors(t):
     return [('anthropic', 1.6, 6.75, 'NW', 'idle', (t // 2) % 4),
             ('openai', 5.5, 2.45, 'SW', 'idle', (t // 2 + 1) % 4),
-            ('gemini', 9.3, 3.6, 'NE', 'idle', (t // 2 + 2) % 4),
-            ('copilot', 3.0, 4.6, 'SE', 'idle', (t // 2 + 3) % 4),
+            ('google', 9.3, 3.6, 'NE', 'idle', (t // 2 + 2) % 4),
+            ('unknown', 3.0, 4.6, 'SE', 'idle', (t // 2 + 3) % 4),
             ('meta', 9.0, 9.4, 'W', 'idle', (t // 2) % 4),
             ('deepseek', 0.3 + t / 8.0, 10.5, 'SE', 'walk', t % 4),
             ('qwen', 6.75, 9.9 - t / 8.0, 'NE', 'walk', t % 4)]
@@ -207,7 +214,7 @@ def build_previews():
             items.append((np.array(Image.open(out(k)).convert('RGBA')), os.path.basename(k)[:-4].replace('_', ' ')))
     for k in ('03_effects/Torch_Halo_Sheet.png', '03_effects/Orb_Glow_Sheet.png', '03_effects/Pixel_Font_3x5.png'):
         items.append((np.array(Image.open(out(k)).convert('RGBA')), os.path.basename(k)[:-4].replace('_', ' ')))
-    for g in G.GUILDS:
+    for g in [g for g in G.GUILDS if g != 'unknown']:   # no banner for an unknown guild
         items.append((np.array(Image.open(out(f'01_tiles/props/banners/Banner_{G.GNAMES[g]}_R.png')).convert('RGBA')), ''))
     contact(items, os.path.join(PREV, 'hoja_gbc_fase1.png'))
     room = G.Room('anthropic', door_closed=False)

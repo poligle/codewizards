@@ -42,6 +42,12 @@ CodeWizards es una app local y open source que dirige los CLI oficiales de agent
 - Maqueta v0 del hito 0: sala, grimorio, pizarra y pergamino con agentes simulados. Hito 0 cerrado (tag `v1.0`). Desde v1.2 es la sala de la app, en `apps/room/`.
 - Seguridad del repo y CI: escaneo de secretos, acciones fijadas por SHA y ajustes de GitHub (`auditorias/seguridad.md`).
 - Paso 1 (producto y marca) hecho en v1.1: `auditorias/producto.md`.
+- Paso 6 (arte GBC, ronda 1):
+  - Parche 6a en v1.6.0 (23/10/2026): gremios del contrato (sin Copilot, `google` y paleta del desconocido), rangos por silueta, Archimago de 16 × 32 y nueve poses en 8 direcciones.
+  - Primera parte del 6b en v1.6.1 (24/10/2026): la sala en cruz griega de 14 × 14 y el motor leyendo el plano del generador (`plan.gen.js`).
+  - Resto del 6b y el 6c en v1.6.2 (24/10/2026), adelantado a petición de Pol: vidriera de colores con su luz, pizarra colgada del muro del ábside, bancos, orbe de salud, reloj de arena, pociones que burbujean y el kit de interfaz (marcos, iconos y cursor).
+  - Arte definitivo en v1.6.4 (25/10/2026): la sala vuelve a ser rectangular (16 × 12) y ocupa la pantalla; los paneles son pergaminos enrollables en las esquinas vacías de la sala. Detalle en `auditorias/arte_paso6.md` §8.
+  - Cierre del paso en v1.6.3 (24/10/2026): haces de luz y polvo desde la vidriera, partículas de los magos, fuente de píxel propia, la interfaz integrada con la sala (pantalla de juego GBC) y la perspectiva corregida (estanterías y pizarra). Paso 6 terminado; detalle en `auditorias/arte_paso6.md` §7. Detalle en `auditorias/arte_paso6.md`.
 - Paso 5 (UI/UX) hecho en v1.5.0 y v1.5.1 (23/10/2026). Ronda 1: explorador de archivos de solo lectura, diff por fichero, motivos del Archimago en español, Ctrl + Intro para lanzar y movimiento reducido. Ronda 2: «La Torre» (`codewizards` sin orden: entrar en una sala o fundarla sobre un repo existente o en uno nuevo), el núcleo con varias salas a la vez, y el contraste medido (WCAG 2.2 AA) en la CI. Queda la prueba con 3 a 5 desarrolladores, que tiene su guion. Detalle en `auditorias/uiux.md`.
 - Paso 4 (simulación y comportamiento, ronda 1) hecho en v1.4.0 y validado por Pol (23/10/2026): máquina de estados del mago, colas en las estaciones, ritmo con fusión de ráfagas y puesta al día, aforo de 10 magos con espera fuera de la puerta, y salud del proyecto, magos fuera y reloj de la ventana en el panel. Detalle en `auditorias/simulacion.md`.
 - Paso 3 (orquestación y tokens, ronda 1) hecho en v1.3.0 (23/10/2026): el Archimago v1 (reglas sin modelo y tabla de rangos en `ranks.json`), cuatro rangos con el Mago Joven, la cuota real de Claude Code como maná por cuenta, la espera por cuota, el botón de integrar, el contrato v2 y 20 evals con tests ocultos. Detalle en `auditorias/orquestacion.md`.
@@ -107,16 +113,27 @@ Decididas el 23/10/2026, en el paso 4 (`auditorias/simulacion.md`):
 - El grimorio se abre vacío, sin hechizo de ejemplo.
 - Pol pidió hacer el paso 4 sin pasar antes por la puerta de aprobación, con estos arreglos dentro.
 
+Decididas el 23/10/2026, en el paso 6 (`auditorias/arte_paso6.md` §0):
+
+- La sala pasa a una cruz griega en 14 × 14 con las esquinas recortadas, manteniendo ×3. Esto sustituye la sala cuadrada de 12 × 12. Se siguen viendo los muros del fondo de cada brazo.
+- Zonas: ábside al fondo (pizarra en el muro y rosetón), librería en un brazo, sala de descanso en el otro, mesa de pociones en el crucero, Archimago en la nave, y puerta y cola en el nártex.
+- La paleta de sprites libre es la del gremio desconocido.
+- El Archimago mide 16 × 32, más que los demás.
+- El motor lee la rejilla, las estaciones y la puerta de `meta.json`.
+- El kit de interfaz (iconos, marcos, fuente y cursor) va en la ronda 2. Pol lo adelantó el 24/10/2026.
+- 25/10/2026: la cruz no convence a Pol: la sala vuelve a ser rectangular. La sala ocupa casi toda la pantalla y la interfaz va dentro de ella sin taparla, como pergaminos que se enrollan y desenrollan. El grimorio dice «Lanza un hechizo». Este arte ya no es una maqueta: es la versión para publicar.
+- 24/10/2026: Pol pide hacer todo lo pendiente del arte de una vez, vigilar la perspectiva en la cruz (o volver a la sala rectangular si no sale bien), e integrar la interfaz con la sala con estética GBC, con libertad creativa total. Se mantiene la cruz.
+
 ### Estilo vigente (GBC)
 
 | Regla | Valor |
 | --- | --- |
 | Tile | 16 × 8 px, iso 2:1; 8 px por unidad de altura |
-| Sala | 12 × 12 tiles, unos 208 × 152 px; muro de 40 px |
+| Sala | Rectangular de 16 × 12 tiles, 240 × 168 px; muro de 40 px; ocupa la pantalla a la mayor escala entera |
 | Color | RGB555 (canales múltiplos de 8) |
 | Fondo | 8 paletas de 4 colores con el oscuro compartido (25 colores) |
-| Magos | 16 × 24 px; 2 paletas de 3 colores: gremio (luz, base, oscuro) y común (barba, nariz, bastón) |
-| Gremios | 6 paletas + 1 común, de las 8 paletas de sprites de la GBC; la de Copilot sigue en el arte hasta el paso 6 |
+| Magos | 16 × 24 px (el Archimago, 16 × 32); 2 paletas de 3 colores: gremio (luz, base, oscuro) y común (barba, nariz, bastón); rangos por silueta y 9 poses |
+| Gremios | 6 paletas + 1 común + 1 para el gremio desconocido: las 8 paletas de sprites de la GBC |
 | Luces | Alfa de 1 bit; el brillo de orbes y antorchas lo mezcla el motor |
 | CRT | Barrido, rejilla RGB, resplandor, viñeta y esquinas curvas en CSS, con interruptor |
 | Escalado | Siempre entero (×3, ×4…) con `image-rendering: pixelated` |
@@ -404,6 +421,7 @@ Preguntas para Pol:
 - `auditorias/orquestacion.md` (paso 3): el Archimago, los rangos, la cuota y los evals; `evals/README.md`: cómo se lanzan.
 - `auditorias/simulacion.md` (paso 4): la máquina de estados, las colas, el ritmo, el aforo y los recursos visibles.
 - `auditorias/uiux.md` (paso 5): decisiones de interfaz, clics por tarea y lo que queda para la ronda 2.
+- `auditorias/arte_paso6.md` (paso 6): rangos, poses, gremios y la sala en cruz.
 - `docs/concepto/contexto_general.md` (v3.2): visión, marca y arquitectura de partida; donde choque con este plan, manda el plan.
 - Ronda SNES (arte, generador y documentos de estilo): en el tag `v1.0`; sus correcciones de geometría están en `auditorias/arte_ronda1_snes.md`.
 - La metodología se adaptó del `agentes.md` de BaitSpace (otro proyecto de Pol; no está en este repo).

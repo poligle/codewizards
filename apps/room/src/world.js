@@ -5,31 +5,20 @@
 (function (G) {
   'use strict';
   const CW = G.CW = G.CW || {};
-  const ROOM = 12;
+  // The room's plan comes from the art generator (plan.gen.js, step 6b): a Greek cross of 14 x 14
+  // with the corners cut, what blocks the way, the stations, the door and the queue outside it.
+  const PLAN = CW.PLAN;
+  if (!PLAN) throw new Error('world.js needs plan.gen.js loaded first');
+  const W = PLAN.w, D = PLAN.d, ROOM = Math.max(W, D);
   const DIRS = ['S', 'SE', 'E', 'NE', 'N', 'NW', 'W', 'SW'];
 
   const BLOCKED = new Set();
-  function block(x0, y0, x1, y1) {
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) BLOCKED.add(x + ',' + y);
-  }
-  block(0, 1, 0, 3);    // bookshelf A
-  block(0, 5, 0, 8);    // bookshelf B
-  block(4, 3, 6, 4);    // lab table
-  block(9, 1, 10, 2);   // blackboard
-  block(8, 6, 9, 6);    // armchair
-  block(5, 7, 6, 8);    // Archmage's rune circle
-  const free = (x, y) => x >= 0 && y >= 0 && x < ROOM && y < ROOM && !BLOCKED.has(x + ',' + y);
+  for (const [x0, y0, x1, y1] of PLAN.blocked) for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) BLOCKED.add(x + ',' + y);
+  const inRoom = (x, y) => x >= 0 && y >= 0 && x < W && y < D;
+  const free = (x, y) => inRoom(x, y) && !BLOCKED.has(x + ',' + y);
 
-  const STATIONS = {
-    library: [{ x: 1.3, y: 2.0, dir: 'NW' }, { x: 1.3, y: 3.3, dir: 'NW' }, { x: 1.3, y: 6.1, dir: 'NW' }, { x: 1.3, y: 7.5, dir: 'NW' }],
-    table: [{ x: 5.0, y: 2.45, dir: 'SW' }, { x: 6.1, y: 2.45, dir: 'SW' }, { x: 4.9, y: 5.3, dir: 'NE' }, { x: 6.1, y: 5.3, dir: 'NE' }],
-    board: [{ x: 9.3, y: 3.6, dir: 'NE' }, { x: 10.6, y: 3.3, dir: 'NE' }],
-    rest: [{ x: 9.1, y: 7.7, dir: 'SW' }, { x: 10.5, y: 6.6, dir: 'W' }, { x: 10.5, y: 8.7, dir: 'W' }, { x: 3.2, y: 8.4, dir: 'SE' },
-      { x: 3.2, y: 10.3, dir: 'E' }, { x: 8.7, y: 10.6, dir: 'NW' }, { x: 7.5, y: 11.2, dir: 'N' }, { x: 2.2, y: 6.2, dir: 'E' }],
-  };
-  const ARCHI = { x: 6.0, y: 8.25 };
-  const DOOR = { x: -0.45, y: 10.5 };
-  const ENTRY = { x: 0.5, y: 10.5 };
+  const STATIONS = PLAN.stations;
+  const ARCHI = PLAN.archi, DOOR = PLAN.door, ENTRY = PLAN.entry, QUEUE = PLAN.queue;
   const SPEED = 1.6;   // tiles per second
   const CAPACITY = 10; // wizards inside the room at once; the rest wait outside the door (step 4)
   const BACKLOG = 6;   // pending actions before a wizard catches up with the log
@@ -87,7 +76,7 @@
     return path;
   }
 
-  const tile = v => Math.max(0, Math.min(ROOM - 1, Math.floor(v)));
+  const tile = v => Math.max(0, Math.min(ROOM - 1, Math.floor(v)));   // free() keeps paths inside W x D
 
   class Wizard {
     constructor(o) {
@@ -133,9 +122,11 @@
       }
     }
 
-    addLine(guild) {
-      this.board.lines.push({ len: 6 + Math.floor(this.rand() * 15), guild });
-      if (this.board.lines.length > 4) this.board.lines.shift();
+    // The blackboard keeps the last three things presented, in chalk: the task's title, short.
+    addLine(guild, text) {
+      const t = String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9 .:()\-+/]/g, ' ').replace(/\s+/g, ' ').trim();
+      this.board.lines.push({ len: 6 + Math.floor(this.rand() * 15), guild, text: t });
+      if (this.board.lines.length > 3) this.board.lines.shift();
     }
 
     inside() { let n = 0; for (const w of this.wizards.values()) if (!w.outside && !w.gone) n++; return n; }
@@ -237,6 +228,7 @@
           this.guild = ev.guild || this.guild;
           break;
         case 'task.created':
+          (this.titles || (this.titles = new Map())).set(ev.task, ev.title);
           this.say(this.archi, '!', 1.2);
           this.burst(this.archi, 'rune', 3);
           break;
@@ -283,6 +275,9 @@
           break;
         case 'command.denied':
           if (w) this.say(w, '!', 1.4);
+          break;
+        case 'quota.updated':
+          if (!ev.window || ev.window === 'five_hour') this.windowReset = ev.resets_at || null;   // the hourglass (step 6b)
           break;
         case 'command.run':
           if (w) this.burst(w, 'rune', 3);
@@ -387,7 +382,7 @@
       if (!kind) return;
       const rate = { read: 5, write: 4, present: 3 }[kind];
       if (this.rand() < rate * dt) this.burst(w, kind === 'read' ? 'page' : kind === 'write' ? 'rune' : 'chalk', 1);
-      if (kind === 'present' && !w.lined) { this.addLine(w.guild); w.lined = true; }
+      if (kind === 'present' && !w.lined) { this.addLine(w.guild, this.titles && this.titles.get(w.task)); w.lined = true; }
     }
 
     step(w, dt) {
@@ -473,5 +468,5 @@
   }
 
   CW.World = World;
-  CW.ROOM_META = { ROOM, DIRS, STATIONS, ARCHI, DOOR, ENTRY, CAPACITY, BACKLOG, free, astar, dirOf, mulberry32 };
+  CW.ROOM_META = { ROOM, W, D, DIRS, STATIONS, ARCHI, DOOR, ENTRY, QUEUE, CAPACITY, BACKLOG, free, inRoom, astar, dirOf, mulberry32 };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

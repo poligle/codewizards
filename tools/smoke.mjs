@@ -1,5 +1,5 @@
 // Smoke test of the room in a real browser (Chromium, via Playwright):
-//   A. the static demo, served like GitHub Pages serves it (desktop, ×3);
+//   A. the static demo, served like GitHub Pages serves it (desktop, the room filling the screen);
 //   B. the same demo on a phone (390 × 844, ×1);
 //   C. the live room served by the core (`codewizards demo`), events over the WebSocket;
 //   D. `codewizards serve` on a throw-away git repo with the tests' fake Claude Code: cast, the diff
@@ -8,7 +8,7 @@
 // Fails on any page error, console error or request that leaves the machine. Also checks that a
 // spell completes, that an unknown guild or a repeated event never freezes the room, that CRT is
 // remembered, that the token leaves the address bar and that another origin cannot connect.
-// Screenshots (×3, with and without CRT) go to tools/smoke/out/.
+// Screenshots (with and without CRT) go to tools/smoke/out/.
 //
 //   node tools/smoke.mjs [--bin path/to/codewizards.js] [--browser chromium|firefox]
 //   CW_CHROMIUM=/path/to/chromium uses that browser instead of Playwright's download (NixOS:
@@ -102,19 +102,17 @@ async function staticDemo(browser) {
   check((await page.locator('#mana li').count()) === 1, 'A static: only the connected account\'s guild has mana (Anthropic)');
   check((await page.locator('#rank option').count()) === 4, 'A static: the spell book lets you choose the rank or leave it to the Archmage');
   await castAndFinish(page, 'A static');
-  check((await page.evaluate(() => getComputedStyle(document.getElementById('screen')).getPropertyValue('--px'))).trim() === '3px', 'A static: room at ×3 on a 1440 × 900 screen');
-  // The side panels can be made narrower, and the room grows into the space.
-  const box = await page.locator('#split-left').boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + 40);
-  await page.mouse.down();
-  await page.mouse.move(box.x - 60, box.y + 40, { steps: 5 });
-  await page.mouse.up();
-  const leftW = Math.round((await page.locator('#left').boundingBox()).width);
-  check(leftW < 260, `A static: dragging the edge makes the tasks panel narrower (${leftW} px)`);
+  // Step 6e: the room is the screen (×5 on 1440 × 900, ×6 on 1920 × 1080) and the scrolls never cover it.
+  const px = () => page.evaluate(() => Number(getComputedStyle(document.getElementById('screen')).getPropertyValue('--px').replace('px', '')));
+  check((await px()) === 5, `A static: the room fills a 1440 × 900 screen at ×${await px()}`);
+  check((await page.evaluate(() => window.CW.coversRoom())).length === 0, `A static: no scroll covers the room (${await page.evaluate(() => window.CW.coversRoom().join(', '))})`);
+  await page.click('#sc-tasks .rod');
+  check(await page.evaluate(() => document.getElementById('sc-tasks').classList.contains('rolled') && !document.getElementById('p-tasks').offsetHeight), 'A static: a scroll rolls up from its rod');
+  await page.click('#sc-tasks .rod');
+  check(await page.evaluate(() => !document.getElementById('sc-tasks').classList.contains('rolled')), 'A static: and unrolls again');
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.waitForTimeout(300);
-  const big = Number((await page.evaluate(() => getComputedStyle(document.getElementById('screen')).getPropertyValue('--px'))).trim().replace('px', ''));
-  check(big >= 4, `A static: on a 1920 × 1080 screen the room is at ×${big} (×4 or more)`);
+  check((await px()) === 6 && (await page.evaluate(() => window.CW.coversRoom())).length === 0, `A static: on 1920 × 1080 the room is at ×${await px()} and still uncovered`);
   await page.setViewportSize({ width: 1440, height: 900 });
   // An unknown guild and a repeated event must not freeze the room (v1.1 froze on the first).
   const t0 = await page.evaluate(() => window.__sims[0].t);
@@ -176,6 +174,7 @@ async function liveRoom(browser) {
     check(!page.url().includes('token'), 'C live: the token left the address bar');
     await castAndFinish(page, 'C live');
     check((await page.request.get(origin + '/package.json')).status() === 404, 'C live: only the room files are served');
+    await page.click('#todo summary');
     await page.fill('#notes', '- add a dark mode\n- fix the login');
     await page.waitForTimeout(1200);
     const done = (await logged(page)).done;

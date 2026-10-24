@@ -17,7 +17,7 @@ const ROOM = new URL('../../room/src/', import.meta.url);
 const TYPES = { html: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8' };
 const FILES = new Map([
   ['/', 'index.html'], ['/index.html', 'index.html'], ['/style.css', 'style.css'], ['/assets.gen.js', 'assets.gen.js'],
-  ['/world.js', 'world.js'], ['/sim.js', 'sim.js'], ['/render.js', 'render.js'], ['/net.js', 'net.js'], ['/ui.js', 'ui.js'],
+  ['/plan.gen.js', 'plan.gen.js'], ['/ui.gen.css', 'ui.gen.css'], ['/world.js', 'world.js'], ['/sim.js', 'sim.js'], ['/render.js', 'render.js'], ['/net.js', 'net.js'], ['/ui.js', 'ui.js'],
 ]);
 const TASK = /^t\d{1,6}$/;
 const RANK = new Set(['auto', 'aprendiz', 'joven', 'sabio']);
@@ -75,7 +75,7 @@ export function startServer({ room = null, store = null, tower = null, port = 0,
   const hosts = () => new Set([`127.0.0.1:${actual}`, `localhost:${actual}`]);
   const origins = () => new Set([`http://127.0.0.1:${actual}`, `http://localhost:${actual}`]);
   const csp = () => [
-    "default-src 'none'", "script-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data:",
+    "default-src 'none'", "script-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data:", "font-src 'self' data:",
     `connect-src ws://127.0.0.1:${actual} ws://localhost:${actual}`, "base-uri 'none'", "form-action 'none'", "frame-ancestors 'none'",
   ].join('; ');
 

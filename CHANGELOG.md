@@ -2,6 +2,64 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.6.4] · 2026-10-25 · The room is the screen
+
+Step 6 of milestone 1 (GBC art): the final art, meant for publishing.
+
+### Changed
+- The room is a rectangle again, 16 × 12 tiles: the library and the door on the left wall; two gothic stained-glass windows and the blackboard on the back wall; the table, the Archmage's circle, the benches and the armchair on the floor. The cross is gone.
+- The blackboard is a real object: a slate panel in a thick wooden frame that stands off the wall, a chalk tray with chalks and an eraser, and what the wizards present written on it in chalk, in the room's chalk font, along the wall's slope.
+- The stained glass is a mosaic of coloured panes with lead lines under a pointed gothic arch, in two windows, each throwing its light and its shafts of dust.
+- The room fills the window (×5 on 1440 × 900, ×6 on 1920 × 1080). The panels are parchment scrolls hung in the room's empty corners, sized from the room's own lines so they never cover it, and each rolls up or down from its rod; the controls sit on a plaque under the floor's front corner. Narrow screens get the room on top and the scrolls under it.
+- The spell box says «Lanza un hechizo…».
+
+## [1.6.3] · 2026-10-24 · One game screen
+
+Step 6 of milestone 1 (GBC art), closed: everything that was left.
+
+### Added
+- Light shafts from the stained glass, dithered every other pixel like a GBC would, with dust motes floating in them.
+- Wizard particles: motes rise from the orb while a wizard works, and dust puffs at the feet as it walks.
+- A pixel font for the interface, made from the room's chalk font with Spanish accents, embedded in `ui.gen.css`.
+
+### Changed
+- The interface and the room are one screen: the page is the room's darkness, the panels are parchment in stone frames, titles, labels and action buttons use the pixel font, and buttons are bevelled wood and gold like GBC menus. Task cards, code and logs stay in a readable font.
+- Perspective in the cross: the two bookshelves have different lengths, with a gap and a torch between them, so the second one reads as further down the wall; the blackboard hangs lower, at a wizard's height, centred on the apse wall.
+- The wizards' profile nose is a pixel longer and the backs show a rounded hump.
+
+## [1.6.2] · 2026-10-24 · Stained glass, a wall blackboard and the interface kit
+
+Step 6 of milestone 1 (GBC art): the rest of patch 6b, and 6c.
+
+### Added
+- A stained-glass window in the library arm, one colour per pane, that throws its coloured light on the floor.
+- The blackboard hangs on the apse wall, drawn on the wall's own plane; the chalk follows the wall's slope.
+- Two wooden benches in the rest arm, where waiting wizards sit.
+- The project's health glows in a crystal orb on a stone pedestal (green, yellow or red); an hourglass on the table empties as the five-hour window goes by; the potions on the table bubble.
+- The interface kit, in the room's stone, wood and gold: panel frames with gold studs, 8 × 8 icons on the headings, and a wand cursor. Generated as `apps/room/src/ui.gen.css`.
+
+## [1.6.1] · 2026-10-24 · A room shaped like a cross
+
+Step 6 of milestone 1 (GBC art), patch 6b, first part.
+
+### Changed
+- The room is a Greek cross of 14 × 14 tiles with the four corners cut (240 × 168 px): the library in one arm, the apse with the window and the blackboard at the back, the rest arm with the armchair, the table and the Archmage in the crossing, and the entrance door in the nave. Every wall the camera sees is drawn, with its inner and outer corners.
+- The engine reads the room from the art: `apps/room/src/plan.gen.js`, generated from the generator's plan (the floor, what blocks the way, the stations, the door and the queue).
+- Wizards waiting outside a full room stand in line by the door.
+- The spell book fits in one row, so the bigger room still shows at ×3 on a 1440 × 900 screen (×4 on 1920 × 1080).
+
+## [1.6.0] · 2026-10-23 · The wizards, redrawn
+
+Step 6 of milestone 1 (GBC art), patch 6a.
+
+### Added
+- Ranks you can tell apart by their silhouette: the Apprentice with a short hat and a short staff, the Young Mage with a band on the hat, the Grand Sage with a star, a big orb and a longer beard, and the Archmage with a hat twice as tall (16 × 32).
+- Nine poses in 8 directions: idle, walk, work, read (an open book), write (a quill), present, confused, celebrate and sit. The room picks the pose from what each wizard is doing.
+
+### Changed
+- The art follows the contract's guilds: Copilot is gone, `gemini` is `google`, and the free 8th sprite palette is the unknown guild's.
+- One sheet per rank and pose in `codewizards-art/02_characters/`, in the Anthropic palette; any guild is the same pixels with its `.gpl`.
+
 ## [1.5.1] · 2026-10-23 · La Torre
 
 Step 5 of milestone 1 (UI/UX), round 2.
@@ -171,6 +229,11 @@ Step 1 of milestone 1. The mockup is the same as in v1.0.
 ### Fixed
 - The mockup no longer freezes on its first frame in real browsers.
 
+[1.6.4]: https://github.com/poligle/codewizards/compare/v1.6.3...v1.6.4
+[1.6.3]: https://github.com/poligle/codewizards/compare/v1.6.2...v1.6.3
+[1.6.2]: https://github.com/poligle/codewizards/compare/v1.6.1...v1.6.2
+[1.6.1]: https://github.com/poligle/codewizards/compare/v1.6.0...v1.6.1
+[1.6.0]: https://github.com/poligle/codewizards/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/poligle/codewizards/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/poligle/codewizards/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/poligle/codewizards/compare/v1.3.2...v1.4.0

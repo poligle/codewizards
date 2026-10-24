@@ -9,7 +9,7 @@ const SRC = new URL('../../../room/src/', import.meta.url);
 
 export function loadSimClass() {
   const ctx = vm.createContext({});
-  for (const f of ['world.js', 'sim.js']) {
+  for (const f of ['plan.gen.js', 'world.js', 'sim.js']) {
     const url = new URL(f, SRC);
     vm.runInContext(fs.readFileSync(url, 'utf8'), ctx, { filename: fileURLToPath(url) });
   }

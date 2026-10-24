@@ -224,3 +224,73 @@
   - (paso 6) → lo apuntado en su prompt.
   - (paso 7) → los textos nuevos de La Torre, en inglés.
 - Pruebas para Pol: aplicar `paso-4.patch`, `paso-5.patch` y `paso-5b.patch` en orden; `codewizards` sin orden, fundar una sala en un repo nuevo y entrar.
+
+## Paso 6 · Arte GBC, ronda 1, parche 6a · 23/10/2026
+- Cambios (detalle en `auditorias/arte_paso6.md`):
+  - Gremios del contrato: Copilot fuera, `google`, y la paleta libre para el desconocido.
+  - Rangos por silueta, con el Mago Joven nuevo y el Archimago de 16 × 32.
+  - Nueve poses en 8 direcciones, elegidas por el estado del mago.
+  - Hojas por rango y pose.
+  - Versión 1.6.0.
+- Archivos tocados:
+  - `codewizards-art/` (`gbc.py`, `build.py`, las hojas de los magos, las paletas, los estandartes, `meta.json`, la demo, las vistas previas y el README).
+  - `apps/room/build.py`, `src/render.js` y `src/assets.gen.js`.
+  - `auditorias/arte_paso6.md` (nuevo) y sus capturas, `docs/agentes.md`, README, CHANGELOG y este traspaso.
+- Decisiones de Pol: «haz todo lo recomendado» (las seis de la propuesta, en `docs/agentes.md`).
+- Encargos: (6b) la sala en cruz con el motor leyendo `meta.json`; (6c, ronda 2) el kit de interfaz.
+- Pruebas para Pol: las de `auditorias/arte_paso6.md` §4.
+
+## Paso 6 · Arte GBC, ronda 1, parche 6b (primera parte) · 24/10/2026
+- Cambios (detalle en `auditorias/arte_paso6.md` §5):
+  - La sala en cruz griega de 14 × 14, con los muros por tramos y la puerta en la nave.
+  - El motor lee el plano del generador (`plan.gen.js`).
+  - La cola visible junto a la puerta.
+  - El grimorio en una fila para mantener ×3.
+  - Versión 1.6.1.
+- Archivos tocados:
+  - `codewizards-art/` (`gbc.py`, la sala base, `meta.json` y las vistas previas).
+  - `apps/room/build.py` y `src/plan.gen.js` (nuevo).
+  - `src/world.js`, `render.js`, `ui.js`, `index.html` y `style.css`.
+  - `apps/core/src/server.js` y `rooms/demo-room.js`.
+  - Los tests de la sala.
+  - Documentación.
+- Encargos: (6b, segunda parte) vidrieras, pizarra colgada, bancos, pociones, orbe y reloj; (6c, ronda 2) kit de interfaz.
+- Pruebas para Pol: aplicar `paso-6a.patch` y `paso-6b.patch` en orden; `codewizards demo` y lanzar un hechizo.
+
+## Paso 6 · Arte GBC, ronda 1, resto del 6b y 6c · 24/10/2026
+- Cambios (detalle en `auditorias/arte_paso6.md` §6):
+  - Vidriera de colores con su luz.
+  - Pizarra colgada del muro, con la tiza en perspectiva.
+  - Bancos.
+  - Orbe de salud y reloj de arena.
+  - Pociones que burbujean.
+  - Kit de interfaz: marcos, iconos y cursor, en `ui.gen.css`.
+  - Versión 1.6.2.
+- Decisiones de Pol: completar la sección con los muebles en perspectiva y adelantar el arte de la interfaz.
+- Encargos: (paso 7) los textos nuevos; fuente de píxel de la interfaz y puntos débiles del mago, para una ronda de retoques.
+- Pruebas para Pol: aplicar `paso-6a.patch`, `paso-6b.patch` y `paso-6c.patch` en orden; `codewizards demo`.
+
+## Paso 6 · Arte GBC, cierre · 24/10/2026
+- Cambios (detalle en `auditorias/arte_paso6.md` §7):
+  - Perspectiva corregida: estanterías separadas y pizarra a la altura del mago.
+  - Haces de luz tramados con polvo.
+  - Partículas de los magos.
+  - Fuente de píxel propia.
+  - Interfaz integrada con la sala, con aspecto GBC.
+  - Retoques del mago.
+  - Versión 1.6.3.
+- Decisiones de Pol: hacerlo todo de una vez, con libertad creativa total; se mantiene la cruz.
+- Encargos: (paso 7) textos y sonido; los textos de la interfaz conviven ahora con la fuente de píxel, que solo tiene mayúsculas, así que los títulos se escriben en mayúsculas.
+- Pruebas para Pol: aplicar `paso-6a.patch` a `paso-6d.patch` en orden; `codewizards demo`.
+
+## Paso 6 · Arte definitivo · 25/10/2026
+- Cambios (detalle en `auditorias/arte_paso6.md` §8):
+  - Sala rectangular de 16 × 12 (fuera la cruz).
+  - Pizarra como objeto, con tiza escrita.
+  - Dos vidrieras góticas de mosaico.
+  - La sala ocupa la pantalla y los paneles son pergaminos enrollables en sus esquinas vacías, sin taparla.
+  - «Lanza un hechizo».
+  - Versión 1.6.4.
+- Decisiones de Pol: las de `docs/agentes.md` del 25/10/2026.
+- Encargos: (paso 7) los textos de los pergaminos y de la placa, y el sonido.
+- Pruebas para Pol: aplicar `paso-6a.patch` a `paso-6e.patch` en orden; `codewizards demo` en pantalla completa.

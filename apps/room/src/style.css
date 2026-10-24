@@ -1,7 +1,7 @@
-:root{--bg:#d0d0d8;--panel:#f8f0d8;--ink:#181020;--muted:#584870;--line:#181020;--shadow:#9ca0b8;--code:#f0e8c8;--add:#1e6c32;--del:#a8203a;--hunk:#2858a8;--accent:#c06820;--warn:#8a3a10;--focus:#2858a8;
+:root{--bg:#181828;--panel:#f8f0d8;--ink:#181828;--muted:#784028;--line:#181828;--shadow:#080810;--code:#f0e8c8;--add:#206830;--del:#a82038;--hunk:#2858a8;--accent:#f8c040;--warn:#883810;--focus:#2858a8;
   color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#100c18;--panel:#201830;--ink:#f0f0e8;--muted:#b8b0d0;--line:#504070;--shadow:#08060c;--code:#181028;--add:#88e0a0;--del:#f89888;--hunk:#90c8f8;--accent:#f8b860;--warn:#f8b860;--focus:#90d8f8;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#100c18;--panel:#201830;--ink:#f0f0e8;--muted:#b8b0d0;--line:#504070;--shadow:#08060c;--code:#181028;--add:#88e0a0;--del:#f89888;--hunk:#90c8f8;--accent:#f8b860;--warn:#f8b860;--focus:#90d8f8;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#181828;--panel:#f8f0d8;--ink:#181828;--muted:#784028;--line:#181828;--shadow:#080810;--code:#f0e8c8;--add:#206830;--del:#a82038;--hunk:#2858a8;--accent:#f8c040;--warn:#883810;--focus:#2858a8;color-scheme:light}}
+:root[data-theme="dark"]{--bg:#181828;--panel:#f8f0d8;--ink:#181828;--muted:#784028;--line:#181828;--shadow:#080810;--code:#f0e8c8;--add:#206830;--del:#a82038;--hunk:#2858a8;--accent:#f8c040;--warn:#883810;--focus:#2858a8;color-scheme:light}
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -25,7 +25,7 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .knob::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;background:var(--ink);transition:transform .15s}
 .switch[aria-pressed="true"] .knob{background:var(--accent)}
 .switch[aria-pressed="true"] .knob::after{transform:translateX(16px)}
-.layout{display:grid;grid-template-columns:var(--left,290px) 12px minmax(0,1fr) 12px var(--right,350px);padding:0 12px 16px;align-items:start}
+.layout{display:grid;grid-template-columns:var(--left,260px) 12px minmax(0,1fr) 12px var(--right,320px);padding:0 12px 16px;align-items:start}
 .panel{background:var(--panel);border:2px solid var(--line);box-shadow:4px 4px 0 var(--shadow);padding:12px 14px;min-width:0}
 .sala{background:transparent;border:0;box-shadow:none;padding:0}
 h2{font-size:13px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 10px}
@@ -130,10 +130,86 @@ select{width:100%;font:inherit;padding:6px;border:2px solid var(--line);backgrou
 .center{display:flex;flex-direction:column;gap:12px;min-width:0}
 .grim h2{margin-bottom:6px}
 .grim .opts{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:8px}
-.grim .opts label{display:flex;flex-direction:column;gap:2px;font-size:12px;flex:1 1 150px}
+.grim .opts label{display:flex;flex-direction:column;gap:2px;font-size:12px;flex:1 1 110px}
 .grim .opts select{margin:0}
-.grim .cast{flex:0 0 auto;min-width:120px}
+.grim .cast{flex:0 0 auto;width:auto;min-width:110px;margin-top:0}
+.grim{padding-top:10px;padding-bottom:10px}
+.grim h2{margin:0 0 6px}
 .hist summary{cursor:pointer;margin:12px 0 6px;font-weight:700}
 .hist .task{opacity:.8}
 #notes{min-height:84px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .mini{min-height:32px;padding:0 10px;margin-top:6px}
+/* Step 6d: one game screen. The page is the room's darkness; the panels are parchment in stone
+   frames (ui.gen.css); titles, labels and buttons use the room's pixel font; buttons are bevelled
+   wood and gold, like the GBC menus. Code and logs stay in a readable monospace. */
+body{background:var(--bg)}
+.top h1{color:#f8f0d8;font:400 24px/1 "CW Pixel",ui-monospace,monospace;letter-spacing:2px}
+.top h1 span{color:#c0a0e8;font:400 16px/1 "CW Pixel",ui-monospace,monospace;letter-spacing:2px}
+.top label,.top .chk{color:#f8f0d8}
+h2,h3,summary,.cm,.grim .opts label,button,.mana .gname,.hist summary,.st{font-family:"CW Pixel",ui-monospace,monospace;-webkit-font-smoothing:none;font-smooth:never}
+h2{font-size:16px;font-weight:400;letter-spacing:2px}
+h3,.hist summary{font-size:16px;font-weight:400;letter-spacing:1px;color:var(--muted)}
+.cm,.grim .opts label{font-size:16px;letter-spacing:1px}
+button{font-size:16px;font-weight:400;letter-spacing:1px;border:2px solid var(--line);border-radius:0;background:#f0c080;color:var(--ink);box-shadow:inset 2px 2px 0 #f8f0d8,inset -2px -2px 0 #c07840}
+button:active:not(:disabled){box-shadow:inset 2px 2px 0 #c07840,inset -2px -2px 0 #f8f0d8}
+button[aria-pressed="true"],.seg button[aria-pressed="true"]{background:#784028;color:#f8f0d8;box-shadow:inset 2px 2px 0 #181828}
+.cast,.found-go{background:var(--accent);color:var(--ink);box-shadow:inset 2px 2px 0 #fff8c0,inset -2px -2px 0 #e86020}
+.review .ok:not(:disabled){background:#58a850;color:#181828;box-shadow:inset 2px 2px 0 #d8f0c0,inset -2px -2px 0 #285838}
+.review .no:not(:disabled){background:#d84848;color:#181828;box-shadow:inset 2px 2px 0 #f8d050,inset -2px -2px 0 #882838}
+textarea,select,#found-path{border-radius:0;background:var(--code);border:2px solid var(--line);box-shadow:inset 2px 2px 0 #c0a0e8}
+.tv{background:#080810;border:0;box-shadow:none}
+.split::after{border-left-color:#606888}
+.tasks .task{border-radius:0}
+/* Task cards and the blackboard's title stay in the readable font: only titles, labels and buttons
+   that name an action are in the pixel font. */
+.tasks .task{font:13px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:0;background:var(--panel);box-shadow:none;border:2px solid var(--line)}
+.tasks .task[aria-pressed="true"],.tasks .task.sel{background:#f8e8b8;box-shadow:inset 0 0 0 2px var(--accent)}
+.deliv .dt{font:600 15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:0;text-transform:none}
+/* ---------------------------------------------------------------- step 6e: the room is the screen */
+html,body{height:100%}
+body{margin:0;overflow:hidden;background:var(--bg)}
+.stage{position:fixed;inset:0}
+.stage .tv{position:absolute;inset:0;background:transparent;padding:0;border:0;box-shadow:none}
+.stage .screen{position:absolute}
+/* The scrolls: a turned rod with gilded ends on top (click it to roll the paper up or down), old
+   parchment with torn edges, and a lower rod. */
+.scroll{position:absolute;display:flex;flex-direction:column;z-index:3;filter:drop-shadow(4px 6px 0 rgba(8,8,16,.55))}
+.scroll>.rod{flex:0 0 24px;min-height:24px;margin:0 -10px;padding:0 30px;border:0;box-shadow:none;background:var(--knob-l) left center/24px 24px no-repeat,var(--knob-r) right center/24px 24px no-repeat,var(--rod) 0 center/16px 24px repeat-x;image-rendering:pixelated;color:#f8f0d8;text-align:left;font:400 16px/24px "CW Pixel",ui-monospace,monospace;letter-spacing:2px;text-shadow:2px 2px 0 #181828;cursor:pointer;position:relative;z-index:1}
+.scroll>.rod:focus-visible{outline:3px solid #f8c040;outline-offset:2px}
+.scroll>.rod::after{content:"▾";position:absolute;right:30px;top:0;color:#f8c040}
+.scroll.rolled>.rod::after{content:"▸"}
+.scroll>.rod.end{flex-basis:16px;min-height:16px;margin-top:-4px;background-size:16px 16px,16px 16px,16px 16px;cursor:default}
+.scroll>.paper{flex:1 1 auto;min-height:0;overflow:auto;margin-top:-6px;border-style:solid;border-width:12px 14px;border-color:transparent;border-image:var(--paper) 8 fill / 12px 14px round;image-rendering:pixelated;padding:6px 6px 4px;color:var(--ink);scrollbar-color:#c07840 transparent}
+.scroll.rolled{height:auto!important}
+.scroll.rolled>.paper{display:none}
+.scroll.rolled>.rod.end{display:none}
+.scroll.rolled::after{content:"";display:block;height:20px;margin:-8px 4px 0;background:var(--roll) 0 0/16px 20px repeat-x;image-rendering:pixelated}
+.scroll .paper h3:first-child{margin-top:2px}
+.scroll .paper .tasks{margin-bottom:6px}
+.scroll .paper textarea,.scroll .paper select{background:#f0e8c8}
+#sc-spell .opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:6px 0}
+#sc-spell .opts label{display:flex;flex-direction:column;gap:2px;font:400 12px/1.2 "CW Pixel",ui-monospace,monospace;letter-spacing:1px}
+#sc-spell .opts select{width:100%;margin:0;font-size:12px}
+#sc-spell .cast{width:100%;margin-top:4px}
+#sc-spell textarea{font-size:15px}
+#sc-log .log{max-height:none}
+/* The plaque under the floor's front corner: the room's name and its controls. */
+.plaque{position:absolute;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 12px;z-index:2;padding:0 8px}
+.plaque h1{margin:0;color:#f8f0d8;font:400 16px/1 "CW Pixel",ui-monospace,monospace;letter-spacing:2px}
+.plaque h1 span{font-size:12px;color:#c0a0e8;margin-left:6px}
+.plaque .seg button,.plaque .switch,.plaque .mini{min-height:30px;padding:0 10px;font-size:14px}
+.plaque .chk{color:#f8f0d8;font:400 14px/1 "CW Pixel",ui-monospace,monospace}
+#sc-spell .hint{margin:6px 0 0;font-size:12px;color:var(--muted)}
+/* La Torre: a large scroll, unrolled over the room. */
+.tower{background:rgba(8,8,16,.78)}
+.tower .scroll.tower-box{position:relative;width:min(640px,92vw);max-height:88vh;filter:none}
+.tower .scroll.tower-box>.paper{max-height:calc(88vh - 60px)}
+/* Narrow screens: the room on top, the scrolls under it, unrolled. */
+body.stacked{overflow:auto}
+body.stacked .stage{position:static;display:flex;flex-direction:column;gap:14px;padding:8px 12px 24px}
+body.stacked .stage .tv{position:relative;inset:auto}
+body.stacked .stage .screen{position:relative;margin:0 auto}
+body.stacked .scroll{position:relative;width:auto!important;height:auto!important;left:auto!important;top:auto!important;margin:0 10px}
+body.stacked .scroll>.paper{max-height:60vh}
+body.stacked .plaque{position:relative;left:auto!important;right:auto!important;top:auto!important}
+.scroll>.rod.end::after,.tower .rod::after{content:none}

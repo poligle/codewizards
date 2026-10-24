@@ -9,7 +9,7 @@ import { validate, GUILDS } from '../../../packages/contract/contract.js';
 
 const src = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src');
 globalThis.CW = {};
-for (const f of ['world.js', 'sim.js']) vm.runInThisContext(fs.readFileSync(path.join(src, f), 'utf8'), { filename: f });
+for (const f of ['plan.gen.js', 'world.js', 'sim.js']) vm.runInThisContext(fs.readFileSync(path.join(src, f), 'utf8'), { filename: f });
 const { World, Sim, ROOM_META: M } = globalThis.CW;
 
 let fails = 0, checks = 0;
@@ -19,7 +19,7 @@ const T0 = 1761130000000;
 for (const [name, list] of Object.entries(M.STATIONS)) {
   list.forEach((s, i) => {
     ok(M.free(Math.floor(s.x), Math.floor(s.y)), `${name}[${i}] stands on a free tile`);
-    ok(M.astar(0, 10, Math.floor(s.x), Math.floor(s.y)) !== null, `${name}[${i}] is reachable from the door`);
+    ok(M.astar(Math.floor(M.ENTRY.x), Math.floor(M.ENTRY.y), Math.floor(s.x), Math.floor(s.y)) !== null, `${name}[${i}] is reachable from the door`);
   });
 }
 
@@ -54,7 +54,9 @@ let log1;
     sim.tick(0.05);
     world.update(0.05);
     for (const w of world.wizards.values()) {
-      if (w.x >= 0.05) ok(M.free(Math.floor(w.x), Math.floor(w.y)), `wizard ${w.id} never walks into furniture (${w.x.toFixed(2)}, ${w.y.toFixed(2)})`);
+      // The doorway (the door's own tile, outside the cross) is the only place off the floor.
+      const doorway = Math.floor(w.x) === Math.floor(M.DOOR.x) && Math.floor(w.y) === Math.floor(M.DOOR.y);
+      if (!doorway) ok(M.free(Math.floor(w.x), Math.floor(w.y)), `wizard ${w.id} never walks into furniture (${w.x.toFixed(2)}, ${w.y.toFixed(2)})`);
     }
   }
   validateAll(events);
@@ -227,6 +229,14 @@ let log1;
   ok(h1 < h0, 'a failure lowers it');
   w.handle(ev('task.done', { agent: 'x', task: 't2', result: 'ok' }));
   ok(w.health > h1 && w.health <= 1, 'a finished task raises it, never above 1');
+}
+
+// 10) step 6e: a rectangular room, 16 x 12, read from the art's plan
+{
+  ok(M.W === 16 && M.D === 12 && M.inRoom(0, 0) && M.inRoom(15, 11) && !M.inRoom(16, 0) && !M.inRoom(0, 12), 'the room is a 16 x 12 rectangle');
+  ok(M.free(Math.floor(M.ENTRY.x), Math.floor(M.ENTRY.y)) && !M.inRoom(Math.floor(M.DOOR.x), Math.floor(M.DOOR.y)), 'the door opens from outside onto a free tile');
+  const all = Object.values(M.STATIONS).flat().map(s => Math.floor(s.x) + ',' + Math.floor(s.y));
+  ok(new Set(all).size === all.length, 'no two station places share a tile');
 }
 
 console.log(`${checks - fails}/${checks} checks passed`);

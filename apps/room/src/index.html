@@ -7,67 +7,51 @@
 <link rel="icon" href="data:,">
 <title>CodeWizards</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="ui.gen.css">
 </head>
 <body>
-<header class="top">
-  <h1>CodeWizards <span id="mode">demo</span> <button type="button" id="tower-btn" class="mini" hidden>La Torre</button></h1>
-  <div class="ctrls">
-    <div class="seg" role="group" aria-label="Velocidad de la simulación">
-      <button type="button" data-speed="1" aria-pressed="true">×1</button><button type="button" data-speed="2" aria-pressed="false">×2</button><button type="button" data-speed="4" aria-pressed="false">×4</button>
+<!-- Step 6e: the room is the screen. The panels are parchment scrolls hung in the room's empty corners
+     (computed so they never cover the room), each rolled up or down from its rod. -->
+<div class="stage" id="stage">
+  <div class="tv" id="tv"><div class="screen crt" id="screen">
+    <canvas id="room" width="240" height="168" role="img" aria-label="Sala de la torre: los magos entran, leen, escriben y presentan"></canvas>
+    <canvas id="bloom" class="fx" width="240" height="168" aria-hidden="true"></canvas>
+    <div class="fx mask"></div><div class="fx scan"></div><div class="fx vig"></div>
+  </div></div>
+
+  <section class="scroll" id="sc-tasks" data-corner="tl" aria-labelledby="h-tasks">
+    <button type="button" class="rod" aria-expanded="true" aria-controls="p-tasks"><span id="h-tasks" class="ico-tasks">Tareas</span></button>
+    <div class="paper" id="p-tasks">
+      <h3>En curso</h3>
+      <ol id="tasks" class="tasks"></ol>
+      <details class="hist" id="hist"><summary>Hechas (<span id="hist-n">0</span>)</summary><ol id="history" class="tasks"></ol></details>
+      <details class="hist" id="todo"><summary class="ico-quill">Por hacer</summary>
+        <label for="notes" class="sr-only">Por hacer</label>
+        <textarea id="notes" rows="5" placeholder="Ideas para próximos hechizos. Escribe, selecciona una línea y pásala al grimorio."></textarea>
+        <button type="button" id="to-spell" class="mini">Al grimorio</button>
+      </details>
+      <details class="hist" id="files-box" hidden><summary>Archivos del repo</summary><div id="files" class="files"></div></details>
     </div>
-    <label class="chk"><input type="checkbox" id="auto"> Aprobar solo</label>
-    <button type="button" class="switch" id="crt" aria-pressed="true"><span class="knob" aria-hidden="true"></span>CRT</button>
-  </div>
-</header>
-<div id="tower" class="tower" hidden role="dialog" aria-modal="true" aria-labelledby="h-tower">
-  <div class="panel tower-box">
-    <h2 id="h-tower">La Torre</h2>
-    <p class="hint">Cada sala es un repositorio. Entra en una o funda otra.</p>
-    <h3>Entrar en una sala</h3>
-    <ul id="tower-rooms" class="tower-rooms"></ul>
-    <h3>Fundar sala</h3>
-    <form id="found">
-      <label for="found-path">Carpeta (ruta completa)</label>
-      <input id="found-path" type="text" autocomplete="off" spellcheck="false" placeholder="/home/…/proyectos/mi-repo">
-      <fieldset class="kinds"><legend class="sr-only">Repositorio</legend>
-        <label><input type="radio" name="found-kind" value="existing" checked> Sobre un repo existente</label>
-        <label><input type="radio" name="found-kind" value="new"> En un repo nuevo (lo crea con un primer commit)</label>
-      </fieldset>
-      <button type="submit" class="found-go">Fundar sala</button>
-      <p id="found-msg" class="hint" role="status"></p>
-    </form>
-    <p><button type="button" id="tower-close" class="mini">Volver a la sala</button></p>
-  </div>
-</div>
-<main class="layout" id="layout">
-  <aside class="panel side" id="left" aria-labelledby="h-tasks">
-    <h2 id="h-tasks">Tareas</h2>
-    <h3>En curso</h3>
-    <ol id="tasks" class="tasks"></ol>
-    <details class="hist" id="hist"><summary>Hechas (<span id="hist-n">0</span>)</summary><ol id="history" class="tasks"></ol></details>
-    <h3><label for="notes">Por hacer</label></h3>
-    <textarea id="notes" rows="6" placeholder="Ideas para próximos hechizos. Escribe, selecciona una línea y pásala al grimorio."></textarea>
-    <button type="button" id="to-spell" class="mini">Al grimorio</button>
-    <details class="hist" id="files-box" hidden><summary>Archivos del repo</summary><div id="files" class="files"></div></details>
-    <h3>Maná por cuenta</h3>
-    <ul id="mana" class="mana"></ul>
-    <p id="status" class="status" aria-live="polite"></p>
-  </aside>
-  <div class="split" id="split-left" data-side="left" role="separator" aria-orientation="vertical" aria-label="Ancho del panel de tareas" tabindex="0"></div>
-  <section class="center" aria-label="Sala y grimorio">
-    <div class="panel sala">
-      <div class="tv"><div class="screen crt" id="screen">
-        <canvas id="room" width="208" height="152" role="img" aria-label="Sala de la torre: los magos entran, leen, escriben y presentan"></canvas>
-        <canvas id="bloom" class="fx" width="208" height="152" aria-hidden="true"></canvas>
-        <div class="fx mask"></div><div class="fx scan"></div><div class="fx vig"></div>
-      </div></div>
-      <p class="hint" id="hint">Escribe un hechizo y pulsa «Lanzar». Datos simulados: no se llama a ninguna API.</p>
+    <div class="rod end" aria-hidden="true"></div>
+  </section>
+
+  <section class="scroll" id="sc-board" data-corner="tr" aria-labelledby="h-piz">
+    <button type="button" class="rod" aria-expanded="true" aria-controls="p-board"><span id="h-piz" class="ico-board">Pizarra</span></button>
+    <div class="paper" id="p-board">
+      <div id="deliv" class="deliv"></div>
+      <label for="comment" class="cm">Comentario para el mago si rechazas</label>
+      <textarea id="comment" rows="2" maxlength="2000"></textarea>
+      <div class="review"><button type="button" id="approve" class="ok" disabled>Aprobar</button><button type="button" id="reject" class="no" disabled>Rechazar</button><button type="button" id="stop" class="halt" disabled hidden>Detener</button></div>
     </div>
-    <section class="panel grim" aria-labelledby="h-grim">
-      <h2 id="h-grim">Grimorio</h2>
+    <div class="rod end" aria-hidden="true"></div>
+  </section>
+
+  <section class="scroll" id="sc-spell" data-corner="bl" aria-labelledby="h-grim">
+    <button type="button" class="rod" aria-expanded="true" aria-controls="p-spell"><span id="h-grim" class="ico-archmage">Grimorio</span></button>
+    <div class="paper" id="p-spell">
       <form id="spell">
-        <label for="spell-text" class="sr-only">Hechizo</label>
-        <textarea id="spell-text" rows="2" placeholder="Describe lo que quieres que hagan los magos"></textarea>
+        <label for="spell-text" class="sr-only">Lanza un hechizo</label>
+        <textarea id="spell-text" rows="2" placeholder="Lanza un hechizo…"></textarea>
         <div class="opts">
           <label>Quién lo hace
             <select id="rank">
@@ -90,24 +74,58 @@
               <option value="max">Máximo</option>
             </select>
           </label>
-          <button type="submit" class="cast">Lanzar</button>
         </div>
+        <button type="submit" class="cast">Lanzar</button>
       </form>
-    </section>
+      <p class="hint" id="hint">Escribe un hechizo y pulsa «Lanzar». Datos simulados: no se llama a ninguna API.</p>
+    </div>
+    <div class="rod end" aria-hidden="true"></div>
   </section>
-  <div class="split" id="split-right" data-side="right" role="separator" aria-orientation="vertical" aria-label="Ancho del panel de la pizarra" tabindex="0"></div>
-  <aside class="panel side" id="right" aria-labelledby="h-piz">
-    <h2 id="h-piz">Pizarra</h2>
-    <div id="deliv" class="deliv"></div>
-    <label for="comment" class="cm">Comentario para el mago si rechazas</label>
-    <textarea id="comment" rows="2" maxlength="2000"></textarea>
-    <div class="review"><button type="button" id="approve" class="ok" disabled>Aprobar</button><button type="button" id="reject" class="no" disabled>Rechazar</button><button type="button" id="stop" class="halt" disabled hidden>Detener</button></div>
-    <h3>Pergamino</h3>
-    <ol id="log" class="log" aria-label="Registro de eventos"></ol>
-  </aside>
-</main>
+
+  <section class="scroll" id="sc-log" data-corner="br" aria-labelledby="h-log">
+    <button type="button" class="rod" aria-expanded="true" aria-controls="p-log"><span id="h-log" class="ico-scroll">Pergamino</span></button>
+    <div class="paper" id="p-log">
+      <h3 class="ico-mana">Maná</h3>
+      <ul id="mana" class="mana"></ul>
+      <p id="status" class="status" aria-live="polite"></p>
+      <ol id="log" class="log" aria-label="Registro de eventos"></ol>
+    </div>
+    <div class="rod end" aria-hidden="true"></div>
+  </section>
+
+  <nav class="plaque" id="plaque" aria-label="Controles de la sala">
+    <h1>CodeWizards <span id="mode">demo</span></h1>
+    <div class="seg" role="group" aria-label="Velocidad de la simulación">
+      <button type="button" data-speed="1" aria-pressed="true">×1</button><button type="button" data-speed="2" aria-pressed="false">×2</button><button type="button" data-speed="4" aria-pressed="false">×4</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="auto"> Aprobar solo</label>
+    <button type="button" class="switch" id="crt" aria-pressed="true"><span class="knob" aria-hidden="true"></span>CRT</button>
+    <button type="button" id="tower-btn" class="mini" hidden>La Torre</button>
+  </nav>
+</div>
+<div id="tower" class="tower" hidden role="dialog" aria-modal="true" aria-labelledby="h-tower">
+  <div class="scroll tower-box"><div class="rod" aria-hidden="true"></div><div class="paper">
+    <h2 id="h-tower" class="ico-tower">La Torre</h2>
+    <p class="hint">Cada sala es un repositorio. Entra en una o funda otra.</p>
+    <h3>Entrar en una sala</h3>
+    <ul id="tower-rooms" class="tower-rooms"></ul>
+    <h3>Fundar sala</h3>
+    <form id="found">
+      <label for="found-path">Carpeta (ruta completa)</label>
+      <input id="found-path" type="text" autocomplete="off" spellcheck="false" placeholder="/home/…/proyectos/mi-repo">
+      <fieldset class="kinds"><legend class="sr-only">Repositorio</legend>
+        <label><input type="radio" name="found-kind" value="existing" checked> Sobre un repo existente</label>
+        <label><input type="radio" name="found-kind" value="new"> En un repo nuevo (lo crea con un primer commit)</label>
+      </fieldset>
+      <button type="submit" class="found-go">Fundar sala</button>
+      <p id="found-msg" class="hint" role="status"></p>
+    </form>
+    <p><button type="button" id="tower-close" class="mini">Volver a la sala</button></p>
+  </div><div class="rod end" aria-hidden="true"></div></div>
+</div>
 <p id="live" class="sr-only" aria-live="polite"></p>
 <script src="assets.gen.js"></script>
+<script src="plan.gen.js"></script>
 <script src="world.js"></script>
 <script src="sim.js"></script>
 <script src="render.js"></script>

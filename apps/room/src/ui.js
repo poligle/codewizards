@@ -349,6 +349,7 @@
   function onHello(h) {
     $('tower-btn').hidden = !h.tower;
     $('tower').hidden = true;
+    G.requestAnimationFrame(layout);               // the plaque may have changed size
     describeRanks(h.ranks, h.models);
     if (typeof h.notes === 'string' && doc.activeElement !== $('notes')) $('notes').value = h.notes;
     renderAccounts(Array.isArray(h.accounts) && h.accounts.length ? h.accounts : DEMO_ACCOUNTS);
@@ -501,54 +502,78 @@
   applyCrt();
 
   let scale = 1;
-  // The side panels: drag their inner edge (or use the arrow keys on it) to make them wider or
-  // narrower; the widths are remembered in this browser.
-  function setSide(side, px, save) {
-    const v = Math.max(220, Math.min(Math.round(G.innerWidth * 0.42), Math.round(px)));
-    $('layout').style.setProperty(side === 'left' ? '--left' : '--right', v + 'px');
-    if (save) { try { G.localStorage.setItem('cw-' + side, String(v)); } catch (e) { /* sin almacenamiento */ } }
-    fit();
+  // Step 6e: the room is the screen. It is drawn at the largest whole scale that fits the window,
+  // and the four scrolls hang in the room's empty corners: above the two back walls and below the
+  // two front edges of the floor. Their size comes from the room's own lines, so a scroll never
+  // covers a wall or the floor; what does not fit scrolls inside the paper.
+  const SCROLLS = ['sc-tasks', 'sc-board', 'sc-spell', 'sc-log'];
+  function layout() {
+    const W = G.innerWidth, H = G.innerHeight, RW = $('room').width, RH = $('room').height;
+    const stacked = W < 1000 || H < 620;
+    doc.body.classList.toggle('stacked', stacked);
+    const sc = $('screen').style;
+    if (stacked) {
+      scale = Math.max(1, Math.floor(Math.min(W - 16, 960) / RW));
+      Object.assign(sc, { width: RW * scale + 'px', height: RH * scale + 'px', left: '', top: '' });
+      sc.setProperty('--px', scale + 'px');
+      for (const id of SCROLLS) Object.assign($(id).style, { left: '', top: '', width: '', height: '' });
+      return;
+    }
+    scale = Math.max(1, Math.floor(Math.min(W / RW, H / RH)));
+    const left = Math.floor((W - RW * scale) / 2), top = Math.floor((H - RH * scale) / 2);
+    Object.assign(sc, { width: RW * scale + 'px', height: RH * scale + 'px', left: left + 'px', top: top + 'px' });
+    sc.setProperty('--px', scale + 'px');
+    const R = A.room, M = CW.ROOM_META, wall = 40, base = 3, gap = 10;
+    const xc = x => (x - left) / scale, Y = y => top + y * scale;
+    const lv = R.ox - M.D * 8, rv = R.ox + M.W * 8;            // left and right vertices (x)
+    const wallL = x => (R.oy - wall) + (R.ox - x) * 0.5;       // top of the left wall
+    const wallR = x => (R.oy - wall) + (x - R.ox) * 0.5;       // top of the right wall
+    const floorL = x => R.oy + M.D * 4 + base + (x - lv) * 0.5; // front-left edge of the floor
+    const floorR = x => R.oy + M.W * 4 + base + (rv - x) * 0.5; // front-right edge of the floor
+    const w = Math.round(Math.max(270, Math.min(400, W * 0.24)));
+    const place = (id, x, y, h) => Object.assign($(id).style, { left: x + 'px', top: y + 'px', width: w + 'px', height: Math.max(90, Math.floor(h)) + 'px' });
+    const xr = xc(w), xl = xc(W - w);
+    const tl = xr <= lv ? H : Y(wallL(xr)), tr = xl >= rv ? H : Y(wallR(xl));
+    const bl = xr <= lv ? Y(R.oy + M.D * 4 - wall) : Y(floorL(xr)), br = xl >= rv ? Y(R.oy + M.W * 4 - wall) : Y(floorR(xl));
+    place('sc-tasks', gap, gap, Math.min(tl, bl) - 2 * gap);
+    place('sc-board', W - w - gap, gap, Math.min(tr, br) - 2 * gap);
+    place('sc-spell', gap, Math.max(bl, gap) + gap, H - Math.max(bl, gap) - 2 * gap);
+    place('sc-log', W - w - gap, Math.max(br, gap) + gap, H - Math.max(br, gap) - 2 * gap);
+    // The plaque sits under the floor's front corner, between the two lower scrolls.
+    const front = Y(R.oy + (M.W + M.D) * 4 + base), pl = $('plaque');
+    Object.assign(pl.style, { left: (w + 2 * gap) + 'px', right: (w + 2 * gap) + 'px' });
+    pl.style.top = Math.max(front + 4, Math.min(front + 4, H - pl.offsetHeight - 6)) + 'px';
+    if (front + 4 + pl.offsetHeight > H) pl.style.top = (H - pl.offsetHeight - 6) + 'px';
   }
-  for (const side of ['left', 'right']) {
-    let v = 0;
-    try { v = Number(G.localStorage.getItem('cw-' + side)) || 0; } catch (e) { /* sin almacenamiento */ }
-    if (v) setSide(side, v, false);
-    const sp = $('split-' + side);
-    sp.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      sp.setPointerCapture(e.pointerId);
-      sp.classList.add('drag');
-      const r = $('layout').getBoundingClientRect();
-      const move = ev => setSide(side, side === 'left' ? ev.clientX - r.left - 12 : r.right - ev.clientX - 12, true);
-      const up = () => { sp.classList.remove('drag'); sp.removeEventListener('pointermove', move); sp.removeEventListener('pointerup', up); };
-      sp.addEventListener('pointermove', move);
-      sp.addEventListener('pointerup', up);
+  // Rolling: the top rod rolls the paper up or down; remembered per scroll in this browser.
+  for (const id of SCROLLS) {
+    const el = $(id), rod = el.querySelector('.rod');
+    let rolled = false;
+    try { rolled = G.localStorage.getItem('cw-rolled-' + id) === '1'; } catch (e) { /* sin almacenamiento */ }
+    const set = r => { el.classList.toggle('rolled', r); rod.setAttribute('aria-expanded', String(!r)); };
+    set(rolled);
+    rod.addEventListener('click', () => {
+      const r = !el.classList.contains('rolled');
+      set(r);
+      try { G.localStorage.setItem('cw-rolled-' + id, r ? '1' : '0'); } catch (e) { /* sin almacenamiento */ }
     });
-    sp.addEventListener('keydown', e => {
-      const cur = $(side).getBoundingClientRect().width, step = e.key === 'ArrowLeft' ? -24 : e.key === 'ArrowRight' ? 24 : 0;
-      if (!step) return;
-      e.preventDefault();
-      setSide(side, cur + (side === 'left' ? step : -step), true);
-    });
   }
-
-  function fit() {
-    const box = $('screen').parentElement, cs = G.getComputedStyle(box);
-    const w = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 0.5;
-    // As large as fits: the width of the middle column, and the height left under the header once
-    // the spell book is below the room (on narrow screens the room just takes the width).
-    const wide = G.innerWidth > 1100;
-    const used = doc.querySelector('.top').offsetHeight + (wide ? doc.querySelector('.grim').offsetHeight + 96 : 120);
-    const maxH = Math.max(152, wide ? G.innerHeight - used : G.innerHeight * 0.66);
-    scale = Math.max(1, Math.min(Math.floor(w / 208), Math.floor(maxH / 152)));
-    const s = $('screen').style;
-    s.width = 208 * scale + 'px';
-    s.height = 152 * scale + 'px';
-    s.setProperty('--px', scale + 'px');
-  }
-  new G.ResizeObserver(fit).observe($('screen').parentElement);
-  G.addEventListener('resize', fit);
-  fit();
+  G.addEventListener('resize', layout);
+  layout();
+  // A single function the smoke test (and anyone curious) can ask: does any scroll cover the room?
+  CW.coversRoom = () => {
+    const r = $('screen').getBoundingClientRect(), R = A.room, M = CW.ROOM_META;
+    const P = (x, y) => [r.left + x * scale, r.top + y * scale];
+    const poly = [P(R.ox, R.oy - 40), P(R.ox + M.W * 8, R.oy + M.W * 4 - 40), P(R.ox + M.W * 8, R.oy + M.W * 4 + 3),
+      P(R.ox + (M.W - M.D) * 8, R.oy + (M.W + M.D) * 4 + 3), P(R.ox - M.D * 8, R.oy + M.D * 4 + 3), P(R.ox - M.D * 8, R.oy + M.D * 4 - 40)];
+    const inside = (x, y) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+    const out = [];
+    for (const id of SCROLLS.concat(['plaque'])) {
+      const b = $(id).getBoundingClientRect();
+      for (let x = b.left + 1; x < b.right; x += 6) for (let y = b.top + 1; y < b.bottom; y += 6) if (inside(x, y)) { out.push(id); x = b.right; break; }
+    }
+    return out;
+  };
 
   $('room').addEventListener('click', e => {
     const r = $('room').getBoundingClientRect();
@@ -580,7 +605,7 @@
       if (sim) sim.tick(dt);
       world.update(dt);
       view.draw(world);
-      if (crtOn) { bctx.clearRect(0, 0, 208, 152); bctx.drawImage($('room'), 0, 0); }
+      if (crtOn) { bctx.clearRect(0, 0, $('bloom').width, $('bloom').height); bctx.drawImage($('room'), 0, 0); }
     } catch (err) {
       if (!loopErr) { loopErr = true; G.console.error(err); }
     }
