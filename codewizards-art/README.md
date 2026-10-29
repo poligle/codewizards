@@ -5,7 +5,8 @@ Pixel art painted pixel by pixel by code (no generative image models) and retouc
 ## Layout
 - `01_tiles/floor/`: 6 floor diamonds (16 × 8): base, plain and 4 variations.
 - `01_tiles/wall/`: 2-tile wall pieces with coping (`_L` left wall, `_R` right wall) in 4 variants, corners and cut ends.
-- `01_tiles/props/`: door (closed, opening and closing sheets), gothic window and its light, bookshelves L and R, lab table, blackboard, torches and flame, armchair, carpet and `banners/` (7 guilds × 2 walls).
+- `01_tiles/props/`: door (closed, opening and closing sheets), gothic window and its light, bookshelves L and R, the long alchemy table, the wall blackboard, benches, the health orb's pedestal, cauldron, barrel, crate, chest, globe, plant, floor candelabrum, torches and flame, carpet and `banners/`.
+- `05_ui/`: the CODEWIZARDS logo, the scrolls' paper rolls (horizontal ends and middle, and upright for the spell book), parchment tile, paper edges (nine-slice), `icons/` (8 × 8) and the cursors (wand and text). The room draws them all at its own pixel size.
 - `01_tiles/Room_Base_01.png`: the room already composed (208 × 152).
 - `02_characters/<rank>/`: one sheet per rank (`apprentice`, `young_mage`, `grand_sage`: 16 × 24; `archmage`: 16 × 32) and pose (idle, walk, work, read, write, present, confused, celebrate, sit; the Archmage, idle and work); rows = directions S, SE, E, NE, N, NW, W, SW; 4 frames. Drawn in the Anthropic palette: load `palettes/gbc_gremio_<guild>.gpl` for any other guild, `unknown` included.
 - `03_effects/`: torch halo, orb glow (masks the engine tints) and a 3 × 5 pixel font.

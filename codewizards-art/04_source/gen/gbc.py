@@ -58,8 +58,11 @@ GP = {g: gpal(g) for g in GUILDS}
 # windows and the blackboard) by 12 along y (the left wall, with the library and the door).
 RW, RD, HW, TW, BASE = 16, 12, 40, 0.25, 3
 ROOM = max(RW, RD)
-OX, OY = RD * 8 + 8, 46
-CW, CH = OX + RW * 8 + 8, OY + (RW + RD) * 4 + 10
+# Step 6f: a band of 16 px above the room for the CODEWIZARDS logo, and one of 34 px below its front
+# corner for the spell book; the whole canvas is the screen, drawn at one pixel size.
+TOP_BAND, BOTTOM_BAND = 16, 34
+OX, OY = RD * 8 + 8, 46 + TOP_BAND
+CW, CH = OX + RW * 8 + 8, OY + (RW + RD) * 4 + BASE + BOTTOM_BAND
 
 
 def in_room(x, y):
@@ -91,7 +94,7 @@ def floor_tex(x, y):
     return tex
 
 
-DOOR_I0 = 72                 # along the left wall: the door spans y 9-11
+DOOR_I0 = 78                 # along the left wall: the door spans y 9.75-11.75
 # Two stained-glass windows on the back wall, either side of the blackboard (u = px along x).
 WINDOWS = [8, 100]
 WIN_W, WIN_Z0, WIN_Z1 = 24, 9, 38
@@ -306,6 +309,9 @@ def wall_texel(side, i, z, door_closed=True, variants=None, fixed=0):
                 k = window_texel(i - w0, z)
                 if k:
                     return k
+    k = ivy_texel(side, i, z) if 'ivy_texel' in globals() else None
+    if k:
+        return k
     return wall_var_texel(side, i, z, variants[i // 16] if variants else 'base')
 
 
@@ -703,24 +709,26 @@ def frame(g, d, pose='idle', f=0, rank='aprendiz'):
 
 # ------------------------------------------------------------------ escena
 # Step 6b: where things stand in the cross (library arm, apse, crossing, rest arm, nave).
-# The library on the left wall (two shelves of different lengths, a torch between), the door near
-# its front end; the back wall with a window, the blackboard and a window; the table and the
-# Archmage's circle in the middle; the rest corner with benches and the armchair at the front right.
-LAYOUT = {'shelves': [(0.6, 3.0), (4.6, 2.0)], 'torches': [('L', 4.15, 26), ('L', 8.4, 26), ('R', 4.7, 26), ('R', 12.0, 26)],
-          'banners': [('L', 7.0)], 'table': (3.2, 4.6), 'chair': (11.0, 9.6), 'carpet': (6.0, 6.5),
-          'benches': [(12.2, 5.4, 2.6, 0.5), (12.2, 8.0, 2.6, 0.5)], 'pedestal': (5.2, 1.0)}
-# The engine's plan (apps/room/src/plan.gen.js is generated from it): what blocks the way, where each
-# station's places are, the Archmage, the door, the entry and the queue outside the door.
+# Step 6f: the library on the left wall (shelves of 3 and 2,5 tiles, a torch between, the banner
+# clear of them, the door near the front); the back wall with a window, the blackboard and a window;
+# the long alchemy table at the left, the cauldron in front of it, the Archmage's circle in the middle,
+# the rest corner with two facing benches and a chest, the health orb, barrels and a crate at the back.
+LAYOUT = {'shelves': [(0.4, 3.0), (4.25, 2.5)], 'torches': [('L', 3.85, 26), ('L', 9.15, 26), ('R', 4.7, 26), ('R', 12.0, 26)],
+          'banners': [('L', 7.55)], 'table': (2.0, 4.6), 'carpet': (7.2, 6.0),
+          'benches': [(11.0, 7.4, 3.0, 0.5), (11.0, 10.6, 3.0, 0.5)], 'pedestal': (12.9, 1.3),
+          'cauldron': (5.0, 9.6), 'globe': (1.9, 7.9), 'plant': (0.7, 9.0), 'candelabrum': (14.9, 5.6),
+          'barrels': [(14.6, 1.2), (15.4, 1.9)], 'crate': (14.9, 3.0), 'chest': (14.6, 8.6)}
 PLAN = {
     'w': RW, 'd': RD,
-    'blocked': [(0, 0, 0, 3), (0, 4, 0, 6), (3, 4, 5, 6), (5, 0, 5, 0), (11, 9, 11, 9), (12, 5, 14, 5), (12, 8, 14, 8), (7, 7, 8, 8)],
+    'blocked': [(0, 0, 0, 6), (2, 4, 5, 5), (4, 9, 5, 9), (1, 7, 1, 7), (0, 9, 0, 9), (8, 7, 9, 8), (11, 7, 13, 7), (11, 10, 13, 10),
+                (14, 8, 15, 9), (14, 5, 14, 5), (12, 1, 12, 1), (14, 1, 15, 1), (14, 3, 15, 3)],
     'stations': {
-        'library': [(1.3, 1.4, 'NW'), (1.3, 2.9, 'NW'), (1.3, 5.0, 'NW'), (1.3, 6.2, 'NW')],
-        'table': [(3.6, 3.6, 'SW'), (4.9, 3.6, 'SW'), (3.6, 7.4, 'NE'), (4.9, 7.4, 'NE')],
-        'board': [(5.1, 2.0, 'NE'), (11.9, 1.6, 'NW')],
-        'rest': [(12.6, 6.4, 'N'), (13.9, 6.4, 'N'), (12.6, 7.4, 'S'), (13.9, 7.4, 'S'), (11.3, 10.6, 'N'), (13.0, 9.3, 'N')],
+        'library': [(1.3, 1.2, 'NW'), (1.3, 2.6, 'NW'), (1.3, 4.9, 'NW'), (1.3, 6.2, 'NW')],
+        'table': [(2.6, 6.4, 'NE'), (3.8, 6.4, 'NE'), (5.0, 6.4, 'NE'), (3.2, 3.9, 'SW'), (4.6, 3.9, 'SW')],
+        'board': [(5.0, 1.5, 'NE'), (11.9, 2.2, 'NW')],
+        'rest': [(11.4, 8.3, 'N'), (12.6, 8.3, 'N'), (13.6, 8.3, 'N'), (11.4, 9.7, 'S'), (12.6, 9.7, 'S'), (13.6, 9.7, 'S')],
     },
-    'archi': (8.0, 8.0), 'door': (-0.45, 10.0), 'entry': (0.5, 10.0),
+    'archi': (9.2, 7.6), 'door': (-0.45, 10.75), 'entry': (0.5, 10.75),
     'queue': [],
 }
 
@@ -773,17 +781,10 @@ class Room:
         objs = []
         for y, ln in LAYOUT['shelves']:
             objs.append((0.25 + y + ln / 2, self._prop(lambda cv, y=y, ln=ln: bookshelf(cv, 0, y, ln))))
-        cv0 = room_canvas()
-        window_light(cv0)
-        tx, ty = LAYOUT['table']
-        objs.append((tx + 1 + ty + 0.75, self._prop(lambda cv: lab_table(cv, tx, ty))))
-        cx, cy = LAYOUT['chair']
-        objs.append((cx + cy + 1, self._prop(lambda cv: armchair(cv, cx, cy))))
-        for (x0, y0, dx, dy) in LAYOUT['benches']:
-            objs.append((x0 + y0 + max(dx, dy), self._prop(lambda cv, a=(x0, y0, dx, dy): bench(cv, *a))))
-        px, py = LAYOUT['pedestal']
-        objs.append((px + py + 0.6, self._prop(lambda cv: pedestal(cv, px, py))))
-        self.objs = objs   # the blackboard hangs on the apse wall: it is part of the room (step 6b)
+        for _pid, depth, fn in furniture():
+            if not _pid.startswith('shelf'):
+                objs.append((depth, self._prop(fn)))
+        self.objs = objs   # the blackboard hangs on the back wall: it is part of the room
         self.torch = {}
 
     def _prop(self, fn):
@@ -1184,4 +1185,429 @@ def ui_roll():
     for y, k in enumerate(shade):
         for x in range(8):
             cv.set(x, y, 'o1' if (k == 'p0' and _noise(x, y, 5) < 7) else k)
+    return cv
+
+
+# ====================================================================== step 6f (final polish)
+# Pol, 24/10/2026: irregular stone with ivy, better stained glass, a longer alchemy table, no armchair,
+# decorative furniture, the CODEWIZARDS logo in the room's backdrop, parchment rolls for the scrolls,
+# and every pixel at the room's own size (the interface and the cursor included).
+import bisect as _bisect
+
+# --- irregular stone: rows of 4-6 px, stones of 5-11 px, a few lighter or darker, chipped corners
+_ROWS = []
+_z, _k = 0, 0
+while _z < HW:
+    _h = 4 + int(hsh('row6f', _k) * 3)
+    _ROWS.append((_z, _h))
+    _z += _h
+    _k += 1
+_ROW_Z = [z0 for z0, _ in _ROWS]
+_BOUNDS = {}
+
+
+def _bounds(side, r):
+    key = (side, r)
+    if key not in _BOUNDS:
+        b, p, n = [], -int(hsh('off6f', side, r) * 9), 0
+        while p < 260:
+            b.append(p)
+            p += 5 + int(hsh('len6f', side, r, n) * 7)
+            n += 1
+        _BOUNDS[key] = b
+    return _BOUNDS[key]
+
+
+def brick(side, i, z):
+    lit = side == 'R'
+    r = _bisect.bisect_right(_ROW_Z, z) - 1
+    z0, h = _ROWS[r]
+    zl = z - z0
+    mortar = 'w2' if lit else 'K'
+    if zl == 0 and r > 0:
+        return mortar
+    b = _bounds(side, r)
+    k = _bisect.bisect_right(b, i) - 1
+    u, ln = i - b[k], b[k + 1] - b[k]
+    if u == 0:
+        return mortar
+    if r == 0 and zl < 2:
+        return 'w2' if lit else 'K'
+    corner = (u in (1, ln - 1)) and (zl in (1, h - 1))
+    if corner and hsh('chip6f', side, r, k, u, zl) < 0.45:
+        return mortar                                   # a chipped corner
+    tone = hsh('tone6f', side, r, k)
+    if zl == h - 1:                                     # the lit top edge of each stone
+        return ('w0' if lit else 'w1') if tone > 0.2 else ('w1' if lit else 'w2')
+    if hsh('spk6f', side, i, z) < 0.025:
+        return mortar
+    if lit:
+        return 'w0' if tone > 0.9 else ('w2' if tone < 0.08 else 'w1')
+    return 'w1' if tone > 0.88 else ('K' if tone < 0.05 else 'w2')
+
+
+# --- ivy: vines that hang from the top of the walls, with leaves; drawn into the wall's own texture
+def _vines():
+    import random
+    out = {}
+    specs = [('L', 18, 22, 1), ('L', 61, 30, 2), ('L', 88, 14, 3), ('R', 3, 26, 4), ('R', 38, 18, 5), ('R', 95, 24, 6), ('R', 126, 32, 7)]
+    for side, i0, length, seed in specs:
+        rnd = random.Random(seed * 97)
+        i, z = i0, HW - 1
+        for n in range(length):
+            out[(side, i, z)] = 'g2'
+            if n % 3 == 1:
+                for (di, dz, k) in ((-1, 0, 'g1'), (-2, 0, 'g1'), (-1, -1, 'g1'), (-2, 1, 'g0')) if rnd.random() < 0.5 else ((1, 0, 'g1'), (2, 0, 'g1'), (1, -1, 'g1'), (2, 1, 'g0')):
+                    out.setdefault((side, i + di, z + dz), k)
+            z -= 1
+            i += rnd.choice((-1, 0, 0, 1))
+    return out
+
+
+IVY = _vines()
+
+
+def ivy_texel(side, i, z):
+    return IVY.get((side, i, z))
+
+
+# --- stained glass: a diamond lattice of pale glass (quarries) with a star of coloured glass
+def window_texel(u, z):
+    spring = WIN_Z1 - 16
+    to = _lancet(u, 0, WIN_W, spring)
+    ti = _lancet(u, 2, WIN_W - 2, spring)
+    if ti is not None and WIN_Z0 + 2 <= z < min(ti, WIN_Z1 + 6):
+        v = z - WIN_Z0
+        inner = min(u - 2, WIN_W - 3 - u, z - (WIN_Z0 + 2), ti - 1 - z)
+        if inner < 0:
+            return 'K'
+        if inner == 0:
+            return 'b2' if (u + z) % 2 else 'K'         # the leaded border
+        if inner == 1:
+            return 'b1'                                 # a band of blue glass
+        if (u + v) % 6 == 0 or (u - v) % 6 == 0:
+            return 'K'                                  # the lattice of lead
+        qa, qb = (u + v) // 6, (u - v + 60) // 6        # which diamond (quarry) this is
+        cu, cv_ = WIN_W / 2.0, (spring - WIN_Z0) * 0.65
+        du, dv = abs(u + 0.5 - cu), abs(v + 0.5 - cv_)
+        if du + dv * 0.8 < 3:
+            return 'x0' if (u + v) % 3 else 'x1'        # the star's heart
+        if du < 2 or dv < 1.6:
+            return 'r1' if du + dv < 9 else 'p1'        # its rays
+        if z > spring + 3:
+            return 'g1' if (qa + qb) % 2 else 'x1'      # the rose at the top
+        return 'b0' if (qa + qb) % 2 else 'p0'          # pale quarries
+    if to is not None and WIN_Z0 <= z < to:
+        if z < WIN_Z0 + 2:
+            return 'w0'
+        return 'w0' if u in (0, WIN_W - 1) else 'w1'
+    return None
+
+
+# --- the long alchemy table
+def alchemy_table(cv, x0, y0, length=4.0, depth=1.0, part='all'):
+    """A long oak table: six legs, a low shelf with jars, a planked top; on it an alembic, three
+    potions, a mortar, a candle and an open book. Drawn in two halves (part 'left' or 'right') so each
+    can be sorted against the wizards on its own. Returns the mouths that bubble (screen x, y, key)."""
+    mid = length / 2.0
+    want = lambda x: part == 'all' or (part == 'left') == (x < mid)
+    for lx in (0.1, mid - 0.07, length - 0.25):
+        if want(lx):
+            for ly in (0.1, depth - 0.25):
+                cv.box(x0 + lx, y0 + ly, 0, 0.15, 0.15, 7, top=None, left='o1', right='o2')
+    for (a, b) in ((0.2, mid), (mid, length - 0.2)):
+        if want(a + 0.01):
+            cv.box(x0 + a, y0 + 0.2, 2, b - a, depth - 0.4, 1, top='o1', left='o2', right='o2')
+    for n, k in enumerate(('r1', 'b1', 'g1', 'p1')):
+        if want(0.5 + n * 0.8):
+            cv.box(x0 + 0.5 + n * 0.8, y0 + 0.4, 3, 0.3, 0.3, 2, top=k[0] + '0', left=k, right=k[0] + '2')
+    for (a, b) in ((0.0, mid), (mid, length)):
+        if want(a + 0.01):
+            cv.box(x0 + a, y0, 7, b - a, depth, 2, top=lambda i, j: 'o1' if j % 4 == 3 else 'o0', left='o1', right='o2')
+    emit = []
+    if want(0.6):
+        sx, sy = cv.sp(x0 + 0.6, y0 + 0.5, 9)
+        bx, by = int(sx), int(sy)
+        _mini(cv, ["..KKK..", ".KbbbK.", "KbBbbbK", "KbbbbbK", "KbbbbbK", ".KbbbK.", "..KKK.."], bx - 3, by - 7, {'b': 'b1', 'B': 'b0'})
+        for t in range(6):
+            cv.set(bx + 1 + t, by - 8 - (t // 2) + (t // 4), 'f1')
+        emit.append((bx, by - 8, 'b0'))
+    if want(1.4):
+        sx, sy = cv.sp(x0 + 1.4, y0 + 0.6, 9)
+        _mini(cv, [".K.", "KgK", "KgK", ".K."], int(sx) - 1, int(sy) - 4, {'g': 'g1'})
+    POTS = [(["..K..", ".KrK.", "KrrrK", "KrRrK", ".KKK."], {'r': 'r1', 'R': 'r0'}),
+            ([".KK.", "KppK", "KppK", "KpPK", ".KK."], {'p': 'p1', 'P': 'p0'}),
+            (["..K..", "..K..", ".KgK.", "KgggK", ".KKK."], {'g': 'g1'})]
+    for n, (rows, keys) in enumerate(POTS):
+        px = 1.55 + n * 0.45
+        if want(px):
+            sx, sy = cv.sp(x0 + px, y0 + 0.35 + (n % 2) * 0.3, 9)
+            _mini(cv, rows, int(sx) - 2, int(sy) - 5, keys)
+            emit.append((int(sx), int(sy) - 5, list(keys.values())[0][0] + '0'))
+    if want(length - 0.9):
+        sx, sy = cv.sp(x0 + length - 0.9, y0 + 0.55, 9)
+        _mini(cv, ["KffffK", ".KffK.", "..KK.."], int(sx) - 3, int(sy) - 3, {'f': 'f1'})
+        cv.line(int(sx) + 1, int(sy) - 3, int(sx) + 3, int(sy) - 6, 'o1')
+    if want(length - 0.35):
+        sx, sy = cv.sp(x0 + length - 0.35, y0 + 0.3, 9)
+        _mini(cv, CANDLE, int(sx) - 1, int(sy) - 5, {'x': 'x1', 'p': 'p0'})
+    if want(mid + 0.2):
+        cv.face((x0 + mid + 0.15, y0 + 0.3, 9), (0.75, 0, 0), (0, 0.5, 0), 6, 4, lambda i, j: 'K' if i == 3 else ('p2' if j % 2 and i % 3 else 'p0'))
+    return emit
+
+
+# --- the cauldron, on three legs over a small fire
+def cauldron(cv, x0, y0):
+    sx, sy = cv.sp(x0, y0, 0)
+    cx, cy = int(sx), int(sy)
+    for dx in (-4, 0, 4):
+        cv.line(cx + dx, cy - 1, cx + dx, cy - 3, 'K')
+    for (dx, k) in ((-2, 'x2'), (-1, 'x1'), (0, 'x0'), (1, 'x1'), (2, 'x2')):
+        cv.set(cx + dx, cy - 2, k)
+        cv.set(cx + dx // 2, cy - 3, 'x1')
+    for y in range(-11, -3):
+        half = int(round(6 * math.sqrt(max(0.0, 1 - ((y + 7) / 5.0) ** 2))))
+        for x in range(-half, half + 1):
+            edge = abs(x) == half or y == -4
+            cv.set(cx + x, cy + y, 'K' if edge else ('f1' if x < -half // 2 and y < -6 else 'f2'))
+    for x in range(-6, 7):
+        cv.set(cx + x, cy - 12, 'K' if abs(x) == 6 else 'f1')
+    for x in range(-5, 6):
+        cv.set(cx + x, cy - 11, 'g1' if (x + 1) % 4 else 'g0')
+    return [(cx - 2, cy - 12, 'g0'), (cx + 2, cy - 12, 'g0')], (cx, cy - 2)
+
+
+# --- barrels, a crate, a chest, a globe, a plant and a floor candelabrum
+def barrel(cv, x0, y0):
+    sx, sy = cv.sp(x0, y0, 0)
+    cx, cy = int(sx), int(sy)
+    for y in range(-12, 0):
+        half = 4 + (1 if -9 <= y <= -3 else 0)
+        for x in range(-half, half + 1):
+            hoop = y in (-10, -3)
+            k = 'K' if abs(x) == half else ('f2' if hoop else ('o0' if x == -half + 1 else ('o2' if x in (half - 1, 0) else 'o1')))
+            cv.set(cx + x, cy + y, k)
+    for x in range(-3, 4):
+        cv.set(cx + x, cy - 13, 'o2' if abs(x) == 3 else 'o1')
+        cv.set(cx + x, cy - 12, 'o0' if abs(x) < 3 else 'K')
+
+
+def crate(cv, x0, y0):
+    def side(i, j):
+        if i in (0, 5) or j in (0, 5):
+            return 'o2'
+        return 'o2' if i == j or i == 5 - j else 'o1'
+    cv.box(x0, y0, 0, 0.75, 0.75, 6, top=lambda i, j: 'o1' if j % 3 == 0 else 'o0', left=side, right=side)
+
+
+def chest(cv, x0, y0):
+    band = lambda i, j: 'x1' if i in (1, 6) else ('o2' if j == 0 else 'o1')
+    cv.box(x0, y0, 0, 1.0, 0.6, 5, top=lambda i, j: 'x1' if i in (1, 6) else 'o0', left=band, right=lambda i, j: 'x0' if (j == 3 and i == 2) else 'o2')
+    cv.box(x0, y0, 5, 1.0, 0.6, 1, top=lambda i, j: 'x1' if i in (1, 6) else 'o0', left=band, right='o2')
+
+
+def globe(cv, x0, y0):
+    sx, sy = cv.sp(x0, y0, 0)
+    cx, cy = int(sx), int(sy)
+    cv.line(cx - 3, cy, cx, cy - 4, 'o2')
+    cv.line(cx + 3, cy, cx, cy - 4, 'o2')
+    cv.line(cx, cy - 4, cx, cy - 7, 'o1')
+    for y in range(-5, 6):
+        for x in range(-5, 6):
+            d = x * x + y * y
+            if d <= 25:
+                land = hsh('globe', x // 2, y // 2) < 0.4
+                cv.set(cx + x, cy - 13 + y, 'K' if d > 18 else (('g1' if x < 1 else 'g2') if land else ('b0' if x < -1 and y < -1 else 'b1')))
+    for y in range(-6, 7):
+        cv.set(cx + 6, cy - 13 + y, 'x1' if abs(y) < 6 else 'K')
+
+
+def plant(cv, x0, y0):
+    sx, sy = cv.sp(x0, y0, 0)
+    cx, cy = int(sx), int(sy)
+    _mini(cv, [".KKKKK.", "KrRrrrK", ".KrrrK.", ".KrrrK.", "..KKK.."], cx - 3, cy - 5, {'r': 'r2', 'R': 'r1'})
+    for (dx, dy, k) in ((0, -6, 'g1'), (-1, -7, 'g1'), (1, -7, 'g0'), (-2, -8, 'g1'), (2, -9, 'g1'), (0, -9, 'g2'), (-3, -10, 'g0'),
+                        (3, -10, 'g1'), (-1, -10, 'g1'), (1, -11, 'g0'), (0, -12, 'g1'), (-2, -12, 'g2'), (2, -12, 'g1'), (-4, -9, 'g2'), (4, -8, 'g2')):
+        cv.set(cx + dx, cy + dy, k)
+
+
+def candelabrum(cv, x0, y0):
+    sx, sy = cv.sp(x0, y0, 0)
+    cx, cy = int(sx), int(sy)
+    cv.line(cx - 2, cy, cx + 2, cy, 'K')
+    cv.line(cx, cy, cx, cy - 14, 'f2')
+    cv.line(cx - 3, cy - 14, cx + 3, cy - 14, 'f2')
+    flames = []
+    for dx in (-3, 0, 3):
+        cv.set(cx + dx, cy - 15, 'p0')
+        cv.set(cx + dx, cy - 16, 'p0')
+        cv.set(cx + dx, cy - 17, 'x1')
+        cv.set(cx + dx, cy - 18, 'x0')
+        flames.append((cx + dx, cy - 18))
+    return flames
+
+
+# --- the CODEWIZARDS logo, for the room's backdrop: gold letters with a dark outline and a shadow
+LOGO_FONT = {
+    'C': [".###.", "#...#", "#....", "#....", "#....", "#...#", ".###."],
+    'O': [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+    'D': ["####.", "#...#", "#...#", "#...#", "#...#", "#...#", "####."],
+    'E': ["#####", "#....", "#....", "####.", "#....", "#....", "#####"],
+    'W': ["#...#", "#...#", "#...#", "#.#.#", "#.#.#", "##.##", "#...#"],
+    'I': ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "#####"],
+    'Z': ["#####", "....#", "...#.", "..#..", ".#...", "#....", "#####"],
+    'A': [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
+    'R': ["####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"],
+    'S': [".####", "#....", "#....", ".###.", "....#", "....#", "####."],
+}
+
+
+def title_logo(text='CODEWIZARDS'):
+    w = len(text) * 6 - 1 + 3
+    cv = Canvas(w, 10, SCENE)
+    fill = {0: 'x0', 1: 'x0', 2: 'x1', 3: 'x1', 4: 'x1', 5: 'x2', 6: 'x2'}
+    pts = set()
+    for n, ch in enumerate(text):
+        for j, row in enumerate(LOGO_FONT[ch]):
+            for i, c in enumerate(row):
+                if c == '#':
+                    pts.add((1 + n * 6 + i, 1 + j))
+    for (x, y) in pts:
+        cv.set(x + 1, y + 1, 'p2')                      # shadow
+    for (x, y) in pts:
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if (x + dx, y + dy) not in pts and cv.get(x + dx, y + dy) in (None, 'p2'):
+                    cv.set(x + dx, y + dy, 'K')
+    for (x, y) in pts:
+        cv.set(x, y, fill[y - 1])
+    return cv
+
+
+# --- the interface, in the room's own pixels: parchment rolls, paper, icons and cursors
+def ui_roll_mid():
+    cv = Canvas(8, 7, SCENE)
+    for x in range(8):
+        for y, k in enumerate(('K', 'p0', 'p0', 'o0' if x % 5 else 'p0', 'o0', 'o1', 'K')):
+            cv.set(x, y, k)
+    return cv
+
+
+def ui_roll_end(right=False):
+    rows = [".KKK.", "Kp0oK", "K0oKo", "KoK0K", "Kpo0K", "Ko1oK", ".KKK."]
+    cv = Canvas(5, 7, SCENE)
+    keys = {'K': 'K', 'p': 'p0', '0': 'o0', 'o': 'o1', '1': 'o2'}
+    for y, row in enumerate(rows):
+        for x, c in enumerate(row):
+            if c != '.':
+                cv.set(4 - x if right else x, y, keys[c])
+    return cv
+
+
+def ui_parchment():
+    cv = Canvas(16, 16, SCENE)
+    for y in range(16):
+        for x in range(16):
+            r = hsh('parch6f', x, y)
+            cv.set(x, y, 'o0' if r < 0.012 else 'p0')
+    return cv
+
+
+def ui_paper_edges():
+    """A 9 x 9 nine-slice for the paper's sides: aged, slightly torn, with the dark line of its edge."""
+    cv = Canvas(9, 9, SCENE)
+    for y in range(9):
+        for x in range(9):
+            e = min(x, 8 - x)
+            if e == 0:
+                k = 'K' if hsh('edge6f', y, x) < 0.8 else None
+            elif e == 1:
+                k = 'o0'
+            else:
+                k = 'p0'
+            if y in (0, 8) and 0 < x < 8:
+                k = 'p0'
+            if k:
+                cv.set(x, y, k)
+    return cv
+
+
+UI_ICONS6F = {
+    'hat':     (["....K...", "...KpK..", "..KpppK.", "..KpxpK.", ".KppppK.", "KKKKKKKK", "........", "........"], {'p': 'p2', 'x': 'x0'}),
+    'crystal': (["...KK...", "..KbBK..", ".KbbbbK.", "KbbbbbBK", ".KbbbbK.", "..KbbK..", "...KK...", "........"], {'b': 'b1', 'B': 'b0'}),
+    'flame':   (["...K....", "..KxK...", "..KxxK..", ".KxXxK..", ".KxXXxK.", "KxXXXxK.", ".KKKKK..", "........"], {'x': 'x2', 'X': 'x0'}),
+    'door':    ([".KKKKK..", "KoooooK.", "KoKoKoK.", "KoKoKoK.", "KooooxK.", "KoKoKoK.", "KoooooK.", "KKKKKKK."], {'o': 'o1', 'x': 'x1'}),
+}
+
+
+def ui_icon6f(name):
+    rows, keys = (UI_ICONS6F.get(name) or ICONS[name])
+    cv = Canvas(8, 8, SCENE)
+    for j, row in enumerate(rows):
+        for i, ch in enumerate(row):
+            if ch != '.':
+                cv.set(i, j, 'K' if ch == 'K' else keys[ch])
+    return cv
+
+
+def ui_wand():
+    """The wand cursor, 10 x 10: the star at the tip is the hotspot (1, 1)."""
+    cv = Canvas(10, 10, SCENE)
+    for (x, y, k) in ((1, 0, 'x0'), (0, 1, 'x0'), (1, 1, 'x0'), (2, 1, 'x0'), (1, 2, 'x0'), (0, 0, 'x1'), (2, 2, 'x1'), (2, 0, 'K'), (0, 2, 'K')):
+        cv.set(x, y, k)
+    for n in range(3, 9):
+        cv.set(n, n, 'o1' if n < 8 else 'o2')
+        cv.set(n + 1, n, 'K')
+        cv.set(n, n + 1, 'K')
+    return cv
+
+
+def ui_ibeam():
+    cv = Canvas(5, 9, SCENE)
+    for y in range(9):
+        cv.set(2, y, 'p0')
+        cv.set(1, y, 'K')
+        cv.set(3, y, 'K')
+    for x in range(5):
+        cv.set(x, 0, 'K')
+        cv.set(x, 8, 'K')
+    return cv
+
+
+def furniture():
+    """Every piece of furniture of the room as (id, depth, draw), drawn on its own canvas. The depth
+    sorts it against the wizards (x + y): long pieces are split or given the depth that keeps the
+    wizards beside them on the right side (benches: the near one before its sitters, the far one after)."""
+    L = LAYOUT
+    (s1, l1), (s2, l2) = L['shelves']
+    tx, ty = L['table']
+    (b1x, b1y, b1w, b1h), (b2x, b2y, b2w, b2h) = L['benches']
+    px, py = L['pedestal']
+    out = [('shelfA', s1 + l1 / 2 + 0.25, lambda cv: bookshelf(cv, 0, s1, l1)),
+           ('shelfB', s2 + l2 / 2 + 0.25, lambda cv: bookshelf(cv, 0, s2, l2)),
+           ('tableL', tx + 1.0 + ty + 0.5, lambda cv: alchemy_table(cv, tx, ty, part='left')),
+           ('tableR', tx + 3.0 + ty + 0.5, lambda cv: alchemy_table(cv, tx, ty, part='right')),
+           ('benchA', b1x + b1y + 0.3, lambda cv: bench(cv, b1x, b1y, b1w, b1h)),
+           ('benchB', b2x + b2w + b2y, lambda cv: bench(cv, b2x, b2y, b2w, b2h)),
+           ('pedestal', px + py + 0.6, lambda cv: pedestal(cv, px, py)),
+           ('cauldron', sum(L['cauldron']) + 0.2, lambda cv: cauldron(cv, *L['cauldron'])),
+           ('globe', sum(L['globe']) + 0.2, lambda cv: globe(cv, *L['globe'])),
+           ('plant', sum(L['plant']) + 0.2, lambda cv: plant(cv, *L['plant'])),
+           ('candelabrum', sum(L['candelabrum']) + 0.2, lambda cv: candelabrum(cv, *L['candelabrum'])),
+           ('crate', sum(L['crate']) + 0.9, lambda cv: crate(cv, *L['crate'])),
+           ('chest', L['chest'][0] + L['chest'][1] + 1.0, lambda cv: chest(cv, *L['chest']))]
+    for n, (bx, by) in enumerate(L['barrels']):
+        out.append((f'barrel{n}', bx + by + 0.2, lambda cv, bx=bx, by=by: barrel(cv, bx, by)))
+    return out
+
+
+def ui_vroll():
+    """The roll at either end of the spell book: the paper roll turned upright (7 x 8, repeats down)."""
+    src = ui_roll_mid()
+    cv = Canvas(7, 8, SCENE)
+    for y in range(8):
+        for x in range(7):
+            k = src.get(y, x)
+            if k:
+                cv.set(x, y, k)
     return cv

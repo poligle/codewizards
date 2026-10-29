@@ -28,7 +28,7 @@ def orphans(meta):
     errs = []
     if os.path.isdir(os.path.join(ART, 'legacy')):
         errs.append('legacy/: lo retirado vive en su tag (v1.0), no en el árbol')
-    for sub in ('01_tiles', '02_characters', '03_effects'):
+    for sub in ('01_tiles', '02_characters', '03_effects', '05_ui'):
         for root, _, files in os.walk(os.path.join(ART, sub)):
             for f in sorted(files):
                 rel = os.path.relpath(os.path.join(root, f), ART).replace(os.sep, '/')

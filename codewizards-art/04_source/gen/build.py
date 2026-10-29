@@ -106,13 +106,33 @@ def build_env():
     print('· mobiliario')
     for name, fn, outline in (('Bookshelf_Base_L', lambda cv: G.bookshelf(cv, 0, 0), True),
                               ('Bookshelf_Base_R', lambda cv: G.bookshelf_R(cv, 0, 0), True),
-                              ('LabTable_Base', lambda cv: G.lab_table(cv, 0, 0), True),
-                              ('Armchair_Rest', lambda cv: G.armchair(cv, 0, 0), True),
-                              ('Carpet_Center', lambda cv: G.carpet(cv, 0, 0), False),
-                              ('Blackboard_Base', lambda cv: G.blackboard(cv, 0, 0), True)):
+                              ('AlchemyTable_Base', lambda cv: G.alchemy_table(cv, 0, 0), True),
+                              ('Bench_Base', lambda cv: G.bench(cv, 0, 0, 3.0, 0.5), True),
+                              ('Pedestal_Orb', lambda cv: G.pedestal(cv, 0, 0), True),
+                              ('Cauldron_Fire', lambda cv: G.cauldron(cv, 0, 0), True),
+                              ('Barrel_Base', lambda cv: G.barrel(cv, 0, 0), True),
+                              ('Crate_Base', lambda cv: G.crate(cv, 0, 0), True),
+                              ('Chest_Base', lambda cv: G.chest(cv, 0, 0), True),
+                              ('Globe_Stand', lambda cv: G.globe(cv, 0, 0), True),
+                              ('Plant_Pot', lambda cv: G.plant(cv, 0, 0), True),
+                              ('Candelabrum_Floor', lambda cv: G.candelabrum(cv, 0, 0), True),
+                              ('Carpet_Center', lambda cv: G.carpet(cv, 0, 0), False)):
         c, an = one(prop(fn, outline), 0, 0)
-        save(c, f'01_tiles/props/{name}.png', ancla=an,
-             nota='pizarra en caballete a 45°, de cara a la cámara' if name == 'Blackboard_Base' else 'ancla = origen del mueble')
+        save(c, f'01_tiles/props/{name}.png', ancla=an, nota='ancla = origen del mueble')
+    c, an = one(prop(G.blackboard_wall), G.BOARD_U0 / 8.0, 0)
+    save(c, '01_tiles/props/Blackboard_Wall.png', ancla=an, nota='colgada del muro del fondo (y = 0); la tiza la escribe el motor')
+    print('· interfaz y logo')
+    save(G.title_logo(), '05_ui/Logo_CodeWizards.png', nota='el logo de la banda superior de la sala')
+    save(G.ui_roll_mid(), '05_ui/Scroll_Roll_Mid.png', nota='rollo de papel: se repite en horizontal')
+    save(G.ui_roll_end(), '05_ui/Scroll_Roll_End_L.png', nota='extremo izquierdo del rollo')
+    save(G.ui_roll_end(right=True), '05_ui/Scroll_Roll_End_R.png', nota='extremo derecho del rollo')
+    save(G.ui_vroll(), '05_ui/Scroll_Roll_Upright.png', nota='los rollos de los lados del grimorio: se repiten en vertical')
+    save(G.ui_parchment(), '05_ui/Parchment_Tile.png', nota='papel: se repite en los dos ejes')
+    save(G.ui_paper_edges(), '05_ui/Paper_Edges_9slice.png', nota='bordes del papel: nueve trozos de 3 px')
+    for n in list(G.ICONS) + list(G.UI_ICONS6F):
+        save(G.ui_icon6f(n), f'05_ui/icons/Icon_{n.capitalize()}.png', nota='icono de 8 x 8')
+    save(G.ui_wand(), '05_ui/Cursor_Wand.png', punto=[1, 1], nota='el cursor; se pinta al tamaño de píxel de la sala')
+    save(G.ui_ibeam(), '05_ui/Cursor_Text.png', punto=[2, 4], nota='el cursor sobre el texto')
     save(G.torch_sprite('L'), '01_tiles/props/Torch_Base_L.png', ancla=[1, 7], llama=[1, -5],
          nota='ancla = punto del muro; llama = esquina superior izquierda del fotograma de llama')
     save(G.torch_sprite('R'), '01_tiles/props/Torch_Base_R.png', ancla=[3, 7], llama=[1, -5],

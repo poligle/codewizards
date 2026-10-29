@@ -46,6 +46,7 @@ CodeWizards es una app local y open source que dirige los CLI oficiales de agent
   - Parche 6a en v1.6.0 (23/10/2026): gremios del contrato (sin Copilot, `google` y paleta del desconocido), rangos por silueta, Archimago de 16 × 32 y nueve poses en 8 direcciones.
   - Primera parte del 6b en v1.6.1 (24/10/2026): la sala en cruz griega de 14 × 14 y el motor leyendo el plano del generador (`plan.gen.js`).
   - Resto del 6b y el 6c en v1.6.2 (24/10/2026), adelantado a petición de Pol: vidriera de colores con su luz, pizarra colgada del muro del ábside, bancos, orbe de salud, reloj de arena, pociones que burbujean y el kit de interfaz (marcos, iconos y cursor).
+  - Pulido final en v1.6.5 (25/10/2026), tras probar Pol la v1.6.4: toda la ventana es la pantalla bajo un CRT siempre encendido; un solo tamaño de píxel para sala, interfaz y cursor; logo arriba en el centro; grimorio abajo en el centro; pergaminos de papel que se mueven, se alargan y se enrollan; textos con voz de magos; muros irregulares con hiedra, vidrieras nuevas, mesa de alquimia larga, sin butaca y muebles nuevos. Detalle en `auditorias/arte_paso6.md` §9.
   - Arte definitivo en v1.6.4 (25/10/2026): la sala vuelve a ser rectangular (16 × 12) y ocupa la pantalla; los paneles son pergaminos enrollables en las esquinas vacías de la sala. Detalle en `auditorias/arte_paso6.md` §8.
   - Cierre del paso en v1.6.3 (24/10/2026): haces de luz y polvo desde la vidriera, partículas de los magos, fuente de píxel propia, la interfaz integrada con la sala (pantalla de juego GBC) y la perspectiva corregida (estanterías y pizarra). Paso 6 terminado; detalle en `auditorias/arte_paso6.md` §7. Detalle en `auditorias/arte_paso6.md`.
 - Paso 5 (UI/UX) hecho en v1.5.0 y v1.5.1 (23/10/2026). Ronda 1: explorador de archivos de solo lectura, diff por fichero, motivos del Archimago en español, Ctrl + Intro para lanzar y movimiento reducido. Ronda 2: «La Torre» (`codewizards` sin orden: entrar en una sala o fundarla sobre un repo existente o en uno nuevo), el núcleo con varias salas a la vez, y el contraste medido (WCAG 2.2 AA) en la CI. Queda la prueba con 3 a 5 desarrolladores, que tiene su guion. Detalle en `auditorias/uiux.md`.
@@ -121,6 +122,7 @@ Decididas el 23/10/2026, en el paso 6 (`auditorias/arte_paso6.md` §0):
 - El Archimago mide 16 × 32, más que los demás.
 - El motor lee la rejilla, las estaciones y la puerta de `meta.json`.
 - El kit de interfaz (iconos, marcos, fuente y cursor) va en la ronda 2. Pol lo adelantó el 24/10/2026.
+- 25/10/2026, tras probar la v1.6.4: las bandas alrededor de la sala son el mismo fondo negro con CRT; los pergaminos se mueven, se alargan, se acortan y se cierran, con bordes de rollo de papel y no de madera; el cursor de varita en toda la web; sala, interfaz y cursor con el mismo tamaño de píxel; CODEWIZARDS arriba en el centro, dentro del fondo de la sala; el grimorio abajo en el centro, alargado y bajo, con el nombre del repo encima; fuera la velocidad, aprobar solo, el interruptor del CRT y «Nada entra sin tu aprobación»; «La Torre» pasa a «Cambiar de sala»; muros más irregulares con hiedra; vidrieras mejores; fuera la butaca; mesa de laboratorio más larga; muebles decorativos; todos los textos con estética de magos.
 - 25/10/2026: la cruz no convence a Pol: la sala vuelve a ser rectangular. La sala ocupa casi toda la pantalla y la interfaz va dentro de ella sin taparla, como pergaminos que se enrollan y desenrollan. El grimorio dice «Lanza un hechizo». Este arte ya no es una maqueta: es la versión para publicar.
 - 24/10/2026: Pol pide hacer todo lo pendiente del arte de una vez, vigilar la perspectiva en la cruz (o volver a la sala rectangular si no sale bien), e integrar la interfaz con la sala con estética GBC, con libertad creativa total. Se mantiene la cruz.
 
@@ -129,7 +131,8 @@ Decididas el 23/10/2026, en el paso 6 (`auditorias/arte_paso6.md` §0):
 | Regla | Valor |
 | --- | --- |
 | Tile | 16 × 8 px, iso 2:1; 8 px por unidad de altura |
-| Sala | Rectangular de 16 × 12 tiles, 240 × 168 px; muro de 40 px; ocupa la pantalla a la mayor escala entera |
+| Sala | Rectangular de 16 × 12 tiles; lienzo de 240 × 211 px con una banda de 16 px arriba (logo) y otra de 34 px abajo (grimorio); muro de 40 px; a la mayor escala entera que cabe |
+| Píxel único | Sala, logo, rollos, iconos, fuente de píxel y cursor al mismo tamaño de píxel (`--px`, la escala de la sala); el texto largo va en letra normal |
 | Color | RGB555 (canales múltiplos de 8) |
 | Fondo | 8 paletas de 4 colores con el oscuro compartido (25 colores) |
 | Magos | 16 × 24 px (el Archimago, 16 × 32); 2 paletas de 3 colores: gremio (luz, base, oscuro) y común (barba, nariz, bastón); rangos por silueta y 9 poses |

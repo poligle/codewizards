@@ -9,11 +9,11 @@
    "grosor_tiles": 0.25,
    "lienzo": [
     240,
-    168
+    211
    ],
    "origen": [
     104,
-    46
+    62
    ]
   },
   "alfa": "1 bit (índice 0 transparente); halos, brillo de orbes y luz del ventanal los mezcla el motor",
@@ -283,7 +283,7 @@
    "w": 25,
    "h": 38,
    "paleta": "gbc-escenario",
-   "colores": 10,
+   "colores": 13,
    "ancla": [
     1,
     33
@@ -292,12 +292,12 @@
   },
   "01_tiles/props/Window_Light_Effect.png": {
    "w": 120,
-   "h": 66,
+   "h": 63,
    "paleta": "gbc-escenario",
-   "colores": 3,
+   "colores": 5,
    "ancla": [
     9,
-    -3
+    -4
    ],
    "mezcla": "aditiva 20-25 %",
    "nota": "suelo; ancla = (4.5, 1, 0)"
@@ -324,25 +324,113 @@
    ],
    "nota": "ancla = origen del mueble"
   },
-  "01_tiles/props/LabTable_Base.png": {
-   "w": 30,
-   "h": 24,
+  "01_tiles/props/AlchemyTable_Base.png": {
+   "w": 42,
+   "h": 35,
    "paleta": "gbc-escenario",
-   "colores": 9,
+   "colores": 16,
    "ancla": [
-    13,
-    10
+    9,
+    15
    ],
    "nota": "ancla = origen del mueble"
   },
-  "01_tiles/props/Armchair_Rest.png": {
-   "w": 17,
-   "h": 22,
+  "01_tiles/props/Bench_Base.png": {
+   "w": 30,
+   "h": 21,
+   "paleta": "gbc-escenario",
+   "colores": 4,
+   "ancla": [
+    5,
+    7
+   ],
+   "nota": "ancla = origen del mueble"
+  },
+  "01_tiles/props/Pedestal_Orb.png": {
+   "w": 14,
+   "h": 20,
+   "paleta": "gbc-escenario",
+   "colores": 4,
+   "ancla": [
+    7,
+    14
+   ],
+   "nota": "ancla = origen del mueble"
+  },
+  "01_tiles/props/Cauldron_Fire.png": {
+   "w": 15,
+   "h": 14,
+   "paleta": "gbc-escenario",
+   "colores": 8,
+   "ancla": [
+    7,
+    13
+   ],
+   "nota": "ancla = origen del mueble"
+  },
+  "01_tiles/props/Barrel_Base.png": {
+   "w": 13,
+   "h": 15,
+   "paleta": "gbc-escenario",
+   "colores": 5,
+   "ancla": [
+    6,
+    14
+   ],
+   "nota": "ancla = origen del mueble"
+  },
+  "01_tiles/props/Crate_Base.png": {
+   "w": 14,
+   "h": 14,
+   "paleta": "gbc-escenario",
+   "colores": 4,
+   "ancla": [
+    7,
+    7
+   ],
+   "nota": "ancla = origen del mueble"
+  },
+  "01_tiles/props/Chest_Base.png": {
+   "w": 15,
+   "h": 14,
    "paleta": "gbc-escenario",
    "colores": 6,
    "ancla": [
-    9,
-    14
+    6,
+    7
+   ],
+   "nota": "ancla = origen del mueble"
+  },
+  "01_tiles/props/Globe_Stand.png": {
+   "w": 14,
+   "h": 22,
+   "paleta": "gbc-escenario",
+   "colores": 8,
+   "ancla": [
+    6,
+    20
+   ],
+   "nota": "ancla = origen del mueble"
+  },
+  "01_tiles/props/Plant_Pot.png": {
+   "w": 11,
+   "h": 14,
+   "paleta": "gbc-escenario",
+   "colores": 6,
+   "ancla": [
+    5,
+    13
+   ],
+   "nota": "ancla = origen del mueble"
+  },
+  "01_tiles/props/Candelabrum_Floor.png": {
+   "w": 9,
+   "h": 21,
+   "paleta": "gbc-escenario",
+   "colores": 5,
+   "ancla": [
+    4,
+    19
    ],
    "nota": "ancla = origen del mueble"
   },
@@ -357,16 +445,178 @@
    ],
    "nota": "ancla = origen del mueble"
   },
-  "01_tiles/props/Blackboard_Base.png": {
-   "w": 32,
-   "h": 30,
+  "01_tiles/props/Blackboard_Wall.png": {
+   "w": 53,
+   "h": 53,
    "paleta": "gbc-escenario",
-   "colores": 7,
+   "colores": 10,
    "ancla": [
-    16,
-    27
+    4,
+    32
    ],
-   "nota": "pizarra en caballete a 45°, de cara a la cámara"
+   "nota": "colgada del muro del fondo (y = 0); la tiza la escribe el motor"
+  },
+  "05_ui/Logo_CodeWizards.png": {
+   "w": 68,
+   "h": 10,
+   "paleta": "gbc-escenario",
+   "colores": 4,
+   "nota": "el logo de la banda superior de la sala"
+  },
+  "05_ui/Scroll_Roll_Mid.png": {
+   "w": 8,
+   "h": 7,
+   "paleta": "gbc-escenario",
+   "colores": 4,
+   "nota": "rollo de papel: se repite en horizontal"
+  },
+  "05_ui/Scroll_Roll_End_L.png": {
+   "w": 5,
+   "h": 7,
+   "paleta": "gbc-escenario",
+   "colores": 5,
+   "nota": "extremo izquierdo del rollo"
+  },
+  "05_ui/Scroll_Roll_End_R.png": {
+   "w": 5,
+   "h": 7,
+   "paleta": "gbc-escenario",
+   "colores": 5,
+   "nota": "extremo derecho del rollo"
+  },
+  "05_ui/Scroll_Roll_Upright.png": {
+   "w": 7,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 4,
+   "nota": "los rollos de los lados del grimorio: se repiten en vertical"
+  },
+  "05_ui/Parchment_Tile.png": {
+   "w": 16,
+   "h": 16,
+   "paleta": "gbc-escenario",
+   "colores": 2,
+   "nota": "papel: se repite en los dos ejes"
+  },
+  "05_ui/Paper_Edges_9slice.png": {
+   "w": 9,
+   "h": 9,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "nota": "bordes del papel: nueve trozos de 3 px"
+  },
+  "05_ui/icons/Icon_Tasks.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Mana.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Health.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Time.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Archmage.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Tower.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 2,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Scroll.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 2,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Quill.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Board.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 4,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Hat.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Crystal.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Flame.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Door.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/Cursor_Wand.png": {
+   "w": 10,
+   "h": 10,
+   "paleta": "gbc-escenario",
+   "colores": 5,
+   "punto": [
+    1,
+    1
+   ],
+   "nota": "el cursor; se pinta al tamaño de píxel de la sala"
+  },
+  "05_ui/Cursor_Text.png": {
+   "w": 5,
+   "h": 9,
+   "paleta": "gbc-escenario",
+   "colores": 2,
+   "punto": [
+    2,
+    4
+   ],
+   "nota": "el cursor sobre el texto"
   },
   "01_tiles/props/Torch_Base_L.png": {
    "w": 5,
@@ -574,12 +824,12 @@
   },
   "01_tiles/Room_Base_01.png": {
    "w": 240,
-   "h": 168,
+   "h": 211,
    "paleta": "gbc-escenario",
-   "colores": 21,
+   "colores": 23,
    "ancla": [
     104,
-    46
+    62
    ],
    "nota": "suelo, muros, puerta, ventanal y alfombra ya compuestos (fondo, exento del tope de 16)",
    "disposicion": {

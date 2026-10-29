@@ -2,6 +2,23 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.6.5] · 2026-10-25 · One screen, one pixel
+
+Step 6 of milestone 1 (GBC art): the polish Pol asked for after running v1.6.4.
+
+### Changed
+- The whole window is the screen: the room's darkness from edge to edge under one CRT, which is always on.
+- One pixel size for everything: the room, the logo, the scrolls' rolls and edges, the icons, the pixel font and the cursor are all drawn at the room's own whole scale. The wand cursor is used on the whole page, at that same size.
+- CODEWIZARDS, as a gold logo, at the top centre of the room's backdrop.
+- The spell book is a long, low strip of parchment under the room's front corner: the spell first ("Lanza un hechizo…"), then who casts it, the model and the effort, and Cast. Above it, the room's name and "Cambiar de sala" (it was La Torre).
+- Four scrolls with paper rolls instead of wooden rods (Tasks, Notes, Blackboard, Chronicle). Drag the top roll to move one, press it to roll it up completely; drag the bottom roll to make it longer or shorter, near its right end to make it wider too; double-click puts it back in its corner. Keyboard: Enter, arrows and Shift + arrows on the top roll. The browser remembers where each one is.
+- Every word on screen speaks the tower's language (Bendecir, Devolver, Romper, Cumplidos, Crónica, Vigor de la torre…).
+- The room: irregular stone with ivy; new stained glass (a diamond lattice with a star and a rose window); a longer alchemy table with an alembic, potions, a mortar, a candle and a book; no armchair (wizards sit on the benches); the banner no longer hides behind a bookshelf; new furniture: a cauldron over a fire, barrels, a crate, a chest, a globe, a plant and a floor candelabrum, with their light and bubbles.
+- The new pieces are files in `codewizards-art/` too (props, and `05_ui/` for the logo, rolls, paper, icons and cursors), ready for retouching.
+
+### Removed
+- The speed buttons, "Aprobar solo" (auto-approval), the CRT switch and the line "Nada entra sin tu aprobación". The demo can still be sped up for tests with `?prisa=4&auto=1`.
+
 ## [1.6.4] · 2026-10-25 · The room is the screen
 
 Step 6 of milestone 1 (GBC art): the final art, meant for publishing.
@@ -229,6 +246,7 @@ Step 1 of milestone 1. The mockup is the same as in v1.0.
 ### Fixed
 - The mockup no longer freezes on its first frame in real browsers.
 
+[1.6.5]: https://github.com/poligle/codewizards/compare/v1.6.4...v1.6.5
 [1.6.4]: https://github.com/poligle/codewizards/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/poligle/codewizards/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/poligle/codewizards/compare/v1.6.1...v1.6.2

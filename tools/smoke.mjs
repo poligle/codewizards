@@ -70,9 +70,7 @@ const logged = page => page.evaluate(() => {
 async function castAndFinish(page, label) {
   check((await page.inputValue('#spell-text')) === '', `${label}: the spell book opens empty, without an example`);
   await page.fill('#spell-text', 'Añade un modo oscuro a la página de ajustes');
-  await page.click('button[data-speed="4"]');
-  if (await page.isEnabled('#auto')) await page.check('#auto');
-  await page.click('button.cast');
+  await page.press('#spell-text', 'Enter');          // one line: Enter casts
   const done = await page.waitForFunction(() => {
     const n = t => [...document.querySelectorAll('#log li b')].filter(b => b.textContent === t).length;
     return n('task.created') >= 3 && n('task.done') === n('task.created');
@@ -84,36 +82,59 @@ async function castAndFinish(page, label) {
   check(gone, `${label}: finished tasks move to «Hechas» when their wizard walks out`);
 }
 
-async function crtShots(page, prefix) {
-  const on = await page.getAttribute('#crt', 'aria-pressed');
-  if (on !== 'true') await page.click('#crt');
-  await page.locator('.tv').screenshot({ path: path.join(OUT, `${prefix}_crt.png`) });
-  await page.click('#crt');
-  await page.waitForTimeout(200);
-  await page.locator('.tv').screenshot({ path: path.join(OUT, `${prefix}_sin_crt.png`) });
+async function shots(page, prefix) {
+  await page.screenshot({ path: path.join(OUT, `${prefix}_pantalla.png`) });
+  await page.locator('#room').screenshot({ path: path.join(OUT, `${prefix}_sala.png`) });
 }
 
 async function staticDemo(browser) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await page.addInitScript(HOOK);
   const w = watch(page, u => u.startsWith(STATIC) || u.startsWith('data:'));
-  await page.goto(STATIC);
-  check((await page.textContent('#mode')).trim() === 'demo', 'A static: demo mode without a token');
+  await page.goto(STATIC + '?prisa=4&auto=1');        // the demo, sped up and approving by itself (test only)
+  check(/Ilusión/.test(await page.textContent('#mode')), 'A static: the demo says it is an illusion, without a token');
+  check((await page.locator('[data-speed], #auto, #crt').count()) === 0, 'A static: no speed, auto-approval or CRT switch on screen');
   check((await page.locator('#mana li').count()) === 1, 'A static: only the connected account\'s guild has mana (Anthropic)');
   check((await page.locator('#rank option').count()) === 4, 'A static: the spell book lets you choose the rank or leave it to the Archmage');
   await castAndFinish(page, 'A static');
-  // Step 6e: the room is the screen (×5 on 1440 × 900, ×6 on 1920 × 1080) and the scrolls never cover it.
-  const px = () => page.evaluate(() => Number(getComputedStyle(document.getElementById('screen')).getPropertyValue('--px').replace('px', '')));
-  check((await px()) === 5, `A static: the room fills a 1440 × 900 screen at ×${await px()}`);
-  check((await page.evaluate(() => window.CW.coversRoom())).length === 0, `A static: no scroll covers the room (${await page.evaluate(() => window.CW.coversRoom().join(', '))})`);
-  await page.click('#sc-tasks .rod');
-  check(await page.evaluate(() => document.getElementById('sc-tasks').classList.contains('rolled') && !document.getElementById('p-tasks').offsetHeight), 'A static: a scroll rolls up from its rod');
-  await page.click('#sc-tasks .rod');
-  check(await page.evaluate(() => !document.getElementById('sc-tasks').classList.contains('rolled')), 'A static: and unrolls again');
+  // Step 6f: one pixel size for everything, the whole window as the screen, movable scrolls.
+  const px = () => page.evaluate(() => Number(getComputedStyle(document.documentElement).getPropertyValue('--px').replace('px', '')));
+  check((await px()) === 4, `A static: the room fills a 1440 × 900 screen at ×${await px()}`);
+  check(await page.evaluate(n => document.documentElement.classList.contains('px' + n), await px()), 'A static: the cursor is the wand at the room\'s own pixel size');
+  const icon = await page.evaluate(() => getComputedStyle(document.querySelector('.grimoire .ico-hat'), '::before').width);
+  check(icon === (await px()) * 8 + 'px', `A static: an 8-pixel icon is ${icon}: the same pixel size as the room`);
+  check((await page.evaluate(() => window.CW.coversRoom())).length === 0, `A static: nothing of the interface covers the room (${await page.evaluate(() => window.CW.coversRoom().join(', '))})`);
+  const logoTop = await page.evaluate(() => { const r = document.getElementById('screen').getBoundingClientRect(); return r.top; });
+  check(logoTop >= 0, 'A static: the room, with the CODEWIZARDS logo above it, fits the window');
+  await page.click('#sc-tasks .roll.top');
+  check(await page.evaluate(() => document.getElementById('sc-tasks').classList.contains('rolled') && !document.getElementById('p-tasks').offsetHeight), 'A static: a scroll rolls up when its top roll is pressed');
+  await page.click('#sc-tasks .roll.top');
+  const b0 = await page.locator('#sc-tasks').boundingBox();
+  const r0 = await page.locator('#sc-tasks .roll.top').boundingBox();
+  await page.mouse.move(r0.x + 30, r0.y + r0.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(r0.x + 130, r0.y + r0.height / 2 + 60, { steps: 6 });
+  await page.mouse.up();
+  const b1 = await page.locator('#sc-tasks').boundingBox();
+  check(!(await page.evaluate(() => document.getElementById('sc-tasks').classList.contains('rolled'))) && Math.abs(b1.x - b0.x - 100) <= 4 && Math.abs(b1.y - b0.y - 60) <= 4,
+    `A static: dragging the top roll moves the scroll (${Math.round(b1.x - b0.x)}, ${Math.round(b1.y - b0.y)})`);
+  const r1 = await page.locator('#sc-tasks .roll.bottom').boundingBox();
+  await page.mouse.move(r1.x + r1.width / 2, r1.y + r1.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(r1.x + r1.width / 2, r1.y + r1.height / 2 + 80, { steps: 6 });
+  await page.mouse.up();
+  const b2 = await page.locator('#sc-tasks').boundingBox();
+  check(b2.height - b1.height >= 72, `A static: dragging the bottom roll makes it longer (+${Math.round(b2.height - b1.height)} px)`);
+  await page.reload();
+  await page.waitForTimeout(300);
+  const b3 = await page.locator('#sc-tasks').boundingBox();
+  check(Math.abs(b3.x - b2.x) <= 4 && Math.abs(b3.height - b2.height) <= 4, 'A static: where you left a scroll, and its length, are remembered');
+  await page.dblclick('#sc-tasks .roll.top');
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.waitForTimeout(300);
-  check((await px()) === 6 && (await page.evaluate(() => window.CW.coversRoom())).length === 0, `A static: on 1920 × 1080 the room is at ×${await px()} and still uncovered`);
+  check((await px()) === 5 && (await page.evaluate(() => window.CW.coversRoom())).length === 0, `A static: on 1920 × 1080 the room is at ×${await px()} and still uncovered`);
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(STATIC + '?prisa=4&auto=1');
   // An unknown guild and a repeated event must not freeze the room (v1.1 froze on the first).
   const t0 = await page.evaluate(() => window.__sims[0].t);
   await page.evaluate(() => {
@@ -124,11 +145,7 @@ async function staticDemo(browser) {
   });
   await page.waitForTimeout(1500);
   check(await page.evaluate(t => window.__sims[0].t > t + 0.5, t0), 'A static: an unknown guild, a repeat and a gap do not freeze the room');
-  await crtShots(page, 'demo');
-  await page.reload();
-  await page.waitForTimeout(300);
-  check((await page.getAttribute('#crt', 'aria-pressed')) === 'false', 'A static: CRT off is remembered after a reload');
-  await page.click('#crt');   // leave it on for the next run
+  await shots(page, 'demo');
   check(w.errors.length === 0, `A static: no page or console errors ${w.errors.join(' | ')}`);
   check(w.external.length === 0, `A static: no requests leave the machine ${w.external.join(' ')}`);
   await page.close();
@@ -139,9 +156,11 @@ async function mobileDemo(browser) {
   const page = await ctx.newPage();
   const w = watch(page, u => u.startsWith(STATIC) || u.startsWith('data:'));
   await page.goto(STATIC);
+  await page.fill('#spell-text', 'Add a dark mode');
   await page.click('button.cast');
   await page.waitForTimeout(4000);
-  check((await page.evaluate(() => getComputedStyle(document.getElementById('screen')).getPropertyValue('--px'))).trim() === '1px', 'B phone: room at ×1 (integer scale)');
+  check((await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--px'))).trim() === '1px', 'B phone: room at ×1 (integer scale)');
+  check(await page.evaluate(() => document.body.classList.contains('stacked')), 'B phone: the scrolls go under the room on a narrow screen');
   check(w.errors.length === 0, `B phone: no page or console errors ${w.errors.join(' | ')}`);
   await ctx.close();
 }
@@ -168,23 +187,22 @@ async function liveRoom(browser) {
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const w = watch(page, u => u.startsWith(origin) || u.startsWith(origin.replace('http:', 'ws:')));
-    await page.goto(info.url);
-    await page.waitForFunction(() => document.getElementById('mode').textContent.trim() === 'demo' && /Conectado/.test(document.getElementById('hint').textContent), null, { timeout: 10000 })
+    await page.goto(origin + '/?prisa=4&auto=1#token=' + token);   // the demo room, sped up (test only)
+    await page.waitForFunction(() => /Ilusión/.test(document.getElementById('mode').textContent) && /torre te escucha/.test(document.getElementById('hint').textContent), null, { timeout: 10000 })
       .then(() => check(true, 'C live: connected to the core'), () => check(false, 'C live: connected to the core'));
     check(!page.url().includes('token'), 'C live: the token left the address bar');
     await castAndFinish(page, 'C live');
     check((await page.request.get(origin + '/package.json')).status() === 404, 'C live: only the room files are served');
-    await page.click('#todo summary');
     await page.fill('#notes', '- add a dark mode\n- fix the login');
     await page.waitForTimeout(1200);
     const done = (await logged(page)).done;
     await page.goto(info.url.split('#')[0] + '#token=' + token);
-    await page.waitForFunction(() => /Conectado/.test(document.getElementById('hint').textContent), null, { timeout: 10000 });
+    await page.waitForFunction(() => /torre te escucha/.test(document.getElementById('hint').textContent), null, { timeout: 10000 });
     await page.waitForTimeout(300);
     const after = await page.evaluate(() => ({ now: document.querySelectorAll('#tasks li').length, hist: document.querySelectorAll('#history li').length }));
     check(after.now === 0 && after.hist === done, `C live: reopening the room rebuilds it at once: ${after.hist} tasks in «Hechas», none walking in again`);
     check((await page.inputValue('#notes')).includes('fix the login'), 'C live: «Por hacer» keeps its notes across reloads');
-    await crtShots(page, 'local');
+    await shots(page, 'local');
     check(w.errors.length === 0, `C live: no page or console errors ${w.errors.join(' | ')}`);
     check(w.external.length === 0, `C live: every request stays on ${origin} ${w.external.join(' ')}`);
     // Another origin with a stolen token still cannot connect (Origin check).
@@ -224,9 +242,8 @@ async function claudeRoom(browser) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const w = watch(page, u => u.startsWith(origin) || u.startsWith(origin.replace('http:', 'ws:')));
     await page.goto(info.url);
-    await page.waitForFunction(() => /^Claude Code/.test(document.getElementById('mode').textContent.trim()), null, { timeout: 10000 })
+    await page.waitForFunction(() => /Claude Code/.test(document.getElementById('mode').textContent.trim()), null, { timeout: 10000 })
       .then(() => check(true, 'D serve: room in Claude Code mode'), () => check(false, 'D serve: room in Claude Code mode'));
-    check(await page.isDisabled('#auto'), 'D serve: no auto-approval outside the demo');
     check(await page.isVisible('#stop'), 'D serve: the stop button is there for real wizards');
     await page.fill('#spell-text', 'Add a greeting file');
     await page.selectOption('#rank', 'aprendiz');
@@ -244,7 +261,7 @@ async function claudeRoom(browser) {
     check(/guardado en la rama cw\/t1-add-a-greeting-file/.test(note) && /git merge cw\/t1-add-a-greeting-file/.test(note), 'D serve: the blackboard says where the change went and how to bring it in');
     check(/claude-sonnet-5-5/.test(note), 'D serve: the blackboard shows the model Claude Code reported');
     check(git('rev-list', '--count', 'main').trim() === '1', 'D serve: main does not move');
-    check(/Aprendiz/.test(note) && /esfuerzo alto/.test(note), 'D serve: the rank and the effort you chose are the ones that worked');
+    check(/Aprendiz/.test(note) && /concentración profunda/.test(note), 'D serve: the rank and the effort you chose are the ones that worked');
     check(await page.locator('#deliv .dfile summary').filter({ hasText: 'hello.txt' }).count() === 1, 'D serve: the diff is shown file by file, with its counts');
     check(/elegido por ti/.test(note), 'D serve: the Archmage\'s reason reads in Spanish');
     await page.click('#files-box summary');
@@ -256,7 +273,7 @@ async function claudeRoom(browser) {
     await page.click('[data-merge]');
     const merged = await page.waitForFunction(() => [...document.querySelectorAll('#log li b')].some(b => b.textContent === 'task.merged'), null, { timeout: 15000 }).then(() => true, () => false);
     check(merged && /Hello from the wizard/.test(git('show', 'main:hello.txt')), `D serve: the merge button brings the change into your branch${merged ? '' : ` (${await page.textContent('#hint')})`}`);
-    await page.locator('.tv').screenshot({ path: path.join(OUT, 'claude_code_sala.png') });
+    await page.locator('#room').screenshot({ path: path.join(OUT, 'claude_code_sala.png') });
     await page.screenshot({ path: path.join(OUT, 'claude_code_pantalla.png') });
     check(w.errors.length === 0, `D serve: no page or console errors ${w.errors.join(' | ')}`);
     check(w.external.length === 0, `D serve: every request stays on ${origin} ${w.external.join(' ')}`);
@@ -283,7 +300,7 @@ async function towerRoom(browser) {
     await page.fill('#found-path', dir);
     await page.check('input[name="found-kind"][value="new"]');
     await page.click('#found button[type="submit"]');
-    const entered = await page.waitForFunction(() => /Claude Code · mi-proyecto/.test(document.getElementById('mode').textContent), null, { timeout: 15000 }).then(() => true, () => false);
+    const entered = await page.waitForFunction(() => /mi-proyecto/.test(document.getElementById('mode').textContent) && /Claude Code/.test(document.getElementById('mode').textContent), null, { timeout: 15000 }).then(() => true, () => false);
     check(entered && fs.existsSync(path.join(dir, '.git')), 'E tower: founding in a new repository creates it and enters its room');
     check(!page.url().includes('token'), 'E tower: the token stays out of the address bar after changing room');
     await page.click('#tower-btn');

@@ -288,3 +288,67 @@ Lo que presentan los magos se escribe con tiza: el título de la tarea en la fue
   - `paso6e_pantalla_completa.png`;
   - `paso6e_sala_x3.png`;
   - `paso6e_la_torre.png`.
+
+## 9. Pulido final (v1.6.5)
+
+Pol probó la v1.6.4 en su pantalla (1906 × 1187, sala a ×7) y pidió:
+- que las bandas alrededor de la sala fueran el mismo fondo negro con CRT;
+- pergaminos que se muevan, se alarguen, se acorten y se cierren, con bordes de rollo de papel en vez de madera;
+- el cursor en toda la web;
+- el mismo tamaño de píxel para todo;
+- CODEWIZARDS arriba en el centro;
+- el grimorio abajo en el centro, alargado y bajo, con el nombre del repo encima;
+- fuera la velocidad, aprobar solo y el interruptor del CRT;
+- «Cambiar de sala» en lugar de «La Torre»;
+- muros más irregulares con hiedra, mejores vidrieras, sin butaca, una mesa de laboratorio más larga y muebles decorativos;
+- revisar proporciones y posiciones;
+- todos los textos con voz de magos.
+
+**La pantalla.**
+- Toda la ventana es la oscuridad de la sala, y el CRT (líneas, máscara y viñeta) la cubre entera, siempre encendido.
+- La sala se dibuja a la mayor escala entera que cabe, y esa escala (`--px`) es el tamaño de cada píxel en pantalla: los rollos y bordes de los pergaminos, los iconos, la fuente de píxel y el cursor. Del cursor hay uno por escala (de ×1 a ×8), porque el CSS no puede escalarlo.
+- Para que quepan el logo y el grimorio, el lienzo tiene una banda de 16 px arriba y otra de 34 px abajo. En la pantalla de Pol la sala pasa de ×7 a ×5 y en 1440 × 900 queda a ×4.
+- El texto que se lee largo (diffs, crónica, notas y los desplegables) va en letra normal: con un píxel de ×5, la fuente de 3 × 5 no da para leer un diff.
+
+**El grimorio.**
+- Una tira de pergamino alargada y baja, entre dos rollos verticales, bajo la esquina delantera del suelo.
+- Primero el hechizo, en una línea (Intro lanza); luego quién conjura, el arcano (modelo) y la concentración (esfuerzo), con icono y desplegable; y LANZAR.
+- Encima, «Sala «repo» · Claude Code» y «Cambiar de sala».
+
+**Los pergaminos.**
+- Encargos, Notas (con los tomos del repo), Pizarra y Crónica (con el maná).
+- Arriba y abajo llevan un rollo de papel con su espiral; el título va en una etiqueta sobre el rollo de arriba.
+- Se mueven arrastrando el rollo de arriba y se enrollan del todo pulsándolo. Se alargan o acortan arrastrando el de abajo, y cerca de su extremo derecho también se ensanchan.
+- El doble clic los devuelve a su rincón. Con el teclado: Intro enrolla, las flechas mueven y Mayúsculas + flechas cambian el tamaño.
+- Bordes y posiciones caen en la rejilla de píxeles, y el navegador recuerda dónde está cada uno.
+- Su sitio por defecto se calcula con la geometría de la sala para no taparla, y la prueba de humo lo comprueba.
+- En la pizarra, los botones de juicio se quedan siempre a la vista al pie del papel.
+
+**La sala.**
+- Piedra irregular: filas de 4 a 6 px, piedras de 5 a 11, alguna más clara u oscura y esquinas desconchadas. Siete hiedras cuelgan del borde de los muros.
+- Vidrieras nuevas: celosía de rombos de vidrio claro, una estrella de colores en el centro, un rosetón arriba y un borde azul emplomado.
+- Mesa de alquimia de 4 × 1 tiles, con seis patas, un estante bajo con tarros, alambique, tres pociones, mortero, vela y libro abierto. Se dibuja en dos mitades para ordenarla bien con los magos que pasan por delante y por detrás.
+- Fuera la butaca: los magos que esperan se sientan entre dos bancos enfrentados, junto a un cofre.
+- Muebles nuevos, cada uno con sentido en la torre:
+
+  | Mueble | Dónde | Efecto |
+  | --- | --- | --- |
+  | Caldero sobre el fuego | Delante de la mesa | Burbujas verdes y brillo del fuego |
+  | Barriles y caja | Rincón del fondo a la derecha | — |
+  | Globo terráqueo | Junto a la biblioteca | — |
+  | Planta | Junto a la puerta | — |
+  | Candelabro de pie | Junto al rincón de descanso | Tres llamas que parpadean |
+
+- El estandarte está ahora entre la segunda estantería y la puerta, sin que nada lo tape.
+- Todo el mobiliario sale de una sola lista (`furniture()`), que usan la sala y la demo del arte.
+
+**Ficheros de arte.**
+- Los muebles nuevos están en `01_tiles/props/`, junto con la pizarra de pared.
+- La interfaz está en `05_ui/`: logo, rollos, papel, bordes, iconos y cursores.
+- Salen la butaca, la mesa vieja y la pizarra de caballete.
+- `check.py` revisa ahora también `05_ui/`: 107 piezas, 0 errores.
+
+**Validación.**
+- `npm test`: 89 tests y 6040 comprobaciones de la sala.
+- Prueba de humo: 57/57. Comprueba que no hay velocidad, aprobar solo ni CRT en pantalla; que la escala sale ×4 en 1440 × 900 y ×5 en 1920 × 1080; que un icono de 8 px mide 8 × `--px`; que el cursor va a la escala de la sala; que nada tapa la sala; que un pergamino se enrolla, se mueve, se alarga y recuerda su sitio; y el móvil apilado.
+- Contraste: todos los pares en verde. actionlint: 0 problemas.

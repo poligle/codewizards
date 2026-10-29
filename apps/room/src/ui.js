@@ -8,45 +8,47 @@
   const CW = G.CW, A = G.CW_ASSETS, doc = G.document;
   const $ = id => doc.getElementById(id);
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  // Every word on screen speaks the tower's language (Pol, 24/10/2026): wizards, spells, mana.
   const T = {
-    states: { created: 'creada', assigned: 'asignada', reading: 'leyendo', writing: 'escribiendo', presenting: 'presentando',
-      review: 'en revisión', approved: 'aprobada', rejected: 'rechazada', done: 'hecha', error: 'error',
-      blocked: 'bloqueada', waiting: 'esperando cuota', failed: 'fallida', cancelled: 'cancelada', pending: 'por integrar' },
+    states: { created: 'anotado', assigned: 'asignado', reading: 'leyendo', writing: 'escribiendo', presenting: 'presentando',
+      review: 'ante tu juicio', approved: 'bendecido', rejected: 'devuelto', done: 'cumplido', error: 'confuso',
+      blocked: 'detenido', waiting: 'sin maná', failed: 'fracasado', cancelled: 'roto', pending: 'por sellar' },
     ranks: { aprendiz: 'Aprendiz', joven: 'Mago Joven', sabio: 'Gran Sabio', archimago: 'Archimago' },
-    modes: { demo: 'demo', 'claude-code': 'Claude Code' },
-    pending: 'esperando mago',
-    hint: 'Toca un mago o una tarea para ver su entrega.',
-    live: 'Conectado al núcleo local. Nada entra sin tu aprobación.',
-    offline: 'Sin conexión con el núcleo local: reintentando…',
-    review: t => 'Revisión pendiente: ' + t,
-    empty: 'Aún no hay entregas. Lanza un hechizo.',
-    choose: 'Elige una tarea o un mago.',
-    nothing: 'El mago aún no ha entregado nada.',
+    modes: { demo: 'Ilusión de demostración', 'claude-code': 'Claude Code' },
+    roomOf: (name, mode) => 'Sala «' + name + '» · ' + mode,
+    pending: 'esperando a su mago',
+    hint: 'Una ilusión: los magos son simulados y ningún oráculo es consultado.',
+    live: 'La torre te escucha.',
+    offline: 'Se ha roto el vínculo con la torre. Reintentando…',
+    review: t => 'Te espera un juicio: ' + t,
+    empty: 'Aún no hay nada en la pizarra. Lanza un hechizo.',
+    choose: 'Toca un mago o un encargo para ver lo que trae.',
+    nothing: 'El mago aún no ha traído nada.',
     manaOf: g => 'Maná de ' + g,
-    saved: 'Aprobado y guardado en la rama',
+    saved: 'Bendecido y guardado en la rama',
     bring: 'Para traerlo a tu rama:',
-    merged: 'Aprobado e integrado en tu rama actual. Queda también en la rama',
-    pr: 'Pull request (borrador):',
-    noChanges: 'Aprobado sin cambios: no hay nada que integrar.',
-    mergeBtn: 'Integrar en mi rama',
-    manaLeft: (p, at) => 'Queda ' + p + ' % de la ventana de 5 h' + (at ? '; se recupera a las ' + at : ''),
-    week: p => '7 días: ' + p + ' % usado',
-    unknownQuota: 'sin datos de cuota todavía',
-    waitUntil: at => 'Sin cuota: espera en el sillón hasta las ' + at + ' y luego sigue.',
+    merged: 'Bendecido y sellado en tu rama. Queda también en la rama',
+    pr: 'Pergamino de propuesta (borrador):',
+    noChanges: 'Bendecido sin cambios: no hay nada que sellar.',
+    mergeBtn: 'Sellar en mi rama',
+    manaLeft: (p, at) => 'Queda ' + p + ' % del maná' + (at ? '; se repone a las ' + at : ''),
+    week: p => 'esta semana: ' + p + ' % gastado',
+    unknownQuota: 'el maná aún no se ha medido',
+    waitUntil: at => 'Sin maná: descansa en el banco hasta las ' + at + ' y luego sigue.',
     archmage: 'Archimago',
-    efforts: { low: 'bajo', medium: 'medio', high: 'alto', xhigh: 'muy alto', max: 'máximo' },
-    effortOf: e => 'esfuerzo ' + e,
-    byRank: 'El de su rango',
-    health: h => 'Salud del proyecto: ' + h + ' %',
-    outside: n => n === 1 ? '1 mago espera fuera' : n + ' magos esperan fuera',
-    hourglass: s => 'la ventana de 5 h se renueva en ' + s,
-    back: 'Volver a la tarea',
-    binary: 'Fichero binario: no se muestra.',
-    tooBig: kb => 'Fichero grande (' + kb + ' KB): no se muestra entero.',
-    loading: 'Cargando…',
+    efforts: { low: 'leve', medium: 'serena', high: 'profunda', xhigh: 'muy profunda', max: 'absoluta' },
+    effortOf: e => 'concentración ' + e,
+    byRank: 'Auto',
+    health: h => 'Vigor de la torre: ' + h + ' %',
+    outside: n => n === 1 ? '1 mago aguarda fuera' : n + ' magos aguardan fuera',
+    hourglass: s => 'el maná se renueva en ' + s,
+    back: 'Volver al encargo',
+    binary: 'Tomo sellado (binario): no se puede leer aquí.',
+    tooBig: kb => 'Tomo demasiado grueso (' + kb + ' KB) para mostrarlo entero.',
+    loading: 'Abriendo…',
     enter: 'Entrar',
     noRooms: 'Aún no hay salas: funda la primera.',
-    gone: 'el repositorio ya no está',
+    gone: 'su repositorio ya no está',
     founding: 'Fundando la sala…',
   };
   // The Archmage's reasons come from the core in English; these are the known ones.
@@ -62,7 +64,13 @@
   const world = new CW.World(), view = new CW.Renderer($('room'), A);
   const sim = live ? null : new CW.Sim({ seed: Date.now() % 100000 });
   const tasks = new Map(), agents = new Map(), agentTask = new Map(), accounts = new Map();
-  let speed = 1, selTask = null, crtOn = true, t0 = null, canMerge = false;
+  // No speed, auto-approval or CRT switch on screen any more (Pol, 24/10/2026). The smoke test still
+  // speeds the demo up and approves by itself, through the address: ?prisa=4&auto=1 (demo only).
+  const TEST = (() => {
+    const q = new URLSearchParams(G.location.search || '');
+    return { speed: [2, 4].includes(Number(q.get('prisa'))) ? Number(q.get('prisa')) : 1, auto: q.get('auto') === '1' };
+  })();
+  let speed = TEST.speed, selTask = null, t0 = null, canMerge = false;
   // Opening on an existing log: everything up to the core's `live` mark rebuilds the room at once
   // (no wizard walks in to leave again); only what follows is animated (Pol, 23/10/2026).
   let replaying = live, modelSeq = 0, lastReset = null, statusT = 1, viewing = null, filesLoaded = false;
@@ -349,16 +357,16 @@
   function onHello(h) {
     $('tower-btn').hidden = !h.tower;
     $('tower').hidden = true;
-    G.requestAnimationFrame(layout);               // the plaque may have changed size
+    G.requestAnimationFrame(layout);               // the room's line may have changed size
     describeRanks(h.ranks, h.models);
     if (typeof h.notes === 'string' && doc.activeElement !== $('notes')) $('notes').value = h.notes;
     renderAccounts(Array.isArray(h.accounts) && h.accounts.length ? h.accounts : DEMO_ACCOUNTS);
     canMerge = h.mode !== 'demo' && !h.merge;
     $('files-box').hidden = h.mode === 'demo';
-    $('mode').textContent = (T.modes[h.mode] || 'local') + (h.name ? ' · ' + h.name : '');
-    $('auto').disabled = !h.autoApprove;           // outside the demo nothing goes in without review
-    if (!h.autoApprove) $('auto').checked = false;
+    $('mode').textContent = h.name ? T.roomOf(h.name, T.modes[h.mode] || h.mode) : (T.modes[h.mode] || h.mode);
     $('stop').hidden = h.mode === 'demo';          // the simulator cannot be stopped; real wizards can
+    if (h.mode === 'demo' && TEST.auto) bus.auto(true);
+    if (h.mode === 'demo' && TEST.speed > 1) bus.speed(TEST.speed);
   }
   function onStatus(ok) {
     $('hint').textContent = ok ? T.live : T.offline;
@@ -467,16 +475,11 @@
   });
   doc.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('tower').hidden && inRoom) $('tower').hidden = true; });
 
-  // Ctrl/Cmd + Enter casts from the spell box (keyboard use, step 5).
+  // The spell box is one line now: Enter casts (and so does Ctrl/Cmd + Enter).
   $('spell-text').addEventListener('keydown', e => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('spell').requestSubmit(); }
+    if (e.key === 'Enter') { e.preventDefault(); $('spell').requestSubmit(); }
   });
-  doc.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => {
-    speed = Number(b.dataset.speed);
-    bus.speed(speed);
-    doc.querySelectorAll('[data-speed]').forEach(o => o.setAttribute('aria-pressed', o === b ? 'true' : 'false'));
-  }));
-  $('auto').addEventListener('change', e => bus.auto(e.target.checked));
+  if (!live && TEST.auto) sim.setAuto(true);
   $('approve').addEventListener('click', () => { if (selTask) bus.approve(selTask); });
   $('stop').addEventListener('click', () => { if (selTask) bus.stop(selTask); });
   $('reject').addEventListener('click', () => {
@@ -485,94 +488,159 @@
     $('comment').value = '';
   });
 
-  // CRT: remembered; off by default for people who ask their system for reduced motion.
-  try {
-    const saved = G.localStorage.getItem('cw-crt');
-    if (saved === '0' || (saved === null && G.matchMedia && G.matchMedia('(prefers-reduced-motion: reduce)').matches)) crtOn = false;
-  } catch (e) { /* sin almacenamiento */ }
-  function applyCrt() {
-    $('screen').classList.toggle('crt', crtOn);
-    $('crt').setAttribute('aria-pressed', crtOn ? 'true' : 'false');
-  }
-  $('crt').addEventListener('click', () => {
-    crtOn = !crtOn;
-    applyCrt();
-    try { G.localStorage.setItem('cw-crt', crtOn ? '1' : '0'); } catch (e) { /* sin almacenamiento */ }
-  });
-  applyCrt();
-
+  // The screen (Pol, 24/10/2026): the whole window is the room's darkness under one CRT; the room is
+  // drawn at the largest whole scale that fits, and that scale is the size of every pixel on screen:
+  // --px for the interface's art, and one cursor per scale (html.px1 … html.px8, ui.gen.css).
   let scale = 1;
-  // Step 6e: the room is the screen. It is drawn at the largest whole scale that fits the window,
-  // and the four scrolls hang in the room's empty corners: above the two back walls and below the
-  // two front edges of the floor. Their size comes from the room's own lines, so a scroll never
-  // covers a wall or the floor; what does not fit scrolls inside the paper.
-  const SCROLLS = ['sc-tasks', 'sc-board', 'sc-spell', 'sc-log'];
+  const SCROLLS = ['sc-tasks', 'sc-notes', 'sc-board', 'sc-log'];
+  const store = {
+    get: k => { try { return JSON.parse(G.localStorage.getItem(k) || 'null'); } catch (e) { return null; } },
+    set: (k, v) => { try { G.localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } },
+  };
+  // The room's own lines, in window pixels: where the walls and the floor are, so that nothing of the
+  // interface is placed over them by default.
+  function geometry() {
+    const r = $('screen').getBoundingClientRect(), R = A.room, M = CW.ROOM_META, wall = 40, base = 3;
+    const P = (x, y) => [r.left + x * scale, r.top + y * scale];
+    return [P(R.ox, R.oy - wall), P(R.ox + M.W * 8, R.oy + M.W * 4 - wall), P(R.ox + M.W * 8, R.oy + M.W * 4 + base),
+      P(R.ox + (M.W - M.D) * 8, R.oy + (M.W + M.D) * 4 + base), P(R.ox - M.D * 8, R.oy + M.D * 4 + base), P(R.ox - M.D * 8, R.oy + M.D * 4 - wall)];
+  }
+  const inside = (poly, x, y) => {
+    let c = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const [xi, yi] = poly[i], [xj, yj] = poly[j];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
+    }
+    return c;
+  };
+  const coversRect = (poly, b) => {
+    for (let x = b.left + 1; x < b.right; x += 6) for (let y = b.top + 1; y < b.bottom; y += 6) if (inside(poly, x, y)) return true;
+    return false;
+  };
+  const snap = v => Math.round(v / scale) * scale;          // every edge on the pixel grid
+
   function layout() {
     const W = G.innerWidth, H = G.innerHeight, RW = $('room').width, RH = $('room').height;
-    const stacked = W < 1000 || H < 620;
+    const stacked = W < 900 || H < 560;
     doc.body.classList.toggle('stacked', stacked);
-    const sc = $('screen').style;
-    if (stacked) {
-      scale = Math.max(1, Math.floor(Math.min(W - 16, 960) / RW));
-      Object.assign(sc, { width: RW * scale + 'px', height: RH * scale + 'px', left: '', top: '' });
-      sc.setProperty('--px', scale + 'px');
-      for (const id of SCROLLS) Object.assign($(id).style, { left: '', top: '', width: '', height: '' });
-      return;
+    scale = Math.max(1, Math.min(8, stacked ? Math.floor(Math.min(W - 16, 960) / RW) : Math.floor(Math.min(W / RW, H / RH))));
+    const root = doc.documentElement;
+    root.style.setProperty('--px', scale + 'px');
+    root.className = root.className.replace(/\bpx\d\b/g, '').trim() + ' px' + scale;
+    const left = stacked ? 0 : Math.floor((W - RW * scale) / 2), top = stacked ? 0 : Math.floor((H - RH * scale) / 2);
+    Object.assign($('screen').style, { width: RW * scale + 'px', height: RH * scale + 'px', left: left + 'px', top: top + 'px' });
+    if (stacked) return;
+    // Below the room's front corner: the room's line, then the spell book, long and low.
+    const R = A.room, M = CW.ROOM_META, B = A.bands;
+    const front = top + (R.oy + (M.W + M.D) * 4 + 3) * scale;
+    // As wide as the room's middle allows: between the two lower scrolls in their own corners.
+    const sw0 = snap(Math.max(60 * scale, Math.min(110 * scale, W * 0.23)));
+    const gw = Math.max(Math.round(RW * scale * 0.6), Math.min(W - 2 * (sw0 + 4 * scale), Math.round(RW * scale * 0.95)));
+    const gl = Math.round((W - gw) / 2);
+    const gh = 16 * scale, lh = 9 * scale;
+    const gtop = Math.min(H - gh - 3 * scale, Math.max(front + lh + 3 * scale, top + RH * scale - gh - 3 * scale));
+    Object.assign($('spell').style, { left: gl + 'px', top: gtop + 'px', width: gw + 'px' });
+    Object.assign($('roomline').style, { left: gl + 'px', top: (gtop - lh - scale) + 'px', width: gw + 'px' });
+    Object.assign($('hint').style, { left: gl + 'px', top: (gtop + gh + scale) + 'px', width: gw + 'px' });
+    // The scrolls: where the user left them (kept on screen), or in the room's four empty corners.
+    const poly = geometry(), w = snap(Math.max(60 * scale, Math.min(110 * scale, W * 0.23))), gap = 2 * scale;
+    const corner = { 'sc-tasks': 'tl', 'sc-notes': 'bl', 'sc-board': 'tr', 'sc-log': 'br' };
+    for (const id of SCROLLS) {
+      const el = $(id), saved = store.get('cw-scroll-' + id);
+      let x, y, sw = w, sh;
+      if (saved && saved.v === 2) {
+        ({ x, y, w: sw, h: sh } = saved);
+        sw = Math.min(sw, W - 2 * gap);
+        x = Math.max(0, Math.min(W - sw, x));
+        y = Math.max(0, Math.min(H - 14 * scale, y));
+      } else {
+        const c = corner[id], right = c[1] === 'r', bottom = c[0] === 'b';
+        x = right ? W - sw - gap : gap;
+        // As tall as fits without touching the room: grow until the paper would cover a wall or the floor.
+        const yTop = bottom ? null : gap;
+        let h = 30 * scale;
+        if (!bottom) {
+          while (h < H * 0.6 && !coversRect(poly, { left: x, right: x + sw, top: yTop, bottom: yTop + h + 4 * scale })) h += 4 * scale;
+          y = yTop; sh = h;
+        } else {
+          let yy = H - gap - h;
+          while (yy > H * 0.35 && !coversRect(poly, { left: x, right: x + sw, top: yy - 4 * scale, bottom: H - gap })) yy -= 4 * scale;
+          y = yy; sh = H - gap - yy;
+        }
+      }
+      Object.assign(el.style, { left: snap(x) + 'px', top: snap(y) + 'px', width: snap(sw) + 'px', height: snap(Math.max(30 * scale, sh)) + 'px' });
     }
-    scale = Math.max(1, Math.floor(Math.min(W / RW, H / RH)));
-    const left = Math.floor((W - RW * scale) / 2), top = Math.floor((H - RH * scale) / 2);
-    Object.assign(sc, { width: RW * scale + 'px', height: RH * scale + 'px', left: left + 'px', top: top + 'px' });
-    sc.setProperty('--px', scale + 'px');
-    const R = A.room, M = CW.ROOM_META, wall = 40, base = 3, gap = 10;
-    const xc = x => (x - left) / scale, Y = y => top + y * scale;
-    const lv = R.ox - M.D * 8, rv = R.ox + M.W * 8;            // left and right vertices (x)
-    const wallL = x => (R.oy - wall) + (R.ox - x) * 0.5;       // top of the left wall
-    const wallR = x => (R.oy - wall) + (x - R.ox) * 0.5;       // top of the right wall
-    const floorL = x => R.oy + M.D * 4 + base + (x - lv) * 0.5; // front-left edge of the floor
-    const floorR = x => R.oy + M.W * 4 + base + (rv - x) * 0.5; // front-right edge of the floor
-    const w = Math.round(Math.max(270, Math.min(400, W * 0.24)));
-    const place = (id, x, y, h) => Object.assign($(id).style, { left: x + 'px', top: y + 'px', width: w + 'px', height: Math.max(90, Math.floor(h)) + 'px' });
-    const xr = xc(w), xl = xc(W - w);
-    const tl = xr <= lv ? H : Y(wallL(xr)), tr = xl >= rv ? H : Y(wallR(xl));
-    const bl = xr <= lv ? Y(R.oy + M.D * 4 - wall) : Y(floorL(xr)), br = xl >= rv ? Y(R.oy + M.W * 4 - wall) : Y(floorR(xl));
-    place('sc-tasks', gap, gap, Math.min(tl, bl) - 2 * gap);
-    place('sc-board', W - w - gap, gap, Math.min(tr, br) - 2 * gap);
-    place('sc-spell', gap, Math.max(bl, gap) + gap, H - Math.max(bl, gap) - 2 * gap);
-    place('sc-log', W - w - gap, Math.max(br, gap) + gap, H - Math.max(br, gap) - 2 * gap);
-    // The plaque sits under the floor's front corner, between the two lower scrolls.
-    const front = Y(R.oy + (M.W + M.D) * 4 + base), pl = $('plaque');
-    Object.assign(pl.style, { left: (w + 2 * gap) + 'px', right: (w + 2 * gap) + 'px' });
-    pl.style.top = Math.max(front + 4, Math.min(front + 4, H - pl.offsetHeight - 6)) + 'px';
-    if (front + 4 + pl.offsetHeight > H) pl.style.top = (H - pl.offsetHeight - 6) + 'px';
   }
-  // Rolling: the top rod rolls the paper up or down; remembered per scroll in this browser.
+
+  // Scrolls: drag the top roll to move one, press it to roll the paper up or down; drag the bottom
+  // roll to make it longer or shorter (near its right end, wider too). Keyboard: on the top roll,
+  // Enter rolls it, arrows move it, Shift + arrows resize it. Remembered in this browser.
+  function remember(el) {
+    store.set('cw-scroll-' + el.id, { v: 2, x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight, rolled: el.classList.contains('rolled') });
+  }
   for (const id of SCROLLS) {
-    const el = $(id), rod = el.querySelector('.rod');
-    let rolled = false;
-    try { rolled = G.localStorage.getItem('cw-rolled-' + id) === '1'; } catch (e) { /* sin almacenamiento */ }
-    const set = r => { el.classList.toggle('rolled', r); rod.setAttribute('aria-expanded', String(!r)); };
-    set(rolled);
-    rod.addEventListener('click', () => {
-      const r = !el.classList.contains('rolled');
-      set(r);
-      try { G.localStorage.setItem('cw-rolled-' + id, r ? '1' : '0'); } catch (e) { /* sin almacenamiento */ }
+    const el = $(id), top = el.querySelector('.roll.top'), bottom = el.querySelector('.roll.bottom');
+    const setRolled = r => { el.classList.toggle('rolled', r); top.setAttribute('aria-expanded', String(!r)); };
+    const saved = store.get('cw-scroll-' + id);
+    setRolled(!!(saved && saved.rolled));
+    const drag = (handle, onMove, onClick) => handle.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || doc.body.classList.contains('stacked')) return;
+      e.preventDefault();
+      handle.setPointerCapture(e.pointerId);
+      const sx = e.clientX, sy = e.clientY, start = { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+      let moved = false;
+      el.classList.add('dragging');
+      const move = ev => {
+        const dx = ev.clientX - sx, dy = ev.clientY - sy;
+        if (!moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+        moved = true;
+        onMove(start, dx, dy, ev);
+      };
+      const up = () => {
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', up);
+        el.classList.remove('dragging');
+        if (!moved && onClick) onClick();
+        remember(el);
+      };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', up);
     });
+    const W = () => G.innerWidth, H = () => G.innerHeight;
+    drag(top, (s, dx, dy) => {
+      el.style.left = snap(Math.max(0, Math.min(W() - s.w, s.x + dx))) + 'px';
+      el.style.top = snap(Math.max(0, Math.min(H() - 14 * scale, s.y + dy))) + 'px';
+    }, () => setRolled(!el.classList.contains('rolled')));
+    let wide = false;
+    bottom.addEventListener('pointerdown', e => { const b = bottom.getBoundingClientRect(); wide = e.clientX > b.right - 12 * scale; });
+    drag(bottom, (s, dx, dy) => {
+      if (el.classList.contains('rolled')) setRolled(false);
+      el.style.height = snap(Math.max(30 * scale, Math.min(H() - s.y, s.h + dy))) + 'px';
+      if (wide) el.style.width = snap(Math.max(40 * scale, Math.min(W() - s.x, s.w + dx))) + 'px';
+    });
+    top.addEventListener('keydown', e => {
+      const step = scale * 4, k = e.key;
+      if (k === 'Enter' || k === ' ') { e.preventDefault(); setRolled(!el.classList.contains('rolled')); remember(el); return; }
+      const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[k];
+      if (!d) return;
+      e.preventDefault();
+      if (e.shiftKey) {
+        el.style.width = Math.max(40 * scale, el.offsetWidth + d[0] * step) + 'px';
+        el.style.height = Math.max(30 * scale, el.offsetHeight + d[1] * step) + 'px';
+      } else {
+        el.style.left = Math.max(0, el.offsetLeft + d[0] * step) + 'px';
+        el.style.top = Math.max(0, el.offsetTop + d[1] * step) + 'px';
+      }
+      remember(el);
+    });
+    top.addEventListener('dblclick', () => { try { G.localStorage.removeItem('cw-scroll-' + id); } catch (e) { /* sin almacenamiento */ } layout(); });
   }
   G.addEventListener('resize', layout);
   layout();
-  // A single function the smoke test (and anyone curious) can ask: does any scroll cover the room?
+  // What the smoke test asks: does any part of the interface cover the room (in its default place)?
   CW.coversRoom = () => {
-    const r = $('screen').getBoundingClientRect(), R = A.room, M = CW.ROOM_META;
-    const P = (x, y) => [r.left + x * scale, r.top + y * scale];
-    const poly = [P(R.ox, R.oy - 40), P(R.ox + M.W * 8, R.oy + M.W * 4 - 40), P(R.ox + M.W * 8, R.oy + M.W * 4 + 3),
-      P(R.ox + (M.W - M.D) * 8, R.oy + (M.W + M.D) * 4 + 3), P(R.ox - M.D * 8, R.oy + M.D * 4 + 3), P(R.ox - M.D * 8, R.oy + M.D * 4 - 40)];
-    const inside = (x, y) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
-    const out = [];
-    for (const id of SCROLLS.concat(['plaque'])) {
-      const b = $(id).getBoundingClientRect();
-      for (let x = b.left + 1; x < b.right; x += 6) for (let y = b.top + 1; y < b.bottom; y += 6) if (inside(x, y)) { out.push(id); x = b.right; break; }
-    }
-    return out;
+    const poly = geometry();
+    return SCROLLS.concat(['spell', 'roomline']).filter(id => coversRect(poly, $(id).getBoundingClientRect()));
   };
 
   $('room').addEventListener('click', e => {
@@ -605,7 +673,8 @@
       if (sim) sim.tick(dt);
       world.update(dt);
       view.draw(world);
-      if (crtOn) { bctx.clearRect(0, 0, $('bloom').width, $('bloom').height); bctx.drawImage($('room'), 0, 0); }
+      bctx.clearRect(0, 0, $('bloom').width, $('bloom').height);
+      bctx.drawImage($('room'), 0, 0);                 // the CRT's glow: always on
     } catch (err) {
       if (!loopErr) { loopErr = true; G.console.error(err); }
     }

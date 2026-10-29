@@ -120,6 +120,7 @@
       this.palOf = g => (g === 'archmage' ? A.pal.archmage : (A.pal.guilds[g] || A.pal.guilds.unknown));
       this.lightOf = g => rgb(this.palOf(g)[2]);
       this.bookCols = ['r1', 'b1', 'g1'].map(this.sc);
+      this.logo = paint(I.logo, S);                      // CODEWIZARDS, in the band above the room (step 6f)
     }
 
     sp(x, y) {
@@ -164,6 +165,13 @@
         c.drawImage(this.flames[tc.side][ff], tc.fx, tc.fy);
       }
       for (const tc of A.torches) [0.10, 0.12, 0.16].forEach((a, b) => this.add(this.halos[b], tc.hx - 8, tc.hy - 8, a));
+      // The candelabrum and the cauldron's fire glow and flicker too (step 6f).
+      for (const [n, fl] of A.flames.entries()) {
+        const k = 0.08 + 0.04 * Math.sin(t * 9 + n * 1.7);
+        this.add(this.halos[1], fl.x - 8, fl.y - 8, k);
+        this.add(this.halos[2], fl.x - 8, fl.y - 8, k + 0.05);
+      }
+      c.drawImage(this.logo, A.logo.x, A.logo.y);
       this.runeCircle(world);
       const items = this.props.map(p => ({ d: p.depth, p }));
       for (const w of world.wizards.values()) if (!w.outside) items.push({ d: w.x + w.y, w });

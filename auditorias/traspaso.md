@@ -294,3 +294,20 @@
 - Decisiones de Pol: las de `docs/agentes.md` del 25/10/2026.
 - Encargos: (paso 7) los textos de los pergaminos y de la placa, y el sonido.
 - Pruebas para Pol: aplicar `paso-6a.patch` a `paso-6e.patch` en orden; `codewizards demo` en pantalla completa.
+
+## Paso 6 · Pulido final del arte · 25/10/2026
+- Cambios (detalle en `auditorias/arte_paso6.md` §9):
+  - La ventana entera como pantalla con CRT.
+  - Un solo tamaño de píxel para sala, interfaz y cursor.
+  - Logo arriba y grimorio abajo, con el nombre de la sala y «Cambiar de sala».
+  - Pergaminos de papel que se mueven, se alargan y se enrollan.
+  - Textos con voz de magos.
+  - Fuera la velocidad, aprobar solo y el interruptor del CRT.
+  - Muros irregulares con hiedra, vidrieras nuevas, mesa de alquimia larga, sin butaca y muebles nuevos.
+  - Arte exportado a `codewizards-art/` (props y `05_ui/`).
+  - Versión 1.6.5.
+- Decisiones de Pol: en `docs/agentes.md`, entrada del 25/10/2026 tras probar la v1.6.4.
+- Encargos:
+  - (paso 7) los textos nuevos, en inglés, conservando la voz de magos;
+  - (Pol) retoques a mano en Aseprite de lo que quiera, sobre todo iconos, cursor y poses de leer y escribir.
+- Pruebas para Pol: `git am paso-6f.patch`; `codewizards demo`; mover, alargar y enrollar los pergaminos; lanzar un hechizo desde el grimorio.
