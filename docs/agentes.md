@@ -42,6 +42,7 @@ CodeWizards es una app local y open source que dirige los CLI oficiales de agent
 - Maqueta v0 del hito 0: sala, grimorio, pizarra y pergamino con agentes simulados. Hito 0 cerrado (tag `v1.0`). Desde v1.2 es la sala de la app, en `apps/room/`.
 - Seguridad del repo y CI: escaneo de secretos, acciones fijadas por SHA y ajustes de GitHub (`auditorias/seguridad.md`).
 - Paso 1 (producto y marca) hecho en v1.1: `auditorias/producto.md`.
+- Paso 8 (producto y marca, fase B) hecho en v1.8.0 (30/10/2026): la web codewizards.app (`site/`, con la demo en `/demo/`), capturas y GIF, búsqueda de la marca, política de privacidad, plan de las 4 primeras semanas y la extensión de VS Code en preview. Detalle en `auditorias/producto_paso8.md`.
 - Paso 7 (sonido y copy): sonido chiptune, interfaz en inglés y el Archimago que planifica en v1.7.0 (25/10/2026); nombres de los gremios, glosario y manual de tono en v1.7.1 (30/10/2026). Detalle en `auditorias/copy.md`.
 - Paso 6 (arte GBC, ronda 1):
   - Parche 6a en v1.6.0 (23/10/2026): gremios del contrato (sin Copilot, `google` y paleta del desconocido), rangos por silueta, Archimago de 16 × 32 y nueve poses en 8 direcciones.
@@ -131,6 +132,11 @@ Decididas el 30/10/2026, al cerrar el paso 7 (`auditorias/copy.md` §5):
 
 - Gremios: Amber Order (Anthropic), Cerulean Circle (OpenAI), Crimson Synod (Google), Indigo Lodge (DeepSeek), Jade Cloister (Qwen, de Alibaba Cloud) y Violet Conclave (Meta). Crimson Synod sustituye a Crimson Court, que es una marca de Red Hook Studios.
 - Las palabras de la torre tienen una sola fuente, `apps/room/src/words.js`, de la que sale `docs/glossary.md`.
+
+Decididas el 30/10/2026, en el paso 8 (`auditorias/producto_paso8.md`):
+
+- La web codewizards.app es introductoria y en inglés, con la estética de la sala; se publica con GitHub Pages y la demo va en `/demo/`.
+- La extensión de VS Code se hace ya, en preview: la sala en un panel con el núcleo local. No se publica en el Marketplace hasta que Pol la pruebe.
 
 ### Estilo vigente (GBC)
 
@@ -401,7 +407,7 @@ Criterios: ningún término cambia de nombre según la pantalla; la metáfora nu
 Los riesgos mayores son los términos de los proveedores y el consumo de las cuentas del usuario; se controlan con los binarios oficiales sin modificar, sin tocar credenciales y con topes de uso desde el hito 3 (detalle en `auditorias/producto.md` §6).
 
 - **Términos de los proveedores**: cada CLI, con sus condiciones; Anthropic exige su binario sin modificar y sus términos comerciales, y prohíbe intermediar credenciales.
-- **Marcas de terceros**: nombres de fantasía, el fabricante como dato, emblemas propios y aviso de no afiliación. El paso 7 cerró los nombres (v1.7.1) y el paso 8 busca la marca CodeWizards.
+- **Marcas de terceros**: nombres de fantasía, el fabricante como dato, emblemas propios y aviso de no afiliación. El paso 7 cerró los nombres (v1.7.1). La búsqueda del paso 8 encontró una marca cercana en EE. UU. (CODE WIZARD, clase 9): hace falta una búsqueda profesional (`auditorias/marca.md`).
 - **Consumo**: un bucle de agentes agota el límite del plan del usuario; topes por tarea y por sala desde la primera llamada real (provisionales en `docs/arquitectura.md` §10).
 - **Modo headless de Claude Code**: Anthropic pausó, sin descartarlo, que `claude -p` con suscripción gaste un crédito aparte; desde el 7/10/2026 los planes Max y Team incluyen créditos de API que cubren `claude -p` solo con clave de API, y con la sesión del plan sigue gastando los límites del plan. También anuncia que `--bare`, que no usa la sesión de la suscripción, será el modo por defecto de `-p`. El adaptador no lo usa y hay que comprobarlo con cada versión (paso 9); si llega, la alternativa es la sesión interactiva con hooks (`auditorias/software.md` §3).
 - **Seguridad**: el código que escriben los agentes nunca se ejecuta sin aislamiento.
@@ -431,6 +437,7 @@ Preguntas para Pol:
 - `auditorias/simulacion.md` (paso 4): la máquina de estados, las colas, el ritmo, el aforo y los recursos visibles.
 - `auditorias/uiux.md` (paso 5): decisiones de interfaz, clics por tarea y lo que queda para la ronda 2.
 - `auditorias/arte_paso6.md` (paso 6): rangos, poses, gremios y la sala en cruz.
+- `auditorias/producto_paso8.md` (paso 8): la web, las capturas, la privacidad y la extensión de VS Code; `auditorias/marca.md`: la búsqueda de la marca; `auditorias/lanzamiento.md`: las 4 primeras semanas; `docs/web.md`: cómo se publica la web y los pasos del dominio.
 - `auditorias/copy.md` (paso 7): manual de tono y nombres de los gremios; `docs/glossary.md`: el glosario, generado desde `apps/room/src/words.js`.
 - `docs/concepto/contexto_general.md` (v3.2): visión, marca y arquitectura de partida; donde choque con este plan, manda el plan.
 - Ronda SNES (arte, generador y documentos de estilo): en el tag `v1.0`; sus correcciones de geometría están en `auditorias/arte_ronda1_snes.md`.

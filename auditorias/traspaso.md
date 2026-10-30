@@ -334,3 +334,24 @@
   - (arte, cuando se regenere) quitar `names` de `build.py`.
 - Preguntas abiertas: ninguna.
 - Pruebas para Pol: `git am paso-7.patch`; `codewizards demo`; pasar el ratón por Bless, Mana y el nombre del gremio de una tarea; `codewizards --help`.
+
+## Paso 8 · Producto y marca (B) · 30/10/2026
+- Cambios (detalle en `auditorias/producto_paso8.md`):
+  - La web codewizards.app en `site/`: introductoria, en inglés y con la estética de la sala, con la demo en `/demo/`. La construye `tools/site.mjs` y la publica Pages.
+  - El workflow de Pages ya no olvida `ui.gen.css`.
+  - Capturas y GIF de la sala (`tools/capture.mjs` y `capture.py`).
+  - Búsqueda de la marca (`auditorias/marca.md`) y política de privacidad (`site/privacy.html`).
+  - Plan de las 4 primeras semanas (`auditorias/lanzamiento.md`) y pasos del dominio (`docs/web.md`).
+  - Extensión de VS Code en preview (`apps/vscode/`), con `--frame-ancestor` en el núcleo.
+  - La prueba de humo añade la web (F) y la sala dentro de otra página (G).
+  - Versión 1.8.0.
+- Archivos tocados: `site/` (nuevo), `apps/vscode/` (nuevo), `tools/` (`site.mjs`, `capture.mjs` y `capture.py`, nuevos; `smoke.mjs`), `apps/core/src/` (`cli.js` y `server.js`), `.github/workflows/` (`pages.yml` y `ci.yml`), `docs/img/`, `docs/web.md`, `package.json`, documentación.
+- Decisiones de Pol: las de `docs/agentes.md` del 30/10/2026 (paso 8).
+- Encargos:
+  - (paso 9) README rehecho, publicación en npm y quitar de la web la nota sobre la instalación desde GitHub;
+  - (Pol) dominio, búsqueda profesional de la marca, probar la extensión y buscar Amber Order, Indigo Lodge y Jade Cloister.
+- Preguntas abiertas: ¿se mantiene el nombre CodeWizards tras la búsqueda profesional?
+- Pruebas para Pol:
+  - `git am paso-8.patch`;
+  - `node tools/site.mjs serve` y abrir la dirección que muestra;
+  - `code --install-extension codewizards-0.1.0.vsix` y «CodeWizards: Open the demo».

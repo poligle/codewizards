@@ -4,7 +4,10 @@
 //   C. the live room served by the core (`codewizards demo`), events over the WebSocket;
 //   D. `codewizards serve` on a throw-away git repo with the tests' fake Claude Code: cast, the diff
 //      on the blackboard, approve, and the commit lands on the task branch;
-//   E. `codewizards` alone: La Torre, founding a room in a new repository and entering it.
+//   E. `codewizards` alone: The Tower, founding a room in a new repository and entering it;
+//   G. the room inside another page, as the VS Code extension shows it (--frame-ancestor);
+//   F. codewizards.app as tools/site.mjs builds it: the page, its links and images, the words it
+//      borrows from the room, the demo in /demo/ and a phone's width.
 // Fails on any page error, console error or request that leaves the machine. Also checks that a
 // spell completes, that an unknown guild or a repeated event never freezes the room, that CRT is
 // remembered, that the token leaves the address bar and that another origin cannot connect.
@@ -20,6 +23,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import http from 'node:http';
 import { chromium, firefox } from 'playwright';
+import { build as buildSite, serveDir } from './site.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'tools', 'smoke', 'out');
@@ -30,17 +34,11 @@ const BROWSER = browserArg > 0 ? process.argv[browserArg + 1] : 'chromium';
 const ROOM_SRC = path.join(ROOT, 'apps', 'room', 'src');
 fs.mkdirSync(OUT, { recursive: true });
 
-// The demo as GitHub Pages serves it: plain static files over http, no CSP header.
-function startStatic() {
-  const types = { html: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8' };
-  const server = http.createServer((req, res) => {
-    const name = new URL(req.url, 'http://x').pathname.replace(/^\/$/, '/index.html').slice(1);
-    const file = path.join(ROOM_SRC, path.basename(name));
-    if (name.includes('/') || !fs.existsSync(file)) { res.writeHead(404); res.end(); return; }
-    res.writeHead(200, { 'Content-Type': types[file.split('.').pop()] || 'application/octet-stream' });
-    fs.createReadStream(file).pipe(res);
-  });
-  return new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve({ server, url: `http://127.0.0.1:${server.address().port}/` })));
+// The site as GitHub Pages serves it (tools/site.mjs builds it): plain static files over http, no CSP
+// header, the room's demo in /demo/.
+async function startStatic() {
+  const { server, url } = await serveDir(buildSite(fs.mkdtempSync(path.join(os.tmpdir(), 'cw-site-'))));
+  return { server, url: url + 'demo/', site: url };
 }
 let STATIC = pathToFileURL(path.join(ROOM_SRC, 'index.html')).href;
 
@@ -297,6 +295,71 @@ async function claudeRoom(browser) {
   }
 }
 
+// F. codewizards.app: the page, its links and images, the room's words, the demo and a phone.
+async function sitePage(browser, site) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const w = watch(page, u => u.startsWith(site) || u.startsWith('data:'));
+  await page.goto(site);
+  await page.evaluate(() => document.fonts.ready);
+  const imgs = await page.evaluate(() => [...document.images].map(i => ({ src: i.currentSrc || i.src, ok: i.complete && i.naturalWidth > 0 })));
+  check(imgs.length >= 3 && imgs.every(i => i.ok), `F site: every image loads${imgs.every(i => i.ok) ? '' : ': ' + imgs.filter(i => !i.ok).map(i => i.src).join(', ')}`);
+  check(await page.evaluate(() => document.fonts.check('24px "CW Pixel"') && getComputedStyle(document.querySelector('.motto')).fontFamily.includes('CW Pixel')), 'F site: the room\'s pixel font');
+  check((await page.locator('.guilds li').count()) === 6 && /Amber Order/.test(await page.textContent('.guilds')) && (await page.locator('.guilds .emb').count()) === 6, 'F site: the six guilds and their emblems, from the room\'s words and art');
+  check((await page.locator('.words dt').count()) >= 10, 'F site: the words of the tower, from the glossary');
+  check(/not affiliated with, endorsed or sponsored by Anthropic/.test(await page.textContent('footer')), 'F site: the notice of non-affiliation');
+  const links = await page.evaluate(() => [...document.querySelectorAll('a[href]')].map(a => a.href));
+  const bad = [];
+  for (const h of [...new Set(links.filter(h => h.startsWith(site)).map(h => h.split('#')[0]))]) {
+    const r = await page.request.get(h);
+    if (r.status() !== 200) bad.push(`${h} ${r.status()}`);
+  }
+  check(bad.length === 0, `F site: every link inside the site works${bad.length ? ': ' + bad.join(', ') : ''}`);
+  check((await page.evaluate(() => [...document.querySelectorAll('a[href^="#"]')].filter(a => a.getAttribute('href').length > 1 && !document.querySelector(a.getAttribute('href'))).length)) === 0, 'F site: every anchor has its target');
+  check((await page.request.get(site + 'nowhere')).status() === 404 && (await page.request.get(site + 'apps/maqueta/maqueta.html')).status() === 200, 'F site: a 404 page, and the old demo address still answers');
+  await page.screenshot({ path: path.join(OUT, 'site.png') });
+  await page.click('a.btn.primary');
+  const demo = await page.waitForFunction(() => /illusion/i.test((document.getElementById('mode') || {}).textContent || ''), null, { timeout: 10000 }).then(() => true, () => false);
+  check(demo && page.url().startsWith(site + 'demo/'), 'F site: «Try the demo» opens the room in /demo/');
+  check(w.errors.length === 0, `F site: no page or console errors ${w.errors.join(' | ')}`);
+  check(w.external.length === 0, `F site: no requests leave the machine ${w.external.join(' ')}`);
+  await page.close();
+  const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await phone.goto(site);
+  check(await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'F site: no sideways scroll on a phone');
+  await phone.screenshot({ path: path.join(OUT, 'site-phone.png'), fullPage: false });
+  await phone.close();
+}
+
+// G. The room inside another page, as the VS Code extension's panel shows it (here, a page on another
+// port): it works with --frame-ancestor for that page, and no page can frame it without it.
+async function embeddedRoom(browser) {
+  let roomUrl = '';
+  const host = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(`<!doctype html><title>host</title><iframe id="f" src="${roomUrl}" style="width:1280px;height:800px;border:0"></iframe>`);
+  });
+  await new Promise(resolve => host.listen(0, '127.0.0.1', resolve));
+  const origin = `http://127.0.0.1:${host.address().port}`;
+  const allowed = await startCore(['demo', '--frame-ancestor', origin]);
+  const refused = await startCore(['demo']);
+  try {
+    const page = await browser.newPage({ viewport: { width: 1300, height: 840 } });
+    roomUrl = allowed.info.url;
+    await page.goto(origin + '/');
+    const inside = await page.frameLocator('#f').locator('#hint').filter({ hasText: /tower is listening/ }).waitFor({ timeout: 15000 }).then(() => true, () => false);
+    check(inside, 'G embedded: with --frame-ancestor, the room works inside that page (the VS Code panel)');
+    roomUrl = refused.info.url;
+    await page.goto(origin + '/again');
+    const shown = await page.frameLocator('#f').locator('#mode').waitFor({ timeout: 4000 }).then(() => true, () => false);
+    check(!shown, 'G embedded: without it, no other page can frame the room');
+    await page.close();
+  } finally {
+    allowed.child.kill();
+    refused.child.kill();
+    host.close();
+  }
+}
+
 async function towerRoom(browser) {
   const env = {
     ...process.env, CW_CLAUDE_BIN: path.join(ROOT, 'apps', 'core', 'test', 'fixtures', 'fake-claude.mjs'),
@@ -340,6 +403,8 @@ try {
   await liveRoom(browser);
   await claudeRoom(browser);
   await towerRoom(browser);
+  await sitePage(browser, statics.site);
+  await embeddedRoom(browser);
 } catch (err) {
   check(false, 'smoke test crashed: ' + (err && err.stack || err));
 } finally {

@@ -55,7 +55,8 @@ Usage
           short call to the cheapest model); --no-plan leaves it to the rules.
   doctor  Checks node, git, gh and claude without reading any credentials.
 
-The room opens at http://127.0.0.1:PORT/#token=...: keep that address to yourself.
+The room opens at http://127.0.0.1:PORT/#token=...: keep that address to yourself. No other page can show
+it in a frame; --frame-ancestor vscode-webview: lets the CodeWizards extension for VS Code do so.
 Data (event logs, worktrees) lives in ${dataDir()}.
 
 ${wrap(WORDS.notice)}
@@ -66,6 +67,7 @@ const FLAGS = {
   '--max-agents': 'int', '--max-tasks': 'int', '--room-tokens': 'int', '--max-budget-usd': 'num', '--repo': 'str',
   '--no-open': 'bool', '--log': 'bool', '--json': 'bool', '--open-prs': 'bool', '--no-sandbox': 'bool',
   '--merge': 'bool', '--record': 'bool', '--use-api-key': 'bool', '--ranks': 'str', '--effort': 'str', '--no-plan': 'bool',
+  '--frame-ancestor': 'str',
 };
 
 export function parseArgs(argv) {
@@ -89,6 +91,9 @@ export function parseArgs(argv) {
     }
   }
   if (typeof out.rank === 'string') out.rank = RANK_IDS[out.rank.toLowerCase()] || out.rank;
+  if (out['frame-ancestor'] !== undefined && !/^(vscode-webview:|http:\/\/(127\.0\.0\.1|localhost):\d{1,5})$/.test(out['frame-ancestor'])) {
+    throw new Error('--frame-ancestor must be vscode-webview: (the VS Code extension) or http://127.0.0.1:PORT');
+  }
   return out;
 }
 
@@ -103,7 +108,7 @@ function say(opts, obj, text) {
 }
 
 async function serveRoom(opts, room, store, tower = null) {
-  const srv = await startServer({ room, store, tower, port: opts.port || 0 });
+  const srv = await startServer({ room, store, tower, port: opts.port || 0, frameAncestor: opts['frame-ancestor'] || null });
   const mode = room ? room.mode : 'tower';
   const url = room && tower ? `${srv.url}&room=${store.room}` : srv.url;
   say(opts, { event: 'listening', url, room: store ? store.room : null, mode, version: VERSION },

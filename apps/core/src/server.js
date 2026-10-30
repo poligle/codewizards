@@ -70,20 +70,24 @@ export function sanitize(m) {
  *   store: import('./store.js').EventStore, port?: number, token?: string}} o
  * @returns {Promise<{url: string, port: number, token: string, close: () => Promise<void>}>}
  */
-export function startServer({ room = null, store = null, tower = null, port = 0, token = newToken() }) {
+export function startServer({ room = null, store = null, tower = null, port = 0, token = newToken(), frameAncestor = null }) {
   let actual = port;
   const hosts = () => new Set([`127.0.0.1:${actual}`, `localhost:${actual}`]);
   const origins = () => new Set([`http://127.0.0.1:${actual}`, `http://localhost:${actual}`]);
+  // Only the VS Code extension's panel may frame the room, and only when the core is told so
+  // (--frame-ancestor); every other page is refused, as before.
+  const framing = frameAncestor ? { 'Cross-Origin-Resource-Policy': 'cross-origin' }
+    : { 'Cross-Origin-Resource-Policy': 'same-origin', 'X-Frame-Options': 'DENY' };
   const csp = () => [
     "default-src 'none'", "script-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data:", "font-src 'self' data:",
-    `connect-src ws://127.0.0.1:${actual} ws://localhost:${actual}`, "base-uri 'none'", "form-action 'none'", "frame-ancestors 'none'",
+    `connect-src ws://127.0.0.1:${actual} ws://localhost:${actual}`, "base-uri 'none'", "form-action 'none'", `frame-ancestors ${frameAncestor || "'none'"}`,
   ].join('; ');
 
   const server = http.createServer((req, res) => {
     const send = (code, body = '', type = 'text/plain; charset=utf-8') => {
       res.writeHead(code, {
         'Content-Type': type, 'Content-Security-Policy': csp(), 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
-        'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Resource-Policy': 'same-origin', 'X-Frame-Options': 'DENY', 'Cache-Control': 'no-store',
+        'Cross-Origin-Opener-Policy': 'same-origin', ...framing, 'Cache-Control': 'no-store',
       });
       res.end(req.method === 'HEAD' ? undefined : body);
     };

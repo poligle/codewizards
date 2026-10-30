@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en" class="px3">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>CodeWizards: your coding agents as a tower of wizards</title>
+<meta name="description" content="A free, local, open-source app that runs Claude Code with your own plan and shows its work as pixel-art wizards. You judge every change before it is committed.">
+<meta property="og:title" content="CodeWizards">
+<meta property="og:description" content="Do not vibecode. Spellcode.">
+<meta property="og:image" content="https://codewizards.app/img/og.png">
+<meta property="og:url" content="https://codewizards.app/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://codewizards.app/">
+<link rel="icon" href="img/favicon.png" type="image/png">
+<link rel="stylesheet" href="demo/ui.gen.css">
+<link rel="stylesheet" href="site.css">
+<script>document.documentElement.className = 'px' + (matchMedia('(max-width: 540px)').matches ? 2 : 3);</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<div class="crt" aria-hidden="true"><div class="mask"></div><div class="scan"></div><div class="vig"></div></div>
+<header class="masthead">
+  <h1><img class="logo" src="img/logo.png" width="68" height="10" alt="CodeWizards"></h1>
+  <nav aria-label="Site"><a href="demo/">Demo</a><a href="#install">Install</a><a href="https://github.com/poligle/codewizards">Source</a></nav>
+</header>
+<main id="main">
+<section class="hero" aria-labelledby="motto">
+  <div class="pitch">
+    <p class="motto" id="motto">Do not vibecode. Spellcode.</p>
+    <p class="lede">CodeWizards runs Claude Code on your computer, with your own plan, and shows its work as wizards in a pixel-art tower. Every spell becomes quests on their own branches, and you judge each change on the blackboard before it is committed.</p>
+    <p class="ctas"><a class="btn primary" href="demo/">Try the demo</a><a class="btn" href="#install">Install</a></p>
+    <p class="small">Free and open source. No server, no account, no telemetry. The demo runs in your browser and calls no model.</p>
+  </div>
+  <figure class="room">
+    <picture>
+      <source srcset="img/room.png" media="(prefers-reduced-motion: reduce)">
+      <img src="img/room.gif" width="240" height="170" alt="The tower room: wizards walk in, read at the library, write at the alchemy table and present their change on the blackboard.">
+    </picture>
+    <figcaption>The demo, sped up.</figcaption>
+  </figure>
+</section>
+
+<section class="scroll" aria-labelledby="h-how">
+  <div class="roll top"><h2 id="h-how" class="title">How a spell becomes a change</h2></div>
+  <div class="paper">
+    <ol class="steps">
+      <li><b>Cast a spell.</b> Write what you want in the spell book. Choose a wizard's rank, or leave it to the Archmage.</li>
+      <li><b>The Archmage plans.</b> It splits the spell into quests and picks each one's rank, model and effort: its rules, plus one short call to the cheapest model.</li>
+      <li><b>Wizards work.</b> Each quest gets a wizard: Claude Code, with your plan, in its own git worktree and branch, so your checkout is not touched. You watch it read at the library and write at the alchemy table.</li>
+      <li><b>You judge.</b> The wizard presents its diff, file by file, on the blackboard. Bless it and it is committed to the quest's branch; send it back with your words and the same wizard tries again.</li>
+      <li><b>Seal it.</b> Merge the blessed branch yourself, open a draft pull request, or let CodeWizards fast-forward it into your branch. It never forces a merge.</li>
+    </ol>
+  </div>
+  <div class="roll bottom" aria-hidden="true"></div>
+</section>
+
+<section class="scroll" aria-labelledby="h-plan">
+  <div class="roll top"><h2 id="h-plan" class="title">Your plan, your machine</h2></div>
+  <div class="paper">
+    <p>CodeWizards is free. It runs on your computer and drives the official agent CLI, unmodified, under your own account: today Claude Code, with your Claude plan. The wizards spend that plan's usage, which the room shows as mana, and caps per quest and per room stop a runaway loop.</p>
+    <p>It never reads or stores your credentials, and it does not hand an API key to Claude Code unless you ask it to with <code>--use-api-key</code>. There is no CodeWizards server: your code goes where Claude Code sends it, as it would without the tower. Read the <a href="privacy.html">privacy policy</a>.</p>
+  </div>
+  <div class="roll bottom" aria-hidden="true"></div>
+</section>
+
+<section class="scroll" aria-labelledby="h-words">
+  <div class="roll top"><h2 id="h-words" class="title">Words of the tower</h2></div>
+  <div class="paper">
+    <p>Every magic word stands for one technical thing and keeps its name everywhere. In the room, hover over a word to read what it means.</p>
+    <dl class="words"><!-- words: spell quest wizard rank arcana focus mana blackboard bless sendBack seal chronicle illusion --></dl>
+    <p><a href="https://github.com/poligle/codewizards/blob/main/docs/glossary.md">The whole glossary</a></p>
+  </div>
+  <div class="roll bottom" aria-hidden="true"></div>
+</section>
+
+<section class="scroll" aria-labelledby="h-guilds">
+  <div class="roll top"><h2 id="h-guilds" class="title">The guilds</h2></div>
+  <div class="paper">
+    <p>One guild per model maker, each with a name, a colour and an emblem of its own. The maker is data: CodeWizards is not affiliated with any of them. The Amber Order works today; the others are planned.</p>
+    <ul class="guilds"><!-- guilds --></ul>
+  </div>
+  <div class="roll bottom" aria-hidden="true"></div>
+</section>
+
+<section class="scroll" id="install" aria-labelledby="h-install">
+  <div class="roll top"><h2 id="h-install" class="title">Install</h2></div>
+  <div class="paper">
+    <p>You need Node.js 22 or later and git. For real wizards, install <a href="https://code.claude.com/docs">Claude Code</a> and sign in once; the demo needs neither. The GitHub CLI (<code>gh</code>) is only needed for draft pull requests.</p>
+    <ol class="steps">
+      <li><b>Install the tower.</b><pre><code>npm install -g codewizards</code></pre><span class="note">Before the first npm release: <code>npm install -g github:poligle/codewizards</code></span></li>
+      <li><b>Open the demo.</b> Simulated wizards: no agent, no account, no network.<pre><code>codewizards demo</code></pre></li>
+      <li><b>Check your tools.</b> It looks for node, git, gh and claude without reading any credentials.<pre><code>codewizards doctor</code></pre></li>
+      <li><b>Open a room on a repository of yours.</b><pre><code>codewizards serve --repo ~/code/my-project</code></pre>Or just run <code>codewizards</code>: The Tower lists your rooms and founds new ones.</li>
+    </ol>
+    <p>macOS and Linux are at home in the tower. On Windows the wizards get no Bash, because Claude Code's sandbox needs WSL2: run CodeWizards inside WSL2 for the full tower.</p>
+  </div>
+  <div class="roll bottom" aria-hidden="true"></div>
+</section>
+</main>
+<footer class="foot">
+  <p><img class="logo small" src="img/logo.png" width="68" height="10" alt="CodeWizards"> version <!-- version --></p>
+  <p>Code under the <a href="https://github.com/poligle/codewizards/blob/main/LICENSE">MIT licence</a>, art under <a href="https://github.com/poligle/codewizards/blob/main/codewizards-art/LICENSE">CC BY 4.0</a>. The name and the logo are not licensed.</p>
+  <p class="links"><a href="privacy.html">Privacy</a><a href="https://github.com/poligle/codewizards">Source</a><a href="https://github.com/poligle/codewizards/issues">Issues</a><a href="https://github.com/poligle/codewizards/releases">Releases</a></p>
+  <p class="notice"><!-- notice --></p>
+</footer>
+</body>
+</html>

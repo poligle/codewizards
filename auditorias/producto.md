@@ -145,6 +145,8 @@ Un bucle de agentes agota el límite del plan del usuario. Mitigación: topes po
 | Limpieza | Completa; el estado anterior queda en el tag `v1.0` |
 
 ## 9. Encargos
+
+> Paso 8 hecho el 30/10/2026: resumen y pendientes en `auditorias/producto_paso8.md`.
 - **Paso 2 · arquitectura:**
   - Replantear la arquitectura para la app local: empaquetado (CLI con la sala en el navegador, app de escritorio o extensión) y qué se descarga desde `codewizards.app`.
   - Un adaptador por CLI que lance el binario oficial sin modificar y traduzca su salida (hooks, salida JSON o lo que cada CLI ofrezca) al contrato v0. Primero Claude Code.

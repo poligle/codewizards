@@ -1,16 +1,20 @@
 name: pages
 
-# Publishes only the room demo (apps/room/src) to GitHub Pages, instead of the whole repository.
-# Needs Settings → Pages → Build and deployment → Source: "GitHub Actions" (while it says "Deploy
-# from a branch", Pages keeps rendering the README). Then run this workflow once by hand. The old
-# mockup URL redirects to the demo. No configure-pages step: a plain static site does not need it,
-# and the build job keeps read-only permissions.
+# Publishes codewizards.app (step 8): the page in site/ and the room's demo in /demo/, as
+# tools/site.mjs builds them. Needs Settings → Pages → Build and deployment → Source: "GitHub
+# Actions"; the custom domain is set there too (docs/web.md has the steps). No configure-pages
+# step: a plain static site does not need it, and the build job keeps read-only permissions.
 
 on:
   push:
     branches: [main]
     paths:
+      - 'site/**'
       - 'apps/room/src/**'
+      - 'apps/core/src/words.js'
+      - 'codewizards-art/05_ui/**'
+      - 'tools/site.mjs'
+      - 'package.json'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -23,22 +27,18 @@ concurrency:
 
 jobs:
   build:
-    name: Build the demo site
+    name: Build the site and the demo
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Assemble _site
-        run: |
-          mkdir -p _site/apps/maqueta
-          cp apps/room/src/index.html apps/room/src/style.css apps/room/src/*.js _site/
-          cat > _site/apps/maqueta/maqueta.html <<'HTML'
-          <!doctype html><meta charset="utf-8"><title>CodeWizards</title>
-          <meta http-equiv="refresh" content="0; url=../../">
-          <p>The demo moved: <a href="../../">open it here</a>.</p>
-          HTML
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Build _site (no dependencies needed)
+        run: node tools/site.mjs build _site
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site

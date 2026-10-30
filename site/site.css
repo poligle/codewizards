@@ -1,0 +1,93 @@
+/* codewizards.app (step 8): the room's look on a page you read. The art (rolls, paper, edges, the
+   wand cursor and the pixel font) comes from the room's own demo/ui.gen.css; --px is one pixel of
+   art, always a whole number of screen pixels, and the pixel font's em is 8 of them. */
+:root{--px:3px;--room:2;--bg:#181828;--panel:#f8f0d8;--ink:#181828;--muted:#784028;--accent:#f8c040;--line:#181828;
+  --code:#f0e8c8;--focus:#2858a8;--ready:#206830;--shadow:#080810;--dim:#c8c0d8}
+@media (min-width:1180px){:root{--room:3}}
+@media (max-width:540px){:root{--px:2px;--room:1}}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;color:var(--panel);background:var(--bg);font:17px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent);text-underline-offset:.2em}
+:focus-visible{outline:var(--px) solid var(--accent);outline-offset:var(--px)}
+.paper a{color:var(--focus)}
+.paper :focus-visible{outline-color:var(--focus)}
+.skip{position:absolute;left:-9999px;top:0}
+.skip:focus{left:calc(var(--px) * 4);top:calc(var(--px) * 4);z-index:20;padding:calc(var(--px) * 2) calc(var(--px) * 4);background:var(--panel);color:var(--ink)}
+
+/* The CRT, as in the room, but still: a page you read does not flicker. */
+.crt{position:fixed;inset:0;z-index:9;pointer-events:none}
+.crt div{position:absolute;inset:0}
+.crt .scan{background:repeating-linear-gradient(to bottom,rgba(0,0,0,.12) 0,rgba(0,0,0,.12) calc(var(--px) / 2),transparent calc(var(--px) / 2),transparent var(--px))}
+.crt .mask{background:repeating-linear-gradient(to right,rgba(255,64,64,.03) 0 1px,rgba(64,255,64,.03) 1px 2px,rgba(64,64,255,.03) 2px 3px)}
+.crt .vig{background:radial-gradient(ellipse at 50% 40%,transparent 62%,rgba(0,0,0,.45) 100%)}
+
+/* The pixel font: capitals only, at 8 x --px so that each of its pixels is one pixel of art. */
+.title,.motto,.btn,.masthead nav a,.words dt,.guilds b,.state,.steps li::marker,.paper h2{font-family:"CW Pixel",ui-monospace,monospace;
+  -webkit-font-smoothing:none;font-smooth:never;font-weight:400;text-transform:uppercase;letter-spacing:0}
+.logo{display:block;width:calc(var(--px) * 136);height:auto;image-rendering:pixelated}
+.logo.small{display:inline-block;width:calc(var(--px) * 68);vertical-align:-.1em;margin-right:.4em}
+
+.masthead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:calc(var(--px) * 6);
+  max-width:calc(var(--px) * 400);margin:0 auto;padding:calc(var(--px) * 10) calc(var(--px) * 6) 0}
+.masthead h1,.masthead .home{margin:0}
+.masthead nav{display:flex;gap:calc(var(--px) * 8)}
+.masthead nav a{font-size:calc(var(--px) * 8);line-height:calc(var(--px) * 7);color:var(--panel);text-decoration:none}
+.masthead nav a:hover{color:var(--accent)}
+
+main{max-width:calc(var(--px) * 400);margin:0 auto;padding:0 calc(var(--px) * 6)}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:calc(var(--px) * 14);align-items:center;padding:calc(var(--px) * 14) 0 calc(var(--px) * 20)}
+.motto{margin:0 0 calc(var(--px) * 8);color:var(--accent);font-size:calc(var(--px) * 16);line-height:calc(var(--px) * 15)}
+.lede{margin:0 0 calc(var(--px) * 10);max-width:34em;font-size:20px;line-height:1.5}
+.ctas{display:flex;flex-wrap:wrap;gap:calc(var(--px) * 5);margin:0 0 calc(var(--px) * 8)}
+.btn{display:inline-block;padding:calc(var(--px) * 3) calc(var(--px) * 5);font-size:calc(var(--px) * 8);line-height:calc(var(--px) * 7);
+  color:var(--panel);text-decoration:none;box-shadow:inset 0 0 0 var(--px) var(--panel)}
+.btn:hover{color:var(--accent);box-shadow:inset 0 0 0 var(--px) var(--accent)}
+.btn.primary{color:var(--ink);background:var(--accent);box-shadow:inset 0 0 0 var(--px) var(--accent),var(--px) var(--px) 0 var(--shadow)}
+.btn.primary:hover{background:var(--panel);box-shadow:inset 0 0 0 var(--px) var(--panel),var(--px) var(--px) 0 var(--shadow)}
+.small{margin:0;max-width:34em;font-size:15px;color:var(--dim)}
+.room{margin:0}
+.room img{display:block;width:calc(240px * var(--room));height:calc(170px * var(--room));image-rendering:pixelated}
+.room figcaption{margin-top:calc(var(--px) * 3);font-size:14px;color:var(--dim);text-align:right}
+
+/* Scrolls: the room's rolls and paper. */
+.scroll{max-width:calc(var(--px) * 240);margin:0 auto calc(var(--px) * 14);filter:drop-shadow(var(--px) var(--px) 0 rgba(8,8,16,.6))}
+.roll{height:calc(var(--px) * 7);display:flex;align-items:center;justify-content:center;image-rendering:pixelated;
+  background:var(--roll-l) left top/calc(var(--px) * 5) 100% no-repeat,var(--roll-r) right top/calc(var(--px) * 5) 100% no-repeat,
+  var(--roll-m) left top/calc(var(--px) * 8) 100% repeat-x}
+.roll .title{margin:0;padding:0 calc(var(--px) * 2) 0 var(--px);height:calc(var(--px) * 6);font-size:calc(var(--px) * 8);line-height:calc(var(--px) * 6);
+  color:var(--ink);background:var(--panel);box-shadow:0 0 0 var(--px) var(--line);white-space:nowrap;overflow:hidden;max-width:calc(100% - var(--px) * 12)}
+.paper{margin:0 calc(var(--px) * 2);padding:calc(var(--px) * 6) calc(var(--px) * 8);color:var(--ink);
+  background:var(--parch) 0 0/calc(var(--px) * 16) calc(var(--px) * 16) repeat;image-rendering:pixelated;
+  border-style:solid;border-width:0 calc(var(--px) * 3);border-image:var(--edges) 3 / 0 calc(var(--px) * 3) stretch}
+.paper>:first-child{margin-top:0}
+.paper>:last-child{margin-bottom:0}
+.paper p,.paper li{max-width:66ch}
+.paper h2{margin:calc(var(--px) * 8) 0 calc(var(--px) * 3);font-size:calc(var(--px) * 8);line-height:calc(var(--px) * 7);color:var(--muted)}
+.paper ul{padding-left:1.2em}
+.paper li{margin-bottom:calc(var(--px) * 3)}
+.steps{margin:0;padding-left:2.2em}
+.steps li{margin:0 0 calc(var(--px) * 6);padding-left:calc(var(--px) * 2)}
+.steps li::marker{font-size:calc(var(--px) * 8);color:var(--muted)}
+pre{margin:calc(var(--px) * 3) 0;padding:calc(var(--px) * 3) calc(var(--px) * 4);overflow-x:auto;color:var(--panel);background:var(--bg);box-shadow:var(--px) var(--px) 0 var(--shadow)}
+code{font:15px/1.45 ui-monospace,"Cascadia Code","JetBrains Mono",Menlo,Consolas,monospace}
+.paper :not(pre)>code{padding:0 .25em;background:var(--code)}
+.note{display:block;font-size:15px;color:var(--muted)}
+.words{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:calc(var(--px) * 3) calc(var(--px) * 8);margin:calc(var(--px) * 6) 0}
+.words dt{font-size:calc(var(--px) * 8);line-height:calc(var(--px) * 7);color:var(--muted);padding-top:.15em}
+.words dd{margin:0}
+.words .tech{color:var(--muted);font-size:15px}
+.guilds{list-style:none;margin:calc(var(--px) * 6) 0 0;padding:0;display:grid;gap:calc(var(--px) * 4)}
+.guilds li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:calc(var(--px) * 5);align-items:center;margin:0;max-width:none}
+.emb{width:calc(var(--px) * 10);height:calc(var(--px) * 10);shape-rendering:crispEdges}
+.guilds b{font-size:calc(var(--px) * 8);line-height:calc(var(--px) * 7);font-weight:400;margin-right:.5em}
+.guilds .maker{font-size:15px;color:var(--muted)}
+.state{font-size:calc(var(--px) * 8);line-height:calc(var(--px) * 7);color:var(--muted)}
+.state.ready{color:var(--ready)}
+.page{padding-top:calc(var(--px) * 14)}
+.foot{max-width:calc(var(--px) * 240);margin:0 auto;padding:calc(var(--px) * 4) calc(var(--px) * 6) calc(var(--px) * 20);font-size:15px;color:var(--dim)}
+.foot .links{display:flex;flex-wrap:wrap;gap:calc(var(--px) * 6)}
+.foot .notice{font-size:14px}
+@media (max-width:1179px){.hero{grid-template-columns:1fr}.room{justify-self:center}.room figcaption{text-align:center}}
+@media (max-width:540px){.words{grid-template-columns:1fr}.words dd{margin-bottom:calc(var(--px) * 4)}.guilds li{grid-template-columns:auto minmax(0,1fr)}
+  .state{grid-column:2}.paper{padding:calc(var(--px) * 5)}.lede{font-size:18px}}

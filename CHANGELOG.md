@@ -2,6 +2,20 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.8.0] · 2026-10-30 · codewizards.app
+
+Step 8: the site, the launch plan and a first extension for VS Code.
+
+### Added
+- codewizards.app: an introductory page in the room's own look (its rolls, paper, wand and pixel font), with the room at work, how a spell becomes a change, the words of the tower, the guilds and how to install. `tools/site.mjs` builds it with the demo in `/demo/`, and GitHub Pages publishes it; `docs/web.md` has the steps for the domain.
+- A privacy policy: CodeWizards collects nothing.
+- The CodeWizards extension for VS Code, in preview (`apps/vscode`): the room in a panel beside your code, run by the codewizards you installed. It is not on the Marketplace yet.
+- `--frame-ancestor`: lets the extension's panel show the room. Every other page is still refused.
+- `tools/capture.mjs` and `capture.py`: the room's GIFs and stills for the site and the README.
+
+### Fixed
+- The published demo loads `ui.gen.css` again (the pixel font, the icons, the rolls and the cursor): the old Pages workflow copied every file of the room but that one.
+
 ## [1.7.1] · 2026-10-30 · The guilds have names of their own
 
 Step 7 closed: the guilds' names, the glossary and the tone manual.

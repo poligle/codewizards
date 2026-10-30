@@ -1,0 +1,67 @@
+{
+  "name": "codewizards",
+  "displayName": "CodeWizards",
+  "description": "The CodeWizards room beside your code: Claude Code with your own plan, as a tower of pixel-art wizards.",
+  "version": "0.1.0",
+  "publisher": "poligle",
+  "license": "MIT",
+  "preview": true,
+  "icon": "media/icon.png",
+  "homepage": "https://codewizards.app",
+  "bugs": "https://github.com/poligle/codewizards/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/poligle/codewizards.git",
+    "directory": "apps/vscode"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "agents",
+    "claude code",
+    "code review",
+    "pixel art"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Wizards run commands in the workspace, so CodeWizards needs a trusted folder."
+    },
+    "virtualWorkspaces": false
+  },
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      { "command": "codewizards.openRoom", "title": "Open the room for this folder", "category": "CodeWizards" },
+      { "command": "codewizards.openTower", "title": "Open The Tower", "category": "CodeWizards" },
+      { "command": "codewizards.openDemo", "title": "Open the demo", "category": "CodeWizards" },
+      { "command": "codewizards.stop", "title": "Stop the tower", "category": "CodeWizards" }
+    ],
+    "configuration": {
+      "title": "CodeWizards",
+      "properties": {
+        "codewizards.command": {
+          "type": "string",
+          "default": "codewizards",
+          "scope": "machine",
+          "description": "The codewizards command to run (npm install -g codewizards installs it), or the path of apps/core/bin/codewizards.js in a checkout."
+        },
+        "codewizards.extraArgs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "scope": "machine",
+          "description": "More options for codewizards, such as --merge or --rank sage."
+        }
+      }
+    }
+  }
+}

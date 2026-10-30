@@ -56,6 +56,8 @@ jobs:
         run: python3 apps/room/build.py --check
       - name: The glossary and the pages' terms match the tower's words
         run: node tools/glossary.mjs --check
+      - name: The site builds (codewizards.app and the demo)
+        run: node tools/site.mjs build "$RUNNER_TEMP/site"
       - name: Panel colours reach WCAG 2.2 AA contrast in both themes
         run: node tools/contrast.mjs
 
