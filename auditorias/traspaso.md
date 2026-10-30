@@ -316,3 +316,21 @@
 - Hecho en v1.7.0: arreglo de la CI (fuente como fichero de arte), grimorio de dos filas, CRT sobre la interfaz, el Archimago planifica en encargos de distintos rangos (`apps/core/src/router/planner.js`), interfaz en inglés con glosario al pasar el ratón, sonido chiptune (`apps/room/src/sound.js`).
 - Pendiente del paso 7: nombres de fantasía de los gremios (propuesta en `auditorias/producto.md` §6.2: Amber Order, Cerulean Circle, Crimson Court, Indigo Lodge, Jade Cloister, Violet Conclave), `docs/glossary.md` y el manual de tono en `auditorias/copy.md`.
 - Pendiente: paso 8 (web codewizards.app introductoria con instalación y enlace al repo, marca, plan de lanzamiento, valorar la extensión de VS Code) y paso 9 (regresión, publicación, notas, README rehecho entero).
+
+## Paso 7 · Copy y lenguaje, cierre · 30/10/2026
+- Cambios (detalle en `auditorias/copy.md`):
+  - Los gremios tienen nombre propio y el fabricante es un dato: Amber Order (Anthropic), Cerulean Circle (OpenAI), Crimson Synod (Google), Indigo Lodge (DeepSeek), Jade Cloister (Qwen, de Alibaba Cloud) y Violet Conclave (Meta).
+  - Aviso de no afiliación en `--help`, al pie de la Torre y al pasar el ratón por cada gremio.
+  - `apps/room/src/words.js`: una sola fuente para las palabras de la torre (sala, CLI y glosario; la web, en el paso 8). Los `title` escritos a mano pasan a `data-term`.
+  - `docs/glossary.md`, escrito por `tools/glossary.mjs` y comprobado en la CI.
+  - Manual de tono en `auditorias/copy.md`.
+  - Copy: Young Mage y Grand Sage en el grimorio, Tomes, The Tower en la ayuda, `--rank apprentice|young|sage`, y la demo dice que no llama a ningún modelo ni gasta maná.
+  - Versión 1.7.1.
+- Archivos tocados: `apps/room/src/` (`words.js` nuevo, `index.html`, `ui.js`, `style.css`), `apps/core/src/` (`words.js` nuevo, `cli.js`, `server.js`), `apps/core/test/words.test.js`, `apps/room/build.py` (un comentario), `tools/glossary.mjs`, `tools/smoke.mjs`, `docs/glossary.md`, `.github/workflows/ci.yml`, `package.json`, documentación.
+- Decisiones de Pol: los nombres de `auditorias/producto.md` §6.2, con Crimson Synod en lugar de Crimson Court (30/10/2026).
+- Encargos:
+  - (paso 8) buscar Amber Order, Indigo Lodge y Jade Cloister, y poner el aviso en la web;
+  - (paso 9) el aviso en el README;
+  - (arte, cuando se regenere) quitar `names` de `build.py`.
+- Preguntas abiertas: ninguna.
+- Pruebas para Pol: `git am paso-7.patch`; `codewizards demo`; pasar el ratón por Bless, Mana y el nombre del gremio de una tarea; `codewizards --help`.

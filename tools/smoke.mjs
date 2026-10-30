@@ -104,6 +104,13 @@ async function staticDemo(browser) {
   check((await page.locator('#mana li').count()) === 1, 'A static: only the connected account\'s guild has mana (Anthropic)');
   check((await page.locator('#rank option').count()) === 4, 'A static: the spell book lets you choose the rank or leave it to the Archmage');
   await castAndFinish(page, 'A static');
+  // Step 7: a guild shows its own name; its maker is data (on hover and on the blackboard).
+  const fulfilled = await page.textContent('#history');
+  check(/Amber Order/.test(fulfilled) && !/Anthropic/.test(fulfilled), 'A static: quests show the guild\'s own name, not its maker');
+  check(/^Amber Order: Anthropic's Claude models.*Not affiliated with Anthropic\.$/.test(await page.getAttribute('#history .guild', 'title') || ''), 'A static: the maker is data on hover, with the notice');
+  await page.evaluate(() => { const b = document.querySelector('#history li button') || document.querySelector('#history li'); if (b) b.click(); });   // the list may be rolled up
+  check(/Amber Order \(Anthropic\)/.test(await page.textContent('#p-board .dm', { timeout: 5000 }).catch(() => '')), 'A static: the blackboard names the guild and, as data, its maker');
+  check((await page.getAttribute('#approve', 'title') || '').startsWith('Bless: Approve'), 'A static: every magic word shows its plain meaning on hover');
   // Step 6f: one pixel size for everything, the whole window as the screen, movable scrolls.
   const px = () => page.evaluate(() => Number(getComputedStyle(document.documentElement).getPropertyValue('--px').replace('px', '')));
   check((await px()) === 4, `A static: the room fills a 1440 × 900 screen at ×${await px()}`);

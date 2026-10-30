@@ -22,10 +22,10 @@
 
 <div class="roomline" id="roomline">
   <span id="mode">An illusion</span>
-  <button type="button" id="tower-btn" class="pixel" hidden title="Change room: open another repository"><span class="ico-door" aria-hidden="true"></span>Change room</button>
+  <button type="button" id="tower-btn" class="pixel" hidden data-term="changeRoom"><span class="ico-door" aria-hidden="true"></span>Change room</button>
 </div>
 
-<form id="spell" class="grimoire" aria-label="Spell book" title="The spell book: what you ask the wizards to do">
+<form id="spell" class="grimoire" aria-label="Spell book" data-term="spellBook">
   <div class="row spellrow">
     <label for="spell-text" class="sr-only">Cast a spell</label>
     <input id="spell-text" type="text" maxlength="4000" autocomplete="off" spellcheck="true" placeholder="Cast a spell…">
@@ -37,18 +37,18 @@
         <button type="button" id="bel" class="pixel icon" aria-pressed="false" title="Ring the bell when a review waits, even with the tab in the background"><span class="ico-bell" aria-hidden="true"></span><span class="sr-only">Review bell</span></button>
         <input type="range" id="vol" min="0" max="100" step="5" value="35" aria-label="Volume" title="Volume">
       </span>
-    <label class="pick" title="Who casts it: a wizard's rank picks its Claude model; Auto lets the Archmage plan the spell into quests for different ranks"><span class="ico-hat" aria-hidden="true"></span><span class="sr-only">Who casts it</span>
+    <label class="pick" data-term="rank" data-hint="Auto lets the Archmage plan the spell into quests for different ranks."><span class="ico-hat" aria-hidden="true"></span><span class="sr-only">Who casts it</span>
       <select id="rank">
         <option value="auto" selected>Auto</option>
         <option value="aprendiz">Apprentice</option>
-        <option value="joven">Young</option>
-        <option value="sabio">Sage</option>
+        <option value="joven">Young Mage</option>
+        <option value="sabio">Grand Sage</option>
       </select>
     </label>
-    <label class="pick" title="Arcana: the Claude model; Auto uses its rank's"><span class="ico-crystal" aria-hidden="true"></span><span class="sr-only">Arcana (model)</span>
+    <label class="pick" data-term="arcana"><span class="ico-crystal" aria-hidden="true"></span><span class="sr-only">Arcana (model)</span>
       <select id="model"><option value="auto" selected>Auto</option></select>
     </label>
-    <label class="pick" title="Focus: Claude's reasoning effort; Auto uses its rank's"><span class="ico-flame" aria-hidden="true"></span><span class="sr-only">Focus (effort)</span>
+    <label class="pick" data-term="focus"><span class="ico-flame" aria-hidden="true"></span><span class="sr-only">Focus (effort)</span>
       <select id="effort">
         <option value="auto" selected>Auto</option>
         <option value="low">Light</option>
@@ -58,13 +58,13 @@
         <option value="max">Absolute</option>
       </select>
     </label>
-    <button type="submit" class="cast pixel" title="Cast: send the spell to the tower">Cast</button>
+    <button type="submit" class="cast pixel" data-term="cast">Cast</button>
   </div>
 </form>
 <p class="hint" id="hint" aria-live="polite"></p>
 
 <section class="scroll" id="sc-tasks" data-corner="tl" aria-labelledby="h-tasks">
-  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-tasks" title="Quests: what your spells became. Drag to move · press to roll up"><span id="h-tasks" class="title">Quests</span></div>
+  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-tasks" data-term="quest" data-hint="Drag to move; press to roll up."><span id="h-tasks" class="title">Quests</span></div>
   <div class="paper" id="p-tasks">
     <h3>Underway</h3>
     <ol id="tasks" class="tasks"></ol>
@@ -74,31 +74,31 @@
 </section>
 
 <section class="scroll" id="sc-notes" data-corner="bl" aria-labelledby="h-notes">
-  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-notes" title="Notes: spells for later. Drag to move · press to roll up"><span id="h-notes" class="title">Notes</span></div>
+  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-notes" data-term="notes" data-hint="Drag to move; press to roll up."><span id="h-notes" class="title">Notes</span></div>
   <div class="paper" id="p-notes">
     <label for="notes" class="sr-only">Notes</label>
     <textarea id="notes" rows="5" placeholder="Jot down spells for later. Pick a line and send it to the spell book."></textarea>
     <button type="button" id="to-spell" class="mini pixel" title="Copy the selected line, or the line under the cursor, to the spell book">To the spell book</button>
-    <details class="hist" id="files-box" hidden><summary title="Tomes: the files committed on your branch, read-only">Repo tomes</summary><div id="files" class="files"></div></details>
+    <details class="hist" id="files-box" hidden><summary data-term="tomes">Tomes</summary><div id="files" class="files"></div></details>
   </div>
   <div class="roll bottom" role="separator" aria-orientation="horizontal" aria-label="Longer or shorter" title="Drag to make it longer or shorter; near the right end, wider too"></div>
 </section>
 
 <section class="scroll" id="sc-board" data-corner="tr" aria-labelledby="h-piz">
-  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-board" title="Blackboard: the review of a wizard's change (its diff). Drag to move · press to roll up"><span id="h-piz" class="title">Blackboard</span></div>
+  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-board" data-term="blackboard" data-hint="Drag to move; press to roll up."><span id="h-piz" class="title">Blackboard</span></div>
   <div class="paper" id="p-board">
     <div id="deliv" class="deliv"></div>
     <label for="comment" class="cm">Words for the wizard if you send it back</label>
     <textarea id="comment" rows="2" maxlength="2000"></textarea>
-    <div class="review"><button type="button" id="approve" class="ok pixel" disabled title="Bless: approve the change and commit it to the quest's branch">Bless</button><button type="button" id="reject" class="no pixel" disabled title="Send back: reject it with your words; the same wizard tries again">Send back</button><button type="button" id="stop" class="halt pixel" disabled hidden title="Break the spell: stop the wizard">Break</button></div>
+    <div class="review"><button type="button" id="approve" class="ok pixel" disabled data-term="bless">Bless</button><button type="button" id="reject" class="no pixel" disabled data-term="sendBack">Send back</button><button type="button" id="stop" class="halt pixel" disabled hidden data-term="break">Break</button></div>
   </div>
   <div class="roll bottom" role="separator" aria-orientation="horizontal" aria-label="Longer or shorter" title="Drag to make it longer or shorter; near the right end, wider too"></div>
 </section>
 
 <section class="scroll" id="sc-log" data-corner="br" aria-labelledby="h-log">
-  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-log" title="Chronicle: everything that happened in the room (the event log). Drag to move · press to roll up"><span id="h-log" class="title">Chronicle</span></div>
+  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-log" data-term="chronicle" data-hint="Drag to move; press to roll up."><span id="h-log" class="title">Chronicle</span></div>
   <div class="paper" id="p-log">
-    <h3 class="ico-mana" title="Mana: your Claude plan's usage window, as Claude Code reports it">Mana</h3>
+    <h3 class="ico-mana" data-term="mana">Mana</h3>
     <ul id="mana" class="mana"></ul>
     <p id="status" class="status" aria-live="polite"></p>
     <ol id="log" class="log" aria-label="The room's chronicle"></ol>
@@ -125,6 +125,7 @@
         <p id="found-msg" class="hint" role="status"></p>
       </form>
       <p><button type="button" id="tower-close" class="mini pixel">Back to the room</button></p>
+      <p class="hint fine" id="notice"></p>
     </div>
     <div class="roll bottom" aria-hidden="true"></div>
   </section>
@@ -137,6 +138,7 @@
 <script src="render.js"></script>
 <script src="net.js"></script>
 <script src="sound.js"></script>
+<script src="words.js"></script>
 <script src="ui.js"></script>
 </body>
 </html>

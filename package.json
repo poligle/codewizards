@@ -1,6 +1,6 @@
 {
   "name": "codewizards",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "private": true,
   "description": "A local app that drives the official coding-agent CLIs with your own accounts and shows their work as a tower of pixel-art wizards.",
   "license": "MIT",
@@ -27,7 +27,8 @@
   "scripts": {
     "start": "node apps/core/bin/codewizards.js demo",
     "test": "node --test \"apps/core/test/*.test.js\" \"packages/contract/test/*.test.js\" && node apps/room/test/room.test.mjs",
-    "smoke": "node tools/smoke.mjs"
+    "smoke": "node tools/smoke.mjs",
+    "glossary": "node tools/glossary.mjs"
   },
   "dependencies": {
     "ws": "8.22.0"

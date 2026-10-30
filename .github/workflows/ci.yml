@@ -54,6 +54,8 @@ jobs:
         run: node apps/room/test/room.test.mjs
       - name: assets.gen.js is up to date
         run: python3 apps/room/build.py --check
+      - name: The glossary and the pages' terms match the tower's words
+        run: node tools/glossary.mjs --check
       - name: Panel colours reach WCAG 2.2 AA contrast in both themes
         run: node tools/contrast.mjs
 

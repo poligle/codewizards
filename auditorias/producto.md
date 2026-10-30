@@ -105,6 +105,7 @@ Decisión de Pol: **A**, con B solo como opción para quien no tenga plan. Ingre
   | Meta | violeta | Violet Conclave |
 
   Criterio: nombres originales, sin aludir a nombres ni logos de los proveedores.
+- Cerrados en el paso 7 (30/10/2026): los de la tabla, salvo Crimson Court, que pasa a **Crimson Synod** (`auditorias/copy.md` §5).
 - **El nombre CodeWizards.**
   - CodeWizardsHQ, una escuela de programación infantil de EE. UU., tiene marcas «CODEWIZARDSHQ» en la USPTO (estado sin verificar) [CWHQ].
   - La marca «CODE WIZARDS» (USPTO 88396870, clase 41) se abandonó en 2020 [CW].

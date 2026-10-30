@@ -5,21 +5,19 @@
    UI texts live in T so the copy step can translate them. */
 (function (G) {
   'use strict';
-  const CW = G.CW, A = G.CW_ASSETS, doc = G.document;
+  const CW = G.CW, A = G.CW_ASSETS, W = G.CW.WORDS, doc = G.document;
   const $ = id => doc.getElementById(id);
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
   // Every word on screen speaks the tower's language (step 7): technical and precise, with a little
   // dry humour; each magic word shows its technical meaning on hover (docs/glossary.md). Errors are
   // clear first and witty second. The product is in English (Pol's decision).
   const T = {
-    states: { created: 'noted', assigned: 'assigned', reading: 'reading', writing: 'writing', presenting: 'presenting',
-      review: 'awaits your judgement', approved: 'blessed', rejected: 'sent back', done: 'fulfilled', error: 'confused',
-      blocked: 'held up', waiting: 'out of mana', failed: 'fizzled', cancelled: 'broken', pending: 'to seal' },
-    ranks: { aprendiz: 'Apprentice', joven: 'Young Mage', sabio: 'Grand Sage', archimago: 'Archmage' },
+    states: Object.fromEntries(Object.entries(W.states).map(([k, s]) => [k, s.word])),
+    ranks: Object.fromEntries(Object.entries(W.ranks).map(([k, r]) => [k, r.word])),
     modes: { demo: 'An illusion', 'claude-code': 'Claude Code' },
     roomOf: (name, mode) => 'Room «' + name + '» · ' + mode,
     pending: 'waiting for its wizard',
-    hint: 'An illusion: the wizards are simulated and no oracle is consulted.',
+    hint: 'An illusion: the wizards are simulated. No model is called and no mana is spent.',
     live: 'The tower is listening.',
     offline: 'The link to the tower broke. Reconnecting…',
     review: t => 'A judgement awaits: ' + t,
@@ -37,8 +35,8 @@
     week: p => 'this week: ' + p + ' % spent',
     unknownQuota: 'mana not measured yet',
     waitUntil: at => 'Out of mana: resting on the bench until ' + at + ', then it carries on.',
-    archmage: 'Archmage',
-    efforts: { low: 'light', medium: 'calm', high: 'deep', xhigh: 'deeper', max: 'absolute' },
+    archmage: W.ranks.archimago.word,
+    efforts: Object.fromEntries(Object.entries(W.efforts).map(([k, e]) => [k, e.toLowerCase()])),
     effortOf: e => e + ' focus',
     byRank: 'Auto',
     health: h => 'Tower vigour: ' + h + ' %',
@@ -76,7 +74,9 @@
   const kfmt = n => ((Number(n) || 0) / 1000).toFixed(1) + 'k';
   const palOf = g => A.pal.guilds[g] || A.pal.guilds.unknown;
   const gcol = g => 'rgb(' + palOf(g)[1].join(',') + ')';
-  const nameOf = g => (has(A.names, g) ? A.names[g] : String(g));
+  // A guild shows its own name; its maker is data: on hover, on the blackboard and in the chronicle.
+  const nameOf = g => W.guildName(g);
+  const guildHtml = g => '<span class="guild" title="' + esc(W.guildHover(g)) + '">' + esc(nameOf(g)) + '</span>';
   const stateKey = s => (has(T.states, s) ? s : 'error');
 
   function emblem(g) {
@@ -96,7 +96,7 @@
     accounts.clear();
     for (const a of list) {
       const li = doc.createElement('li');
-      li.innerHTML = emblem(a.guild) + '<span class="gname">' + esc(a.label || nameOf(a.guild)) + '</span>' +
+      li.innerHTML = emblem(a.guild) + '<span class="gname" title="' + esc(W.guildHover(a.guild)) + '">' + esc(a.label || nameOf(a.guild)) + '</span>' +
         '<span class="bar" role="meter" aria-label="' + esc(T.manaOf(a.label || nameOf(a.guild))) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">' +
         '<span class="fill" style="width:100%;background:' + gcol(a.guild) + '"></span></span><span class="val">—</span>' +
         '<small class="quota">' + esc(T.unknownQuota) + '</small>';
@@ -126,7 +126,7 @@
     const t = tasks.get(id);
     if (!t) return;
     const st = shownState(t);
-    const who = t.guild ? esc(nameOf(t.guild)) + ' · ' + esc(T.ranks[t.rank] || t.rank) : esc(T.pending) + (t.rank ? ' · ' + esc(T.ranks[t.rank] || t.rank) : '');
+    const who = t.guild ? guildHtml(t.guild) + ' · ' + esc(T.ranks[t.rank] || t.rank) : esc(T.pending) + (t.rank ? ' · ' + esc(T.ranks[t.rank] || t.rank) : '');
     t.btn.innerHTML = (t.guild ? emblem(t.guild) : '<span class="emb ph" aria-hidden="true"></span>') +
       '<span class="tt"><b>' + esc(t.title) + '</b><small>' + who + ' · <span class="st st-' + st + '">' + esc(T.states[st]) + '</span></small></span>' +
       '<span class="tok">' + kfmt(t.tokens) + (t.estimate ? '<small>/' + kfmt(t.estimate) + '</small>' : '') + '</span>';
@@ -201,7 +201,7 @@
     const body = t.diff || t.partial;
     const lines = body ? diffHtml(body) : '';
     box.innerHTML = '<h3 class="dt">' + esc(t.title) + '</h3><p class="dm">' +
-      (t.guild ? emblem(t.guild) + esc(nameOf(t.guild)) + ' · ' + esc(T.ranks[t.rank] || t.rank) + ' · ' : '') +
+      (t.guild ? emblem(t.guild) + guildHtml(t.guild) + ' <span class="maker">(' + esc(W.guildMaker(t.guild)) + ')</span> · ' + esc(T.ranks[t.rank] || t.rank) + ' · ' : '') +
       (t.model ? '<span class="model">' + esc(t.model) + (t.effort ? ' · ' + esc(T.effortOf(T.efforts[t.effort] || t.effort)) : '') + '</span> · ' : '') +
       (!t.guild && t.rank ? esc(T.ranks[t.rank] || t.rank) + ' · ' : '') +
       '<span class="st st-' + st + '">' + esc(T.states[st]) + '</span>' + (t.file ? ' · <code>' + esc(t.file) + '</code>' : '') + '</p>' +
@@ -220,7 +220,7 @@
     const pr = /^https:\/\/[^\s"'<>]+$/.test(t.pr || '')
       ? ' ' + esc(T.pr) + ' <a href="' + esc(t.pr) + '" target="_blank" rel="noopener noreferrer">' + esc(t.pr) + '</a>' : '';
     return '<p class="done-note">' + esc(T.saved) + ' ' + b + '.' + pr + '<br>' + esc(T.bring) + ' <code>git merge ' + esc(t.branch) + '</code>' +
-      (canMerge && !pr ? '<br><button type="button" class="merge" data-merge="' + esc(t.id) + '">' + esc(T.mergeBtn) + '</button>' : '') + '</p>';
+      (canMerge && !pr ? '<br><button type="button" class="merge" title="' + esc(W.hover('seal')) + '" data-merge="' + esc(t.id) + '">' + esc(T.mergeBtn) + '</button>' : '') + '</p>';
   }
 
   // The state shown: an approved change that is still only on its branch is "por integrar".
@@ -480,6 +480,14 @@
     $('vol').addEventListener('input', () => CW.sound.set({ volume: Number($('vol').value) / 100 }));
     show();
   }
+  // Every magic word shows its plain meaning on hover, from words.js: the same text as docs/glossary.md.
+  for (const el of doc.querySelectorAll('[data-term]')) {
+    const h = W.hover(el.getAttribute('data-term'));
+    if (h) el.title = h + (el.hasAttribute('data-hint') ? ' ' + el.getAttribute('data-hint') : '');
+  }
+  for (const o of $('rank').options) if (has(W.ranks, o.value) && !o.textContent.includes('·')) o.textContent = W.ranks[o.value].word;
+  for (const o of $('effort').options) if (has(W.efforts, o.value)) o.textContent = W.efforts[o.value];
+  $('notice').textContent = W.notice;
   $('tower-btn').addEventListener('click', () => bus.rooms());
   $('tower-close').addEventListener('click', () => { $('tower').hidden = true; });
   $('tower-rooms').addEventListener('click', e => { const b = e.target.closest('[data-room]'); if (b) bus.goTo(b.getAttribute('data-room')); });

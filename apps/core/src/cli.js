@@ -19,20 +19,27 @@ import { buildPolicy } from './agents/claude-code/policy.js';
 import { checkClaude } from './agents/claude-code/check.js';
 import { claudeEnv } from './agents/claude-code/env.js';
 import { loadRanks } from './router/config.js';
+import { WORDS } from './words.js';
+
+const wrap = (text, width = 100) => text.split(' ').reduce((lines, word) => {
+  const last = lines[lines.length - 1];
+  if (last && (last + ' ' + word).length > width) lines.push(word); else lines[lines.length - 1] = last ? last + ' ' + word : word;
+  return lines;
+}, ['']).join('\n');
 
 export const HELP = `CodeWizards ${VERSION}: your coding agents as a tower of pixel-art wizards.
 
 Usage
   codewizards [tower] [--port N] [--no-open] [--json] [the serve options]
   codewizards demo   [--port N] [--no-open] [--log] [--json]
-  codewizards serve  --repo PATH [--port N] [--no-open] [--json] [--model NAME] [--rank aprendiz|joven|sabio]
+  codewizards serve  --repo PATH [--port N] [--no-open] [--json] [--model NAME] [--rank apprentice|young|sage]
                      [--test-command CMD] [--max-turns N] [--timeout-min N] [--max-agents N]
                      [--max-tasks N] [--room-tokens N] [--max-budget-usd N] [--merge | --open-prs]
                      [--record] [--use-api-key] [--no-sandbox] [--ranks FILE] [--effort LEVEL] [--no-plan]
   codewizards doctor
   codewizards --version | --help
 
-  tower   La Torre (also with no command): list your rooms, enter one, or found a new one on a
+  tower   The Tower (also with no command): list your rooms, enter one, or found a new one on a
           repository (existing, or a new one it creates with a first commit), from the browser.
   demo    The room with simulated wizards: no agent CLI, no account, no network.
   serve   Experimental (milestone 3). Claude Code works on a copy of the repository at PATH (a git
@@ -50,6 +57,8 @@ Usage
 
 The room opens at http://127.0.0.1:PORT/#token=...: keep that address to yourself.
 Data (event logs, worktrees) lives in ${dataDir()}.
+
+${wrap(WORDS.notice)}
 `;
 
 const FLAGS = {
@@ -79,8 +88,14 @@ export function parseArgs(argv) {
       out[key] = n;
     }
   }
+  if (typeof out.rank === 'string') out.rank = RANK_IDS[out.rank.toLowerCase()] || out.rank;
   return out;
 }
+
+// --rank takes the contract's id (aprendiz, joven, sabio) or the rank's English name: apprentice,
+// young or young-mage, sage or grand-sage.
+const RANK_IDS = Object.fromEntries(Object.entries(WORDS.ranks).filter(([, r]) => r.cli)
+  .flatMap(([id, r]) => [[id, id], [r.cli, id], [r.word.toLowerCase().replace(/\s+/g, '-'), id]]));
 
 function say(opts, obj, text) {
   if (opts.json) process.stdout.write(JSON.stringify(obj) + '\n');
@@ -125,7 +140,7 @@ export function roomIdFor(repo) {
 // the policy and the caps. Checked once, when serve or La Torre starts.
 async function claudeSetup(opts) {
   if (opts.merge && opts['open-prs']) throw new Error('--merge and --open-prs do not go together: pick one');
-  if (opts.rank && !['aprendiz', 'joven', 'sabio'].includes(opts.rank)) throw new Error('--rank must be aprendiz, joven or sabio');
+  if (opts.rank && !['aprendiz', 'joven', 'sabio'].includes(opts.rank)) throw new Error('--rank must be apprentice, young or sage');
   const keys = claudeEnv(process.env, { useApiKey: !!opts['use-api-key'] });
   const claude = await checkClaude({ env: keys.env });
   if (!claude.ok) {

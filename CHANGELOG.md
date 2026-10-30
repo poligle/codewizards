@@ -2,6 +2,19 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.7.1] · 2026-10-30 · The guilds have names of their own
+
+Step 7 closed: the guilds' names, the glossary and the tone manual.
+
+### Added
+- The guilds have names of their own: the Amber Order (Anthropic), the Cerulean Circle (OpenAI), the Crimson Synod (Google), the Indigo Lodge (DeepSeek), the Jade Cloister (Qwen, by Alibaba Cloud) and the Violet Conclave (Meta). The maker is data: on hover, on the blackboard and in the chronicle. CodeWizards is not affiliated with any of them, and says so in `--help`, in The Tower and on hover.
+- `docs/glossary.md`: every magic word and what it means, written from the same file the room reads (`apps/room/src/words.js`). The CI checks that they match.
+- `--rank` takes the English names `apprentice`, `young` and `sage` (the ids still work).
+
+### Changed
+- One name per thing: the spell book says Young Mage and Grand Sage, the file list says Tomes, the help says The Tower, and the demo says that no model is called and no mana is spent.
+- The meaning on hover comes from the glossary, so it reads the same on every screen.
+
 ## [1.7.0] · 2026-10-25 · The Archmage plans, the tower speaks English and sings
 
 ### Fixed

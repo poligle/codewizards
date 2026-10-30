@@ -160,3 +160,6 @@ body.stacked .roomline,body.stacked .grimoire,body.stacked .hint{position:relati
 body.stacked .scroll{position:relative;left:auto!important;top:auto!important;width:auto!important;height:auto!important;margin:8px}
 body.stacked .paper{max-height:60vh}
 [hidden]{display:none!important}
+/* Step 7: the maker as data on the blackboard, and the notice in The Tower. */
+.dm .maker{color:var(--muted)}
+.tower .fine{font-size:12px;margin-top:calc(var(--px) * 3)}
