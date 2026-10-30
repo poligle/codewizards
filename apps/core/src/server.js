@@ -17,7 +17,7 @@ const ROOM = new URL('../../room/src/', import.meta.url);
 const TYPES = { html: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8' };
 const FILES = new Map([
   ['/', 'index.html'], ['/index.html', 'index.html'], ['/style.css', 'style.css'], ['/assets.gen.js', 'assets.gen.js'],
-  ['/plan.gen.js', 'plan.gen.js'], ['/ui.gen.css', 'ui.gen.css'], ['/world.js', 'world.js'], ['/sim.js', 'sim.js'], ['/render.js', 'render.js'], ['/net.js', 'net.js'], ['/ui.js', 'ui.js'],
+  ['/plan.gen.js', 'plan.gen.js'], ['/ui.gen.css', 'ui.gen.css'], ['/world.js', 'world.js'], ['/sim.js', 'sim.js'], ['/render.js', 'render.js'], ['/net.js', 'net.js'], ['/sound.js', 'sound.js'], ['/ui.js', 'ui.js'],
 ]);
 const TASK = /^t\d{1,6}$/;
 const RANK = new Set(['auto', 'aprendiz', 'joven', 'sabio']);

@@ -9,11 +9,11 @@
    "grosor_tiles": 0.25,
    "lienzo": [
     240,
-    211
+    216
    ],
    "origen": [
     104,
-    62
+    59
    ]
   },
   "alfa": "1 bit (índice 0 transparente); halos, brillo de orbes y luz del ventanal los mezcla el motor",
@@ -596,6 +596,34 @@
    "colores": 3,
    "nota": "icono de 8 x 8"
   },
+  "05_ui/icons/Icon_Sound.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 2,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Mute.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 2,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Music.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 2,
+   "nota": "icono de 8 x 8"
+  },
+  "05_ui/icons/Icon_Bell.png": {
+   "w": 8,
+   "h": 8,
+   "paleta": "gbc-escenario",
+   "colores": 3,
+   "nota": "icono de 8 x 8"
+  },
   "05_ui/Cursor_Wand.png": {
    "w": 10,
    "h": 10,
@@ -606,6 +634,11 @@
     1
    ],
    "nota": "el cursor; se pinta al tamaño de píxel de la sala"
+  },
+  "05_ui/CWPixel.ttf": {
+   "tipo": "fuente",
+   "bytes": 7912,
+   "nota": "la fuente de píxel de la interfaz: los glifos de tiza de font.py, 3 x 5, con tildes"
   },
   "05_ui/Cursor_Text.png": {
    "w": 5,
@@ -824,12 +857,12 @@
   },
   "01_tiles/Room_Base_01.png": {
    "w": 240,
-   "h": 211,
+   "h": 216,
    "paleta": "gbc-escenario",
    "colores": 23,
    "ancla": [
     104,
-    62
+    59
    ],
    "nota": "suelo, muros, puerta, ventanal y alfombra ya compuestos (fondo, exento del tope de 16)",
    "disposicion": {

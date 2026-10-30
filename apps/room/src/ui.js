@@ -8,57 +8,54 @@
   const CW = G.CW, A = G.CW_ASSETS, doc = G.document;
   const $ = id => doc.getElementById(id);
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
-  // Every word on screen speaks the tower's language (Pol, 24/10/2026): wizards, spells, mana.
+  // Every word on screen speaks the tower's language (step 7): technical and precise, with a little
+  // dry humour; each magic word shows its technical meaning on hover (docs/glossary.md). Errors are
+  // clear first and witty second. The product is in English (Pol's decision).
   const T = {
-    states: { created: 'anotado', assigned: 'asignado', reading: 'leyendo', writing: 'escribiendo', presenting: 'presentando',
-      review: 'ante tu juicio', approved: 'bendecido', rejected: 'devuelto', done: 'cumplido', error: 'confuso',
-      blocked: 'detenido', waiting: 'sin maná', failed: 'fracasado', cancelled: 'roto', pending: 'por sellar' },
-    ranks: { aprendiz: 'Aprendiz', joven: 'Mago Joven', sabio: 'Gran Sabio', archimago: 'Archimago' },
-    modes: { demo: 'Ilusión de demostración', 'claude-code': 'Claude Code' },
-    roomOf: (name, mode) => 'Sala «' + name + '» · ' + mode,
-    pending: 'esperando a su mago',
-    hint: 'Una ilusión: los magos son simulados y ningún oráculo es consultado.',
-    live: 'La torre te escucha.',
-    offline: 'Se ha roto el vínculo con la torre. Reintentando…',
-    review: t => 'Te espera un juicio: ' + t,
-    empty: 'Aún no hay nada en la pizarra. Lanza un hechizo.',
-    choose: 'Toca un mago o un encargo para ver lo que trae.',
-    nothing: 'El mago aún no ha traído nada.',
-    manaOf: g => 'Maná de ' + g,
-    saved: 'Bendecido y guardado en la rama',
-    bring: 'Para traerlo a tu rama:',
-    merged: 'Bendecido y sellado en tu rama. Queda también en la rama',
-    pr: 'Pergamino de propuesta (borrador):',
-    noChanges: 'Bendecido sin cambios: no hay nada que sellar.',
-    mergeBtn: 'Sellar en mi rama',
-    manaLeft: (p, at) => 'Queda ' + p + ' % del maná' + (at ? '; se repone a las ' + at : ''),
-    week: p => 'esta semana: ' + p + ' % gastado',
-    unknownQuota: 'el maná aún no se ha medido',
-    waitUntil: at => 'Sin maná: descansa en el banco hasta las ' + at + ' y luego sigue.',
-    archmage: 'Archimago',
-    efforts: { low: 'leve', medium: 'serena', high: 'profunda', xhigh: 'muy profunda', max: 'absoluta' },
-    effortOf: e => 'concentración ' + e,
+    states: { created: 'noted', assigned: 'assigned', reading: 'reading', writing: 'writing', presenting: 'presenting',
+      review: 'awaits your judgement', approved: 'blessed', rejected: 'sent back', done: 'fulfilled', error: 'confused',
+      blocked: 'held up', waiting: 'out of mana', failed: 'fizzled', cancelled: 'broken', pending: 'to seal' },
+    ranks: { aprendiz: 'Apprentice', joven: 'Young Mage', sabio: 'Grand Sage', archimago: 'Archmage' },
+    modes: { demo: 'An illusion', 'claude-code': 'Claude Code' },
+    roomOf: (name, mode) => 'Room «' + name + '» · ' + mode,
+    pending: 'waiting for its wizard',
+    hint: 'An illusion: the wizards are simulated and no oracle is consulted.',
+    live: 'The tower is listening.',
+    offline: 'The link to the tower broke. Reconnecting…',
+    review: t => 'A judgement awaits: ' + t,
+    empty: 'Nothing on the blackboard yet. Cast a spell.',
+    choose: 'Pick a wizard or a quest to see what it brings.',
+    nothing: 'The wizard has brought nothing yet.',
+    manaOf: g => g + ' mana',
+    saved: 'Blessed and saved on the branch',
+    bring: 'To bring it into yours:',
+    merged: 'Blessed and sealed into your branch. It also stays on',
+    pr: 'Draft pull request:',
+    noChanges: 'Blessed with no changes: nothing to seal.',
+    mergeBtn: 'Seal into my branch',
+    manaLeft: (p, at) => p + ' % of mana left' + (at ? '; it refills at ' + at : ''),
+    week: p => 'this week: ' + p + ' % spent',
+    unknownQuota: 'mana not measured yet',
+    waitUntil: at => 'Out of mana: resting on the bench until ' + at + ', then it carries on.',
+    archmage: 'Archmage',
+    efforts: { low: 'light', medium: 'calm', high: 'deep', xhigh: 'deeper', max: 'absolute' },
+    effortOf: e => e + ' focus',
     byRank: 'Auto',
-    health: h => 'Vigor de la torre: ' + h + ' %',
-    outside: n => n === 1 ? '1 mago aguarda fuera' : n + ' magos aguardan fuera',
-    hourglass: s => 'el maná se renueva en ' + s,
-    back: 'Volver al encargo',
-    binary: 'Tomo sellado (binario): no se puede leer aquí.',
-    tooBig: kb => 'Tomo demasiado grueso (' + kb + ' KB) para mostrarlo entero.',
-    loading: 'Abriendo…',
-    enter: 'Entrar',
-    noRooms: 'Aún no hay salas: funda la primera.',
-    gone: 'su repositorio ya no está',
-    founding: 'Fundando la sala…',
+    health: h => 'Tower vigour: ' + h + ' %',
+    outside: n => n === 1 ? '1 wizard waits outside' : n + ' wizards wait outside',
+    hourglass: s => 'mana renews in ' + s,
+    back: 'Back to the quest',
+    binary: 'A sealed tome (binary): it cannot be read here.',
+    tooBig: kb => 'A tome too thick (' + kb + ' KB) to show whole.',
+    loading: 'Opening…',
+    enter: 'Enter',
+    noRooms: 'No rooms yet: found the first one.',
+    gone: 'its repository is gone',
+    founding: 'Founding the room…',
+    fizzled: m => 'The spell fizzled: ' + m,
   };
   // The Archmage's reasons come from the core in English; these are the known ones.
-  const REASONS = [
-    [/^default rank/, 'rango por defecto'], [/^chosen by you/, 'elegido por ti'], [/^long spell/, 'hechizo largo'],
-    [/^(\d+) files named/, 'nombra $1 ficheros'], [/^big job: "(.*)"/, 'trabajo grande: «$1»'], [/^small job: "(.*)"/, 'trabajo pequeño: «$1»'],
-    [/ · model chosen by you/, ' · modelo elegido por ti'], [/ · effort chosen by you/, ' · esfuerzo elegido por ti'],
-    [/ · 5-hour window at (\d+) %: one rank down/, ' · ventana de 5 h al $1 %: un rango menos'],
-  ];
-  const es = r => REASONS.reduce((t, [re, out]) => t.replace(re, out), String(r));
+  const es = r => String(r);   // the core already speaks English
   const DEMO_ACCOUNTS = [{ id: 'demo', guild: 'anthropic', label: 'Demo' }];
   const live = !!(CW.net && CW.net.live);
   const world = new CW.World(), view = new CW.Renderer($('room'), A);
@@ -76,7 +73,7 @@
   let replaying = live, modelSeq = 0, lastReset = null, statusT = 1, viewing = null, filesLoaded = false;
 
   const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-  const kfmt = n => ((Number(n) || 0) / 1000).toFixed(1).replace('.', ',') + 'k';
+  const kfmt = n => ((Number(n) || 0) / 1000).toFixed(1) + 'k';
   const palOf = g => A.pal.guilds[g] || A.pal.guilds.unknown;
   const gcol = g => 'rgb(' + palOf(g)[1].join(',') + ')';
   const nameOf = g => (has(A.names, g) ? A.names[g] : String(g));
@@ -290,6 +287,11 @@
     }
     if (replaying) world.lastSeq = Math.max(world.lastSeq, modelSeq);
     else if (!world.handle(ev)) return;
+    if (!replaying && CW.sound) {
+      const fx = { 'agent.summoned': 'door', 'context.read': 'read', 'code.write': 'write', 'artifact.present': 'present', 'review.requested': 'bell',
+        'review.approved': 'celebrate', 'task.merged': 'celebrate', 'agent.error': 'error', 'task.failed': 'error', 'task.created': 'cast' }[ev.t];
+      if (fx) CW.sound.play(fx);
+    }
     if (t0 === null) t0 = typeof ev.ts === 'number' ? ev.ts : 0;
     logEvent(ev);
     const tk = ev.task || agentTask.get(ev.agent);
@@ -463,6 +465,21 @@
     bus.cast(text, { rank: $('rank').value, model: $('model').value, effort: $('effort').value });
     if (!live) $('hint').textContent = T.hint;
   });
+  if (CW.sound) {
+    const S = () => CW.sound.settings;
+    const show = () => {
+      $('snd').setAttribute('aria-pressed', String(S().on));
+      $('snd').firstElementChild.className = S().on ? 'ico-sound' : 'ico-mute';
+      $('mus').setAttribute('aria-pressed', String(S().music));
+      $('bel').setAttribute('aria-pressed', String(S().bell));
+      $('vol').value = String(Math.round(S().volume * 100));
+    };
+    $('snd').addEventListener('click', () => { CW.sound.set({ on: !S().on }); show(); });
+    $('mus').addEventListener('click', () => { CW.sound.set({ music: !S().music }); show(); });
+    $('bel').addEventListener('click', () => { CW.sound.set({ bell: !S().bell }); show(); });
+    $('vol').addEventListener('input', () => CW.sound.set({ volume: Number($('vol').value) / 100 }));
+    show();
+  }
   $('tower-btn').addEventListener('click', () => bus.rooms());
   $('tower-close').addEventListener('click', () => { $('tower').hidden = true; });
   $('tower-rooms').addEventListener('click', e => { const b = e.target.closest('[data-room]'); if (b) bus.goTo(b.getAttribute('data-room')); });
@@ -537,7 +554,7 @@
     const sw0 = snap(Math.max(60 * scale, Math.min(110 * scale, W * 0.23)));
     const gw = Math.max(Math.round(RW * scale * 0.6), Math.min(W - 2 * (sw0 + 4 * scale), Math.round(RW * scale * 0.95)));
     const gl = Math.round((W - gw) / 2);
-    const gh = 16 * scale, lh = 9 * scale;
+    const gh = 28 * scale, lh = 9 * scale;
     const gtop = Math.min(H - gh - 3 * scale, Math.max(front + lh + 3 * scale, top + RH * scale - gh - 3 * scale));
     Object.assign($('spell').style, { left: gl + 'px', top: gtop + 'px', width: gw + 'px' });
     Object.assign($('roomline').style, { left: gl + 'px', top: (gtop - lh - scale) + 'px', width: gw + 'px' });
@@ -673,6 +690,8 @@
       if (sim) sim.tick(dt);
       world.update(dt);
       view.draw(world);
+      // Footsteps: a soft tick while any wizard walks (sound.js keeps them sparse).
+      if (CW.sound && !replaying) for (const w of world.wizards.values()) if (w.pose === 'walk' && !w.outside) { CW.sound.play('step'); break; }
       bctx.clearRect(0, 0, $('bloom').width, $('bloom').height);
       bctx.drawImage($('room'), 0, 0);                 // the CRT's glow: always on
     } catch (err) {

@@ -198,52 +198,15 @@ def hull(points):
     return lo[:-1] + up[:-1]
 
 
+FONT_FILE = os.path.join(HERE, '..', '..', 'codewizards-art', '05_ui', 'CWPixel.ttf')
+
+
 def pixel_font():
-    """The interface's pixel font (step 6d): the chalk font's 3 x 5 glyphs (font.py), with Spanish
-    accents, as a TrueType font whose pixels are squares. 8 px per em; use it at 16 px (x2) or 24 px."""
-    import base64, io
-    from fontTools.fontBuilder import FontBuilder
-    from fontTools.pens.ttGlyphPen import TTGlyphPen
-    import font as F
-    P = 125                                     # font units per pixel (1000 per em = 8 px)
-    glyphs = {k.upper(): v.split('|') for k, v in F.G.items()}
-    marks = {'Á': ('A', '.#.'), 'É': ('E', '.#.'), 'Í': ('I', '.#.'), 'Ó': ('O', '.#.'), 'Ú': ('U', '.#.'),
-             'Ñ': ('N', '##.'), 'Ü': ('U', '#.#')}
-    for ch, (base, mark) in marks.items():
-        if base in glyphs:
-            glyphs[ch] = [mark] + glyphs[base]
-    names, cmap, gl, adv = ['.notdef', 'space'], {32: 'space'}, {}, {'.notdef': (500, 0), 'space': (375, 0)}
-    pen = TTGlyphPen(None)
-    gl['.notdef'] = pen.glyph()
-    gl['space'] = TTGlyphPen(None).glyph()
-    for i, (ch, rows) in enumerate(sorted(glyphs.items())):
-        name = f'g{i}'
-        pen = TTGlyphPen(None)
-        h = len(rows)
-        for r, row in enumerate(rows):
-            for c, px in enumerate(row):
-                if px == '#':
-                    x0, y0 = c * P, (h - 1 - r) * P - (0 if h <= 5 else 0)
-                    pen.moveTo((x0, y0)); pen.lineTo((x0, y0 + P)); pen.lineTo((x0 + P, y0 + P)); pen.lineTo((x0 + P, y0)); pen.closePath()
-        gl[name] = pen.glyph()
-        names.append(name)
-        adv[name] = (4 * P, 0)
-        for cp in {ord(ch), ord(ch.lower())}:
-            cmap[cp] = name
-    fb = FontBuilder(1000, isTTF=True)
-    fb.setupGlyphOrder(names)
-    fb.setupCharacterMap(cmap)
-    fb.setupGlyf(gl)
-    fb.setupHorizontalMetrics(adv)
-    fb.setupHorizontalHeader(ascent=7 * P, descent=-2 * P)
-    fb.setupNameTable({'familyName': 'CW Pixel', 'styleName': 'Regular'})
-    fb.setupOS2(sTypoAscender=7 * P, sTypoDescender=-2 * P, usWinAscent=7 * P, usWinDescent=2 * P)
-    fb.setupPost()
-    fb.font['head'].created = fb.font['head'].modified = 3846441600   # fixed dates: the same bytes on every build
-    buf = io.BytesIO()
-    fb.font.recalcTimestamp = False
-    fb.save(buf)
-    return 'data:font/ttf;base64,' + base64.b64encode(buf.getvalue()).decode('ascii')
+    """The interface's pixel font, a file of the art (codewizards-art/05_ui/CWPixel.ttf, written by the
+    art generator, which is the only place that needs fontTools)."""
+    import base64
+    with open(FONT_FILE, 'rb') as f:
+        return 'data:font/ttf;base64,' + base64.b64encode(f.read()).decode('ascii')
 
 
 def png_uri(cv, scale=1):

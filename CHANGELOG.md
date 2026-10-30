@@ -2,6 +2,20 @@
 
 Notable changes to CodeWizards, newest first. Each version is a git tag; plans and reports are in Spanish, in `docs/` and `auditorias/`.
 
+## [1.7.0] · 2026-10-25 · The Archmage plans, the tower speaks English and sings
+
+### Fixed
+- CI: `apps/room/build.py --check` no longer needs fontTools. The pixel font is now an art file (`codewizards-art/05_ui/CWPixel.ttf`), written by the art generator; fontTools is added to the Nix shell.
+
+### Added
+- The Archmage plans: unless you choose a rank, one short call to the cheapest model splits a spell into up to 4 quests, each with the rank (and so the model) its complexity calls for. They run one after another, each from the previous one's approved branch; if one fails, the rest are cancelled; if planning fails, the rules decide as before. `--no-plan` and `planner` in `ranks.json` turn it off. The contract gains `after` on `task.created` and `plan` as a reason to cancel.
+- Sound (step 7): chiptune effects synthesised with Web Audio after the Game Boy's channels, an optional quiet music loop (off by default), an optional review bell in the background, volume and mute, all remembered.
+
+### Changed
+- The product speaks English (step 7), in the tower's voice, with the technical meaning of each magic word on hover.
+- The spell book has two rows: the spell takes the whole first one; who casts it, the model, the effort, the sound and Cast go below.
+- The CRT covers the interface too.
+
 ## [1.6.5] · 2026-10-25 · One screen, one pixel
 
 Step 6 of milestone 1 (GBC art): the polish Pol asked for after running v1.6.4.
@@ -246,6 +260,7 @@ Step 1 of milestone 1. The mockup is the same as in v1.0.
 ### Fixed
 - The mockup no longer freezes on its first frame in real browsers.
 
+[1.7.0]: https://github.com/poligle/codewizards/compare/v1.6.5...v1.7.0
 [1.6.5]: https://github.com/poligle/codewizards/compare/v1.6.4...v1.6.5
 [1.6.4]: https://github.com/poligle/codewizards/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/poligle/codewizards/compare/v1.6.2...v1.6.3

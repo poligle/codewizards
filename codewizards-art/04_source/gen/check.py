@@ -53,6 +53,10 @@ def main():
         if not os.path.exists(p):
             errs.append(f'{rel}: no existe')
             continue
+        if m.get('tipo') == 'fuente':
+            if os.path.getsize(p) != m['bytes'] or open(p, 'rb').read(4) != b'\x00\x01\x00\x00':
+                errs.append(f'{rel}: no es la fuente TrueType que generó build.py')
+            continue
         im = Image.open(p)
         if im.mode != 'P':
             errs.append(f'{rel}: no es indexado ({im.mode})')

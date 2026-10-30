@@ -13,9 +13,9 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overflow:hi
 .screen{position:fixed;left:0;top:0;width:720px;height:633px;z-index:0}
 .screen canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
 #bloom{mix-blend-mode:screen;filter:blur(calc(var(--px) * 1.5)) brightness(1.3);opacity:.28;pointer-events:none}
-.crt{position:fixed;inset:0;z-index:2;pointer-events:none}
+.crt{position:fixed;inset:0;z-index:9;pointer-events:none}   /* over everything, the interface too: one screen */
 .crt div{position:absolute;inset:0}
-.crt .scan{background:repeating-linear-gradient(to bottom,rgba(0,0,0,.22) 0,rgba(0,0,0,.22) calc(var(--px) / 2),transparent calc(var(--px) / 2),transparent var(--px))}
+.crt .scan{background:repeating-linear-gradient(to bottom,rgba(0,0,0,.16) 0,rgba(0,0,0,.16) calc(var(--px) / 2),transparent calc(var(--px) / 2),transparent var(--px))}
 .crt .mask{background:repeating-linear-gradient(to right,rgba(255,64,64,.035) 0 1px,rgba(64,255,64,.035) 1px 2px,rgba(64,64,255,.035) 2px 3px)}
 .crt .vig{background:radial-gradient(ellipse at 50% 46%,transparent 58%,rgba(0,0,0,.6) 100%)}
 @media (prefers-reduced-motion:no-preference){.crt .scan{animation:flick 7s steps(1) infinite}}
@@ -38,16 +38,25 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overflow:hi
   font-size:calc(var(--px) * 8);line-height:calc(var(--px) * 7);color:#f8f0d8;text-transform:uppercase;white-space:nowrap}
 .roomline #mode{color:#c0a0e8}
 .roomline .pixel{display:inline-flex;align-items:center;gap:var(--px)}
+/* Sound (step 7): effects, music and the review bell, each a small pixel button; then the volume. */
+.soundset{display:inline-flex;align-items:center;gap:var(--px);margin-right:auto}
+.pixel.icon{padding:var(--px);line-height:0}
+.pixel.icon [class*="ico-"]::before{margin:0}
+.pixel.icon[aria-pressed="false"]{opacity:.5}
+#vol{width:calc(var(--px) * 20);min-width:calc(var(--px) * 8);flex:0 1 auto;accent-color:var(--accent);height:calc(var(--px) * 4)}
+.grimoire .cast{flex:0 0 auto}
 
 /* The spell book: a long, low strip of parchment between two rolls, under the room's front corner. */
-.grimoire{position:fixed;z-index:4;display:flex;align-items:center;gap:calc(var(--px) * 3);height:calc(var(--px) * 16);
+.grimoire{position:fixed;z-index:4;display:flex;flex-direction:column;justify-content:center;gap:calc(var(--px) * 2);height:calc(var(--px) * 28);
   padding:0 calc(var(--px) * 9);background:var(--vroll) left top/calc(var(--px) * 7) calc(var(--px) * 8) repeat-y,var(--vroll) right top/calc(var(--px) * 7) calc(var(--px) * 8) repeat-y,
   var(--parch) 0 0/calc(var(--px) * 16) calc(var(--px) * 16) repeat;image-rendering:pixelated;
   border-top:var(--px) solid var(--line);border-bottom:var(--px) solid var(--line)}
-.grimoire .pick{display:flex;align-items:center;gap:var(--px);flex:0 1 auto}
-.grimoire select{font:14px/1.2 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;width:calc(var(--px) * 18);min-width:0;
+.grimoire .row{display:flex;align-items:center;gap:calc(var(--px) * 3);width:100%}
+.grimoire .choices{justify-content:flex-end;min-width:0}
+.grimoire .pick{display:flex;align-items:center;gap:var(--px);flex:0 1 auto;min-width:0}
+.grimoire select{font:14px/1.2 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;width:calc(var(--px) * 18);min-width:calc(var(--px) * 11);flex:0 1 auto;
   padding:0 var(--px);height:calc(var(--px) * 10);border:var(--px) solid var(--line);border-radius:0;background:var(--code);color:var(--ink)}
-.grimoire input{flex:1 1 auto;min-width:calc(var(--px) * 40);height:calc(var(--px) * 10);font:16px/1.2 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+.grimoire input{flex:1 1 auto;min-width:0;width:100%;height:calc(var(--px) * 12);font:18px/1.2 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   padding:0 calc(var(--px) * 2);border:var(--px) solid var(--line);border-radius:0;background:var(--code);color:var(--ink)}
 .grimoire .cast{height:calc(var(--px) * 10)}
 .hint{position:fixed;z-index:4;margin:0;font-size:13px;color:#c0a0e8;text-align:center}

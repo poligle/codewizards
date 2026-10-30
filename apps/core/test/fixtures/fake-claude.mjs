@@ -31,6 +31,16 @@ if (process.env.FAKE_CLAUDE_ARGS_FILE) {
   fs.appendFileSync(process.env.FAKE_CLAUDE_ARGS_FILE, JSON.stringify({ args, prompt, cwd: process.cwd() }) + '\n');
 }
 
+// The Archmage's planning call (--json-schema): answers with FAKE_CLAUDE_PLAN (JSON), or one task;
+// FAKE_CLAUDE_PLAN=crash makes it fail.
+if (args.includes('--json-schema')) {
+  const plan = process.env.FAKE_CLAUDE_PLAN;
+  if (plan === 'crash') { process.stderr.write('fake-claude: the planner broke\n'); process.exit(3); }
+  const structured = plan ? JSON.parse(plan) : { tasks: [{ title: 'Add a greeting file', prompt: prompt.trim() || 'Add a greeting file', rank: 'aprendiz', why: 'one small file' }] };
+  process.stdout.write(JSON.stringify({ type: 'result', subtype: 'success', is_error: false, num_turns: 1, result: '', structured_output: structured,
+    usage: { input_tokens: 900, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, output_tokens: 120 }, total_cost_usd: 0.0011 }) + '\n');
+  process.exit(0);
+}
 const scenario = resume ? 'resume' : (process.env.FAKE_CLAUDE_SCENARIO || 'success');
 if (scenario === 'crash') { process.stderr.write('fake-claude: boom\n'); process.exit(3); }
 if (scenario === 'oracle') {

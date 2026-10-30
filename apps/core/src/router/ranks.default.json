@@ -3,7 +3,7 @@
   "about": "Rank table of the Archmage. model is a Claude Code alias (haiku, sonnet, opus: Claude Code picks the newest model of that family it supports, and the room shows which one) or a full model id such as claude-opus-5-5, which needs a Claude Code new enough to know it. effort is Claude Code's reasoning effort (low, medium, high, xhigh, max). Override any field in ~/.config/codewizards/ranks.json (Linux; see docs/arquitectura.md for other systems). Estimates are input + output tokens per task, provisional until the evals measure them.",
   "ranks": {
     "aprendiz": {
-      "label": "Aprendiz",
+      "label": "Apprentice",
       "model": "haiku",
       "effort": "low",
       "maxTurns": 15,
@@ -11,7 +11,7 @@
       "note": "You are an apprentice wizard: make the smallest change that satisfies the request, read only the files you need, and do not refactor unrelated code."
     },
     "joven": {
-      "label": "Mago Joven",
+      "label": "Young Mage",
       "model": "sonnet",
       "effort": "medium",
       "maxTurns": 30,
@@ -19,7 +19,7 @@
       "note": "Make the requested change and keep the diff focused. If the project has tests and you may run them, run them before you finish."
     },
     "sabio": {
-      "label": "Gran Sabio",
+      "label": "Grand Sage",
       "model": "opus",
       "effort": "high",
       "maxTurns": 40,
@@ -73,5 +73,11 @@
       "reescribe",
       "rewrite"
     ]
+  },
+  "planner": {
+    "enabled": true,
+    "model": "haiku",
+    "maxTasks": 4,
+    "timeoutSec": 120
   }
 }

@@ -13,7 +13,7 @@ export const RANKS = Object.freeze(['aprendiz', 'joven', 'sabio', 'archimago']);
 export const BLOCK_REASONS = Object.freeze(['permission', 'quota', 'auth', 'user']);
 export const FAIL_REASONS = Object.freeze(['max_turns', 'budget', 'timeout', 'quota', 'auth', 'cap', 'error']);
 export const QUOTA_STATUS = Object.freeze(['ok', 'limited', 'exhausted', 'unknown']);
-export const CANCEL_BY = Object.freeze(['user', 'cap']);
+export const CANCEL_BY = Object.freeze(['user', 'cap', 'plan']);   // plan: an earlier task of the Archmage's plan did not finish
 // Claude Code's reasoning effort levels (`--effort`).
 export const EFFORTS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
 
@@ -37,7 +37,7 @@ const ENVELOPE = {
 export const EVENTS = Object.freeze({
   'room.opened': { project: str(120), guild: { type: 'string', pattern: SLUG } },
   'task.created': {
-    task: id, title: str(200), estimate: { type: 'number', min: 0, nullable: true }, rank: opt(rank), reason: opt(str(200)),
+    task: id, title: str(200), estimate: { type: 'number', min: 0, nullable: true }, rank: opt(rank), reason: opt(str(200)), after: opt(id),
   },
   'agent.summoned': {
     agent: id, guild: { type: 'string', pattern: SLUG }, rank, model: str(80), account: str(64), effort: opt({ type: 'string', enum: EFFORTS }),

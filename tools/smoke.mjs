@@ -79,7 +79,7 @@ async function castAndFinish(page, label) {
   check(done, `${label}: a spell completes (every task done)${done ? '' : ` ${c.created} created, ${c.done} done`}`);
   const gone = await page.waitForFunction(() => document.querySelectorAll('#tasks li').length === 0
     && document.querySelectorAll('#history li').length >= 3, null, { timeout: 60000 }).then(() => true, () => false);
-  check(gone, `${label}: finished tasks move to «Hechas» when their wizard walks out`);
+  check(gone, `${label}: finished quests move to «Fulfilled» when their wizard walks out`);
 }
 
 async function shots(page, prefix) {
@@ -92,8 +92,15 @@ async function staticDemo(browser) {
   await page.addInitScript(HOOK);
   const w = watch(page, u => u.startsWith(STATIC) || u.startsWith('data:'));
   await page.goto(STATIC + '?prisa=4&auto=1');        // the demo, sped up and approving by itself (test only)
-  check(/Ilusión/.test(await page.textContent('#mode')), 'A static: the demo says it is an illusion, without a token');
+  check(/illusion/i.test(await page.textContent('#mode')), 'A static: the demo says it is an illusion, without a token');
   check((await page.locator('[data-speed], #auto, #crt').count()) === 0, 'A static: no speed, auto-approval or CRT switch on screen');
+  await page.click('#snd');
+  await page.click('#mus');
+  const snd = await page.evaluate(() => window.CW.sound.settings);
+  check(snd.on === false && snd.music === true, 'A static: sound and music switch from the room line');
+  await page.click('#snd');
+  await page.click('#mus');
+  check(await page.evaluate(() => { const s = window.CW.sound.settings; return s.on && !s.music && JSON.parse(localStorage.getItem('cw-sound')).on; }), 'A static: and the choice is remembered (music off by default)');
   check((await page.locator('#mana li').count()) === 1, 'A static: only the connected account\'s guild has mana (Anthropic)');
   check((await page.locator('#rank option').count()) === 4, 'A static: the spell book lets you choose the rank or leave it to the Archmage');
   await castAndFinish(page, 'A static');
@@ -188,7 +195,7 @@ async function liveRoom(browser) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const w = watch(page, u => u.startsWith(origin) || u.startsWith(origin.replace('http:', 'ws:')));
     await page.goto(origin + '/?prisa=4&auto=1#token=' + token);   // the demo room, sped up (test only)
-    await page.waitForFunction(() => /Ilusión/.test(document.getElementById('mode').textContent) && /torre te escucha/.test(document.getElementById('hint').textContent), null, { timeout: 10000 })
+    await page.waitForFunction(() => /illusion/i.test(document.getElementById('mode').textContent) && /tower is listening/.test(document.getElementById('hint').textContent), null, { timeout: 10000 })
       .then(() => check(true, 'C live: connected to the core'), () => check(false, 'C live: connected to the core'));
     check(!page.url().includes('token'), 'C live: the token left the address bar');
     await castAndFinish(page, 'C live');
@@ -197,11 +204,11 @@ async function liveRoom(browser) {
     await page.waitForTimeout(1200);
     const done = (await logged(page)).done;
     await page.goto(info.url.split('#')[0] + '#token=' + token);
-    await page.waitForFunction(() => /torre te escucha/.test(document.getElementById('hint').textContent), null, { timeout: 10000 });
+    await page.waitForFunction(() => /tower is listening/.test(document.getElementById('hint').textContent), null, { timeout: 10000 });
     await page.waitForTimeout(300);
     const after = await page.evaluate(() => ({ now: document.querySelectorAll('#tasks li').length, hist: document.querySelectorAll('#history li').length }));
-    check(after.now === 0 && after.hist === done, `C live: reopening the room rebuilds it at once: ${after.hist} tasks in «Hechas», none walking in again`);
-    check((await page.inputValue('#notes')).includes('fix the login'), 'C live: «Por hacer» keeps its notes across reloads');
+    check(after.now === 0 && after.hist === done, `C live: reopening the room rebuilds it at once: ${after.hist} quests in «Fulfilled», none walking in again`);
+    check((await page.inputValue('#notes')).includes('fix the login'), 'C live: the notes are kept across reloads');
     await shots(page, 'local');
     check(w.errors.length === 0, `C live: no page or console errors ${w.errors.join(' | ')}`);
     check(w.external.length === 0, `C live: every request stays on ${origin} ${w.external.join(' ')}`);
@@ -258,12 +265,12 @@ async function claudeRoom(browser) {
     const done = await page.waitForSelector('#tasks .st-pending', { timeout: 30000 }).then(() => true, () => false);
     check(done && /Hello from the wizard/.test(git('show', 'cw/t1-add-a-greeting-file:hello.txt')), 'D serve: approval commits to the task branch');
     const note = await page.textContent('#deliv');
-    check(/guardado en la rama cw\/t1-add-a-greeting-file/.test(note) && /git merge cw\/t1-add-a-greeting-file/.test(note), 'D serve: the blackboard says where the change went and how to bring it in');
+    check(/saved on the branch cw\/t1-add-a-greeting-file/.test(note) && /git merge cw\/t1-add-a-greeting-file/.test(note), 'D serve: the blackboard says where the change went and how to bring it in');
     check(/claude-sonnet-5-5/.test(note), 'D serve: the blackboard shows the model Claude Code reported');
     check(git('rev-list', '--count', 'main').trim() === '1', 'D serve: main does not move');
-    check(/Aprendiz/.test(note) && /concentración profunda/.test(note), 'D serve: the rank and the effort you chose are the ones that worked');
+    check(/Apprentice/.test(note) && /deep focus/.test(note), 'D serve: the rank and the effort you chose are the ones that worked');
     check(await page.locator('#deliv .dfile summary').filter({ hasText: 'hello.txt' }).count() === 1, 'D serve: the diff is shown file by file, with its counts');
-    check(/elegido por ti/.test(note), 'D serve: the Archmage\'s reason reads in Spanish');
+    check(/chosen by you/.test(note), 'D serve: the Archmage\'s reason reads plainly');
     await page.click('#files-box summary');
     await page.waitForSelector('#files [data-file="README.md"]', { timeout: 10000 });
     await page.click('#files [data-file="README.md"]');

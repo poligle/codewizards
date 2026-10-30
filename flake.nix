@@ -9,7 +9,7 @@
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
       tools = pkgs: [
         pkgs.nodejs_22 # node and npm: the core, its tests and the smoke test
-        (pkgs.python3.withPackages (ps: [ ps.numpy ps.pillow ])) # the art generator and the evals
+        (pkgs.python3.withPackages (ps: [ ps.numpy ps.pillow ps.fonttools ])) # the art generator and the evals
         pkgs.git
       ];
       # `codewizards` on the PATH inside the shell (run `npm ci --ignore-scripts` once for its ws).

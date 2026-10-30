@@ -15,7 +15,7 @@ function setup(extra = {}) {
   const store = new EventStore({ room: 'test-room', file: path.join(dir, 'events.jsonl') });
   const argsFile = path.join(dir, 'args.jsonl');
   const env = { ...process.env, FAKE_CLAUDE_DELAY_MS: '1', FAKE_CLAUDE_ARGS_FILE: argsFile, ...(extra.env || {}) };
-  const room = new ClaudeRoom({ store, repo: repo.dir, dir, bin: FAKE_CLAUDE, policy: buildPolicy({ platform: 'linux' }), env, caps: extra.caps, ...(extra.room || {}) });
+  const room = new ClaudeRoom({ store, repo: repo.dir, dir, bin: FAKE_CLAUDE, policy: buildPolicy({ platform: 'linux' }), env, caps: extra.caps, planner: extra.planner || false, ...(extra.room || {}) });
   const types = () => store.events.map(e => e.t);
   const has = (t, pred = () => true) => store.events.find(e => e.t === t && pred(e));
   const runs = () => (fs.existsSync(argsFile) ? fs.readFileSync(argsFile, 'utf8').trim().split('\n').map(l => JSON.parse(l)) : []);
@@ -171,7 +171,7 @@ test('stop cancels a running wizard; outside the demo there is no auto-approval'
   assert.ok(!s.has('review.approved'));
   const h = s.room.hello();
   assert.deepEqual([h.mode, h.autoApprove, h.merge, h.accounts], ['claude-code', false, false, [{ id: 'claude-code', guild: 'anthropic', label: 'Claude Code' }]]);
-  assert.deepEqual(h.ranks.joven, { label: 'Mago Joven', model: 'sonnet', effort: 'medium' });
+  assert.deepEqual(h.ranks.joven, { label: 'Young Mage', model: 'sonnet', effort: 'medium' });
   assert.deepEqual(h.models, ['haiku', 'sonnet', 'opus']);
 });
 
@@ -257,4 +257,49 @@ test('the read-only file explorer lists what git has committed and reads only th
   for (const bad of ['../../etc/passwd', '/etc/passwd', 'HEAD:README.md', 'nope.txt']) {
     await assert.rejects(room.query({ cmd: 'file', path: bad }), /not in the repository/, bad);
   }
+});
+
+const PLAN2 = JSON.stringify({ tasks: [
+  { title: 'Add a greeting file', prompt: 'Add a greeting file', rank: 'aprendiz', why: 'one small file' },
+  { title: 'Polish the greeting', prompt: 'Polish the greeting', rank: 'joven', why: 'touches what the first made' },
+] });
+
+test('the Archmage plans: tasks for different models by complexity, one after another on the same branch', async () => {
+  const { repo, room, has, runs, store } = setup({ planner: true, env: { FAKE_CLAUDE_PLAN: PLAN2 } });
+  room.cast('Add a greeting and polish it');
+  await waitFor(() => has('review.requested', e => e.task === 't1'), { what: 'the first task at the blackboard' });
+  const c1 = has('task.created', e => e.task === 't1'), c2 = has('task.created', e => e.task === 't2');
+  assert.deepEqual([c1.rank, c2.rank, c2.after], ['aprendiz', 'joven', 't1'], 'each task its rank; the second after the first');
+  assert.match(c1.reason, /the Archmage's plan, 1 of 2: one small file/);
+  const plan = runs()[0];
+  assert.ok(plan.args.includes('--json-schema') && plan.args[plan.args.indexOf('--tools') + 1] === '' && plan.args[plan.args.indexOf('--model') + 1] === 'haiku',
+    'the planning call: no tools, a schema, the cheap model');
+  assert.ok(has('tokens.used', e => e.agent === 'archimago'), 'what the planning cost is in the log');
+  const work1 = runs()[1];
+  assert.equal(work1.args[work1.args.indexOf('--model') + 1], 'haiku', 'the Apprentice works with its model');
+  assert.ok(!has('agent.summoned', e => e.agent === 'a2'), 'the second task waits for the first to be approved');
+  await room.handle({ cmd: 'approve', task: 't1' });
+  await waitFor(() => has('review.requested', e => e.task === 't2'), { what: 'the second task at the blackboard' });
+  const work2 = runs()[2];
+  assert.equal(work2.args[work2.args.indexOf('--model') + 1], 'sonnet', 'the Young Mage works with its own model');
+  await room.handle({ cmd: 'approve', task: 't2' });
+  const log = repo.git('log', '--format=%s', 'cw/t2-polish-the-greeting');
+  assert.match(log, /Polish the greeting\nAdd a greeting file/, 'the second branch starts from the first one\'s commit');
+  assert.ok(store.events.every(e => e.t !== 'task.failed'));
+});
+
+test('a plan stops where a task fails, and planning that fails leaves the rules to decide', async () => {
+  const a = setup({ planner: true, env: { FAKE_CLAUDE_PLAN: PLAN2, FAKE_CLAUDE_SCENARIO: 'max-turns' } });
+  a.room.cast('Add a greeting and polish it');
+  await waitFor(() => a.has('task.cancelled', e => e.task === 't2'), { what: 'the rest of the plan cancelled' });
+  assert.equal(a.has('task.cancelled', e => e.task === 't2').by, 'plan');
+  assert.equal(a.has('task.failed', e => e.task === 't1').reason, 'max_turns');
+  const b = setup({ planner: true, env: { FAKE_CLAUDE_PLAN: 'crash' } });
+  b.room.cast('Add a greeting file');
+  await waitFor(() => b.has('review.requested'), { what: 'a single task by the rules' });
+  assert.equal(b.has('task.created').reason, 'default rank');
+  const c = setup({ planner: true, env: { FAKE_CLAUDE_PLAN: PLAN2 } });
+  c.room.cast('Add a greeting file', 'sabio');
+  await waitFor(() => c.has('review.requested'), { what: 'your rank, no planning' });
+  assert.ok(!c.runs().some(r => r.args.includes('--json-schema')), 'choosing a rank skips the Archmage');
 });

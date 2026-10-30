@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { addWorktree, branchName, commitAll, currentBranch, diffAgainst, head, listFiles, mergeFastForward, openPr, pushBranch, removeWorktree, showFile } from '../git.js';
+import { addWorktree, branchName, commitAll, commitOf, currentBranch, diffAgainst, head, listFiles, mergeFastForward, openPr, pushBranch, removeWorktree, showFile } from '../git.js';
 import { ensureDir } from '../paths.js';
 import { redact } from '../redact.js';
 import { buildPolicy, claudeArgs, systemNote } from '../agents/claude-code/policy.js';
@@ -16,6 +16,7 @@ import { ClaudeTranslator } from '../agents/claude-code/translate.js';
 import { runClaude } from '../agents/claude-code/runner.js';
 import { defaultRanks, WORKER_RANKS, EFFORTS } from '../router/config.js';
 import { route } from '../router/router.js';
+import { planSpell } from '../router/planner.js';
 
 // Provisional caps; the evals calibrate them. maxTurns null: each rank's own (ranks.json).
 export const DEFAULT_CAPS = Object.freeze({
@@ -45,13 +46,15 @@ export class ClaudeRoom {
    *   `env` is what Claude Code gets (agents/claude-code/env.js); `record` keeps each turn's output,
    *   secrets masked, in tasks/<task>/turn-<n>.ndjson.
    */
-  constructor({ store, repo, dir, bin, policy = buildPolicy(), caps = {}, ranks = null, account = 'claude-code', model = null, effort = null, rank = null, openPrs = false, merge = false, record = false, env = process.env, now = () => Date.now(), log = () => {} }) {
+  constructor({ store, repo, dir, bin, policy = buildPolicy(), caps = {}, ranks = null, account = 'claude-code', model = null, effort = null, rank = null, openPrs = false, merge = false, record = false, planner = null, env = process.env, now = () => Date.now(), log = () => {} }) {
     if (merge && openPrs) throw new Error('--merge and --open-prs do not go together: pick one');
     if (rank && !WORKER_RANKS.includes(rank)) throw new Error('--rank must be aprendiz, joven or sabio');
     if (effort && !EFFORTS.includes(effort)) throw new Error(`--effort must be one of ${EFFORTS.join(', ')}`);
     Object.assign(this, { store, repo, dir: realDir(dir), bin, policy, account, model, effort, openPrs, merge, record, env, now, log });
     this.forcedRank = rank;
     this.ranks = ranks || defaultRanks();
+    // The Archmage plans a spell into tasks for different models unless the spell book chose a rank.
+    this.usePlanner = planner === null ? !!(this.ranks.planner && this.ranks.planner.enabled) : !!planner;
     this.caps = { ...DEFAULT_CAPS, ...caps };
     this.tasks = new Map();
     this.queue = [];
@@ -138,17 +141,53 @@ export class ClaudeRoom {
       this.opened = true;
       this.emit({ t: 'room.opened', project: path.basename(this.repo).slice(0, 120), guild: 'anthropic' });
     }
-    const id = 't' + (++this.taskSeq);
-    const title = short(text, 120) || 'Untitled spell';
-    const plan = route({
-      text: String(text), override: c.rank || this.forcedRank, model: c.model || this.model, effort: c.effort || this.effort,
+    if (this.usePlanner && !c.rank && !this.forcedRank && !c.noPlan) {
+      this.planAndCast(String(text), c);
+      return null;
+    }
+    const plan = this.routeFor(String(text), c.rank || this.forcedRank, c);
+    return this.createTask({ prompt: String(text), title: short(text, 120) || 'Untitled spell', plan });
+  }
+
+  routeFor(text, rank, c) {
+    return route({
+      text, override: rank, model: c.model || this.model, effort: c.effort || this.effort,
       table: this.ranks, quota: this.quota, history: this.history, extraModels: this.model ? [this.model] : [], now: this.now(),
     });
-    this.emit({ t: 'task.created', task: id, title, estimate: plan.estimate, rank: plan.rank, reason: plan.reason.slice(0, 200) });
+  }
+
+  // The Archmage plans: one cheap call (router/planner.js) splits the spell into tasks, each with the
+  // rank its complexity calls for; they run one after another, each from the previous one's approved
+  // branch. If planning fails, the rules decide a single task, as before.
+  async planAndCast(text, c) {
+    const P = this.ranks.planner;
+    let res = null;
+    try {
+      res = await planSpell({ text, bin: this.bin, env: this.env, cwd: this.repo, model: P.model, timeoutMs: P.timeoutSec * 1000, maxTasks: P.maxTasks });
+    } catch (err) {
+      this.log(`The Archmage could not plan (${message(err)}); the rules decide.`);
+    }
+    if (this.closing) return;
+    if (!res) { this.cast(text, { ...c, noPlan: true }); return; }
+    const u = res.usage || {};
+    const input = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0), output = u.output_tokens || 0;
+    this.tokensUsed += input + output;
+    this.emit({ t: 'tokens.used', agent: 'archimago', account: this.account, input, output, cache: u.cache_read_input_tokens || 0, cost_usd: res.cost });
+    let prev = null;
+    res.tasks.forEach((t, i) => {
+      const plan = this.routeFor(t.prompt, t.rank, c);
+      plan.reason = `the Archmage's plan, ${i + 1} of ${res.tasks.length}: ${t.why || t.rank}`;
+      prev = this.createTask({ prompt: t.prompt, title: t.title, plan, after: prev ? prev.id : null }) || prev;
+    });
+  }
+
+  createTask({ prompt, title, plan, after = null }) {
+    const id = 't' + (++this.taskSeq);
+    this.emit({ t: 'task.created', task: id, title: title.slice(0, 200), estimate: plan.estimate, rank: plan.rank, reason: plan.reason.slice(0, 200), ...(after ? { after } : {}) });
     const task = {
-      id, title, prompt: String(text), state: 'queued', agent: null, summoned: false, prepared: false, model: null, turns: 0, waits: 0, timer: null,
+      id, title, prompt, state: 'queued', agent: null, summoned: false, prepared: false, model: null, turns: 0, waits: 0, timer: null,
       rank: plan.rank, plannedModel: plan.model, effort: plan.effort, maxTurns: this.caps.maxTurns ? Math.min(this.caps.maxTurns, plan.maxTurns) : plan.maxTurns,
-      note: plan.note, sessionId: randomUUID(), branch: null, wt: null, base: null, baseBranch: null, run: null, result: null,
+      note: plan.note, sessionId: randomUUID(), branch: null, wt: null, base: null, baseBranch: null, run: null, result: null, after, job: null,
     };
     this.tasks.set(id, task);
     if (this.tokensUsed >= this.caps.roomTokens) {
@@ -160,9 +199,33 @@ export class ClaudeRoom {
       return task;
     }
     this.started++;
-    this.queue.push({ task, prompt: task.prompt, resume: false, wait: plan.wait });
+    const job = { task, prompt: task.prompt, resume: false, wait: plan.wait };
+    if (after) { task.state = 'planned'; task.job = job; return task; }   // starts when the task before it is approved
+    this.queue.push(job);
     this.pump();
     return task;
+  }
+
+  // The next task of a plan starts from the branch the previous one left, once it is approved.
+  advance(prev) {
+    for (const t of this.tasks.values()) {
+      if (t.after !== prev.id || t.state !== 'planned') continue;
+      t.state = 'queued';
+      this.queue.push(t.job);
+      t.job = null;
+    }
+    this.pump();
+  }
+
+  // A plan stops where a task fails or is cancelled: the tasks after it are cancelled too.
+  dropChain(task) {
+    for (const t of this.tasks.values()) {
+      if (t.after !== task.id || t.state !== 'planned') continue;
+      t.state = 'cancelled';
+      t.job = null;
+      this.emit({ t: 'task.cancelled', task: t.id, by: 'plan' });
+      this.dropChain(t);
+    }
   }
 
   pump() {
@@ -192,7 +255,8 @@ export class ClaudeRoom {
 
   async prepare(task) {
     task.agent = 'a' + (++this.agentSeq);
-    task.base = await head(this.repo);
+    const prev = task.after ? this.tasks.get(task.after) : null;
+    task.base = prev && prev.branch ? await commitOf(this.repo, prev.branch) : await head(this.repo);
     task.baseBranch = await currentBranch(this.repo);
     task.branch = branchName(task.id, task.title);
     task.wt = path.join(this.dir, 'worktrees', task.id);
@@ -304,6 +368,7 @@ export class ClaudeRoom {
       this.emit({ t: 'task.done', agent: task.agent, task: id, result, branch: task.branch, ...(pr ? { pr: pr.slice(0, 500) } : {}) });
       this.emit({ t: 'agent.idle', agent: task.agent });
       await removeWorktree(this.repo, task.wt).catch(() => {});
+      this.advance(task);
     } catch (err) {
       task.state = 'review';
       this.emit({ t: 'agent.error', agent: task.agent, message: `Approval did not finish: ${message(err)}` });
@@ -365,12 +430,14 @@ export class ClaudeRoom {
   // Only a wizard that walked in is named (a CLI that never started has no wizard in the room).
   fail(task, reason, msg) {
     task.state = 'failed';
+    this.dropChain(task);
     this.emit({ t: 'task.failed', task: task.id, ...(task.summoned ? { agent: task.agent } : {}), reason, message: String(msg).slice(0, 2000) });
     if (task.summoned) this.emit({ t: 'agent.idle', agent: task.agent });
   }
 
   cancelled(task, by) {
     task.state = 'cancelled';
+    this.dropChain(task);
     this.emit({ t: 'task.cancelled', task: task.id, ...(task.summoned ? { agent: task.agent } : {}), by });
     if (task.summoned) this.emit({ t: 'agent.idle', agent: task.agent });
   }

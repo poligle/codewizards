@@ -17,6 +17,7 @@ function merge(base, over) {
   const out = structuredClone(base);
   for (const r of WORKER_RANKS) if (over.ranks && over.ranks[r]) Object.assign(out.ranks[r], over.ranks[r]);
   if (over.router) Object.assign(out.router, over.router);
+  if (over.planner) Object.assign(out.planner, over.planner);
   return out;
 }
 
@@ -36,6 +37,11 @@ export function checkRanks(t) {
   if (!WORKER_RANKS.includes(ro.default)) bad('router.default must be aprendiz, joven or sabio');
   for (const k of ['downgradeAt', 'pauseAt']) if (!(typeof ro[k] === 'number' && ro[k] > 0 && ro[k] <= 1)) bad(`router.${k} must be between 0 and 1`);
   for (const k of ['aprendiz', 'sabio']) if (!Array.isArray(ro[k]) || ro[k].some(w => typeof w !== 'string')) bad(`router.${k} must be a list of words`);
+  const pl = t.planner || bad('missing planner');
+  if (typeof pl.enabled !== 'boolean') bad('planner.enabled must be true or false');
+  if (typeof pl.model !== 'string' || !MODEL.test(pl.model)) bad('planner.model must be a Claude Code alias or model id');
+  if (!Number.isSafeInteger(pl.maxTasks) || pl.maxTasks < 1 || pl.maxTasks > 4) bad('planner.maxTasks must be 1-4');
+  if (!Number.isSafeInteger(pl.timeoutSec) || pl.timeoutSec < 10 || pl.timeoutSec > 600) bad('planner.timeoutSec must be 10-600');
   return t;
 }
 

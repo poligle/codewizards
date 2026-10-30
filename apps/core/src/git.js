@@ -34,6 +34,8 @@ export async function rootCommit(dir) {
   return r.code === 0 && r.stdout.trim() ? r.stdout.trim().split('\n')[0] : null;
 }
 export async function head(dir) { return (await git(dir, ['rev-parse', 'HEAD'])).trim(); }
+/** The commit a branch (or any ref) points at. */
+export async function commitOf(dir, ref) { return (await git(dir, ['rev-parse', '--verify', `${ref}^{commit}`])).trim(); }
 
 /** Name of the checked-out branch, or null when HEAD is detached. */
 export async function currentBranch(dir) {

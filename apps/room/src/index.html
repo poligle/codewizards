@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" class="px3">
+<html lang="en" class="px3">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -15,106 +15,116 @@
      the spell book lies below the room's front corner; four parchment scrolls float above the dark,
      and every pixel of all of it is the same size. -->
 <div class="screen" id="screen">
-  <canvas id="room" width="240" height="211" role="img" aria-label="La sala de la torre: los magos entran, leen en la biblioteca, mezclan en la mesa de alquimia y presentan en la pizarra"></canvas>
-  <canvas id="bloom" width="240" height="211" aria-hidden="true"></canvas>
+  <canvas id="room" width="240" height="216" role="img" aria-label="The tower room: wizards walk in, read at the library, brew at the alchemy table and present at the blackboard"></canvas>
+  <canvas id="bloom" width="240" height="216" aria-hidden="true"></canvas>
 </div>
 <div class="crt" aria-hidden="true"><div class="mask"></div><div class="scan"></div><div class="vig"></div></div>
 
 <div class="roomline" id="roomline">
-  <span id="mode">Ilusión de demostración</span>
-  <button type="button" id="tower-btn" class="pixel" hidden><span class="ico-door" aria-hidden="true"></span>Cambiar de sala</button>
+  <span id="mode">An illusion</span>
+  <button type="button" id="tower-btn" class="pixel" hidden title="Change room: open another repository"><span class="ico-door" aria-hidden="true"></span>Change room</button>
 </div>
 
-<form id="spell" class="grimoire" aria-label="Grimorio">
-  <label for="spell-text" class="sr-only">Lanza un hechizo</label>
-  <input id="spell-text" type="text" maxlength="4000" autocomplete="off" spellcheck="true" placeholder="Lanza un hechizo…">
-  <label class="pick" title="Quién conjura: Auto deja que el Archimago lo decida"><span class="ico-hat" aria-hidden="true"></span><span class="sr-only">Quién conjura</span>
-    <select id="rank">
-      <option value="auto" selected>Auto</option>
-      <option value="aprendiz">Aprendiz</option>
-      <option value="joven">Joven</option>
-      <option value="sabio">Sabio</option>
-    </select>
-  </label>
-  <label class="pick" title="Arcano: el modelo; Auto usa el de su rango"><span class="ico-crystal" aria-hidden="true"></span><span class="sr-only">Arcano (modelo)</span>
-    <select id="model"><option value="auto" selected>Auto</option></select>
-  </label>
-  <label class="pick" title="Concentración: el esfuerzo; Auto usa la de su rango"><span class="ico-flame" aria-hidden="true"></span><span class="sr-only">Concentración (esfuerzo)</span>
-    <select id="effort">
-      <option value="auto" selected>Auto</option>
-      <option value="low">Leve</option>
-      <option value="medium">Serena</option>
-      <option value="high">Profunda</option>
-      <option value="xhigh">Muy profunda</option>
-      <option value="max">Absoluta</option>
-    </select>
-  </label>
-  <button type="submit" class="cast pixel">Lanzar</button>
+<form id="spell" class="grimoire" aria-label="Spell book" title="The spell book: what you ask the wizards to do">
+  <div class="row spellrow">
+    <label for="spell-text" class="sr-only">Cast a spell</label>
+    <input id="spell-text" type="text" maxlength="4000" autocomplete="off" spellcheck="true" placeholder="Cast a spell…">
+    </div>
+  <div class="row choices">
+    <span class="soundset">
+        <button type="button" id="snd" class="pixel icon" aria-pressed="true" title="Sound effects on or off"><span class="ico-sound" aria-hidden="true"></span><span class="sr-only">Sound</span></button>
+        <button type="button" id="mus" class="pixel icon" aria-pressed="false" title="Music, quiet and off by default"><span class="ico-music" aria-hidden="true"></span><span class="sr-only">Music</span></button>
+        <button type="button" id="bel" class="pixel icon" aria-pressed="false" title="Ring the bell when a review waits, even with the tab in the background"><span class="ico-bell" aria-hidden="true"></span><span class="sr-only">Review bell</span></button>
+        <input type="range" id="vol" min="0" max="100" step="5" value="35" aria-label="Volume" title="Volume">
+      </span>
+    <label class="pick" title="Who casts it: a wizard's rank picks its Claude model; Auto lets the Archmage plan the spell into quests for different ranks"><span class="ico-hat" aria-hidden="true"></span><span class="sr-only">Who casts it</span>
+      <select id="rank">
+        <option value="auto" selected>Auto</option>
+        <option value="aprendiz">Apprentice</option>
+        <option value="joven">Young</option>
+        <option value="sabio">Sage</option>
+      </select>
+    </label>
+    <label class="pick" title="Arcana: the Claude model; Auto uses its rank's"><span class="ico-crystal" aria-hidden="true"></span><span class="sr-only">Arcana (model)</span>
+      <select id="model"><option value="auto" selected>Auto</option></select>
+    </label>
+    <label class="pick" title="Focus: Claude's reasoning effort; Auto uses its rank's"><span class="ico-flame" aria-hidden="true"></span><span class="sr-only">Focus (effort)</span>
+      <select id="effort">
+        <option value="auto" selected>Auto</option>
+        <option value="low">Light</option>
+        <option value="medium">Calm</option>
+        <option value="high">Deep</option>
+        <option value="xhigh">Deeper</option>
+        <option value="max">Absolute</option>
+      </select>
+    </label>
+    <button type="submit" class="cast pixel" title="Cast: send the spell to the tower">Cast</button>
+  </div>
 </form>
 <p class="hint" id="hint" aria-live="polite"></p>
 
 <section class="scroll" id="sc-tasks" data-corner="tl" aria-labelledby="h-tasks">
-  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-tasks" title="Arrastra para moverlo · pulsa para enrollarlo"><span id="h-tasks" class="title">Encargos</span></div>
+  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-tasks" title="Quests: what your spells became. Drag to move · press to roll up"><span id="h-tasks" class="title">Quests</span></div>
   <div class="paper" id="p-tasks">
-    <h3>En marcha</h3>
+    <h3>Underway</h3>
     <ol id="tasks" class="tasks"></ol>
-    <details class="hist" id="hist"><summary>Cumplidos (<span id="hist-n">0</span>)</summary><ol id="history" class="tasks"></ol></details>
+    <details class="hist" id="hist"><summary>Fulfilled (<span id="hist-n">0</span>)</summary><ol id="history" class="tasks"></ol></details>
   </div>
-  <div class="roll bottom" role="separator" aria-orientation="horizontal" aria-label="Alargar o acortar" title="Arrastra para alargarlo o acortarlo"></div>
+  <div class="roll bottom" role="separator" aria-orientation="horizontal" aria-label="Longer or shorter" title="Drag to make it longer or shorter; near the right end, wider too"></div>
 </section>
 
 <section class="scroll" id="sc-notes" data-corner="bl" aria-labelledby="h-notes">
-  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-notes" title="Arrastra para moverlo · pulsa para enrollarlo"><span id="h-notes" class="title">Notas</span></div>
+  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-notes" title="Notes: spells for later. Drag to move · press to roll up"><span id="h-notes" class="title">Notes</span></div>
   <div class="paper" id="p-notes">
-    <label for="notes" class="sr-only">Notas del mago</label>
-    <textarea id="notes" rows="5" placeholder="Apunta aquí hechizos para más tarde. Elige una línea y pásala al grimorio."></textarea>
-    <button type="button" id="to-spell" class="mini pixel">Al grimorio</button>
-    <details class="hist" id="files-box" hidden><summary>Tomos del repo</summary><div id="files" class="files"></div></details>
+    <label for="notes" class="sr-only">Notes</label>
+    <textarea id="notes" rows="5" placeholder="Jot down spells for later. Pick a line and send it to the spell book."></textarea>
+    <button type="button" id="to-spell" class="mini pixel" title="Copy the selected line, or the line under the cursor, to the spell book">To the spell book</button>
+    <details class="hist" id="files-box" hidden><summary title="Tomes: the files committed on your branch, read-only">Repo tomes</summary><div id="files" class="files"></div></details>
   </div>
-  <div class="roll bottom" role="separator" aria-orientation="horizontal" aria-label="Alargar o acortar" title="Arrastra para alargarlo o acortarlo"></div>
+  <div class="roll bottom" role="separator" aria-orientation="horizontal" aria-label="Longer or shorter" title="Drag to make it longer or shorter; near the right end, wider too"></div>
 </section>
 
 <section class="scroll" id="sc-board" data-corner="tr" aria-labelledby="h-piz">
-  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-board" title="Arrastra para moverlo · pulsa para enrollarlo"><span id="h-piz" class="title">Pizarra</span></div>
+  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-board" title="Blackboard: the review of a wizard's change (its diff). Drag to move · press to roll up"><span id="h-piz" class="title">Blackboard</span></div>
   <div class="paper" id="p-board">
     <div id="deliv" class="deliv"></div>
-    <label for="comment" class="cm">Palabras para el mago si lo devuelves</label>
+    <label for="comment" class="cm">Words for the wizard if you send it back</label>
     <textarea id="comment" rows="2" maxlength="2000"></textarea>
-    <div class="review"><button type="button" id="approve" class="ok pixel" disabled title="Aprobar el cambio">Bendecir</button><button type="button" id="reject" class="no pixel" disabled title="Devolverlo con tus palabras">Devolver</button><button type="button" id="stop" class="halt pixel" disabled hidden title="Detener al mago">Romper</button></div>
+    <div class="review"><button type="button" id="approve" class="ok pixel" disabled title="Bless: approve the change and commit it to the quest's branch">Bless</button><button type="button" id="reject" class="no pixel" disabled title="Send back: reject it with your words; the same wizard tries again">Send back</button><button type="button" id="stop" class="halt pixel" disabled hidden title="Break the spell: stop the wizard">Break</button></div>
   </div>
-  <div class="roll bottom" role="separator" aria-orientation="horizontal" aria-label="Alargar o acortar" title="Arrastra para alargarlo o acortarlo"></div>
+  <div class="roll bottom" role="separator" aria-orientation="horizontal" aria-label="Longer or shorter" title="Drag to make it longer or shorter; near the right end, wider too"></div>
 </section>
 
 <section class="scroll" id="sc-log" data-corner="br" aria-labelledby="h-log">
-  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-log" title="Arrastra para moverlo · pulsa para enrollarlo"><span id="h-log" class="title">Crónica</span></div>
+  <div class="roll top" role="button" tabindex="0" aria-expanded="true" aria-controls="p-log" title="Chronicle: everything that happened in the room (the event log). Drag to move · press to roll up"><span id="h-log" class="title">Chronicle</span></div>
   <div class="paper" id="p-log">
-    <h3 class="ico-mana">Maná</h3>
+    <h3 class="ico-mana" title="Mana: your Claude plan's usage window, as Claude Code reports it">Mana</h3>
     <ul id="mana" class="mana"></ul>
     <p id="status" class="status" aria-live="polite"></p>
-    <ol id="log" class="log" aria-label="Crónica de la sala"></ol>
+    <ol id="log" class="log" aria-label="The room's chronicle"></ol>
   </div>
-  <div class="roll bottom" role="separator" aria-orientation="horizontal" aria-label="Alargar o acortar" title="Arrastra para alargarlo o acortarlo"></div>
+  <div class="roll bottom" role="separator" aria-orientation="horizontal" aria-label="Longer or shorter" title="Drag to make it longer or shorter; near the right end, wider too"></div>
 </section>
 
 <div id="tower" class="tower" hidden role="dialog" aria-modal="true" aria-labelledby="h-tower">
   <section class="scroll tower-box">
-    <div class="roll top"><span id="h-tower" class="title">La Torre</span></div>
+    <div class="roll top"><span id="h-tower" class="title">The Tower</span></div>
     <div class="paper">
-      <p class="hint">Cada sala es un repositorio. Entra en una o funda otra.</p>
-      <h3>Entrar en una sala</h3>
+      <p class="hint">Every room is a repository. Enter one, or found another.</p>
+      <h3>Enter a room</h3>
       <ul id="tower-rooms" class="tower-rooms"></ul>
-      <h3>Fundar una sala</h3>
+      <h3>Found a room</h3>
       <form id="found">
-        <label for="found-path">Carpeta (ruta completa)</label>
-        <input id="found-path" type="text" autocomplete="off" spellcheck="false" placeholder="/home/…/proyectos/mi-repo">
-        <fieldset class="kinds"><legend class="sr-only">Repositorio</legend>
-          <label><input type="radio" name="found-kind" value="existing" checked> Sobre un repositorio que ya existe</label>
-          <label><input type="radio" name="found-kind" value="new"> En uno nuevo (lo crea con un primer commit)</label>
+        <label for="found-path">Folder (full path)</label>
+        <input id="found-path" type="text" autocomplete="off" spellcheck="false" placeholder="/home/…/projects/my-repo">
+        <fieldset class="kinds"><legend class="sr-only">Repository</legend>
+          <label><input type="radio" name="found-kind" value="existing" checked> On a repository that already exists</label>
+          <label><input type="radio" name="found-kind" value="new"> In a new one (created with a first commit)</label>
         </fieldset>
-        <button type="submit" class="found-go pixel">Fundar la sala</button>
+        <button type="submit" class="found-go pixel">Found the room</button>
         <p id="found-msg" class="hint" role="status"></p>
       </form>
-      <p><button type="button" id="tower-close" class="mini pixel">Volver a la sala</button></p>
+      <p><button type="button" id="tower-close" class="mini pixel">Back to the room</button></p>
     </div>
     <div class="roll bottom" aria-hidden="true"></div>
   </section>
@@ -126,6 +136,7 @@
 <script src="sim.js"></script>
 <script src="render.js"></script>
 <script src="net.js"></script>
+<script src="sound.js"></script>
 <script src="ui.js"></script>
 </body>
 </html>

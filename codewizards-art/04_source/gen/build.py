@@ -132,6 +132,10 @@ def build_env():
     for n in list(G.ICONS) + list(G.UI_ICONS6F):
         save(G.ui_icon6f(n), f'05_ui/icons/Icon_{n.capitalize()}.png', nota='icono de 8 x 8')
     save(G.ui_wand(), '05_ui/Cursor_Wand.png', punto=[1, 1], nota='el cursor; se pinta al tamaño de píxel de la sala')
+    ttf = G.pixel_font_bytes()
+    with open(out('05_ui/CWPixel.ttf'), 'wb') as f:
+        f.write(ttf)
+    META['05_ui/CWPixel.ttf'] = {'tipo': 'fuente', 'bytes': len(ttf), 'nota': 'la fuente de píxel de la interfaz: los glifos de tiza de font.py, 3 x 5, con tildes'}
     save(G.ui_ibeam(), '05_ui/Cursor_Text.png', punto=[2, 4], nota='el cursor sobre el texto')
     save(G.torch_sprite('L'), '01_tiles/props/Torch_Base_L.png', ancla=[1, 7], llama=[1, -5],
          nota='ancla = punto del muro; llama = esquina superior izquierda del fotograma de llama')

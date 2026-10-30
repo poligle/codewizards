@@ -9,40 +9,40 @@
   const GUILD = 'anthropic';
   const RANKS = ['aprendiz', 'joven', 'sabio'];
   const PLAN = {
-    read: { rank: 'aprendiz', title: 'Leer el contexto', file: 'NOTAS.md' },
-    design: { rank: 'sabio', title: 'Diseñar el cambio', file: 'docs/plan.md' },
-    code: { rank: 'joven', title: 'Escribir el código', file: 'src/{slug}.js' },
-    test: { rank: 'aprendiz', title: 'Escribir los tests', file: 'test/{slug}.test.js' },
-    docs: { rank: 'aprendiz', title: 'Actualizar la documentación', file: 'README.md' },
+    read: { rank: 'aprendiz', title: 'Read the context', file: 'NOTES.md' },
+    design: { rank: 'sabio', title: 'Design the change', file: 'docs/plan.md' },
+    code: { rank: 'joven', title: 'Write the code', file: 'src/{slug}.js' },
+    test: { rank: 'aprendiz', title: 'Write the tests', file: 'test/{slug}.test.js' },
+    docs: { rank: 'aprendiz', title: 'Update the docs', file: 'README.md' },
   };
   const COST = { aprendiz: 3000, joven: 6000, sabio: 9000 };
   const WINDOW = 120000;          // tokens in the simulated five-hour window
   const RESET = 5 * 3600 * 1000;
   const ORDERS = { 3: ['read', 'code', 'test'], 4: ['read', 'code', 'test', 'docs'], 5: ['read', 'design', 'code', 'test', 'docs'] };
-  const MODEL = { aprendiz: 'haiku (simulado)', joven: 'sonnet (simulado)', sabio: 'opus (simulado)' };
+  const MODEL = { aprendiz: 'haiku (simulated)', joven: 'sonnet (simulated)', sabio: 'opus (simulated)' };
   const EFFORT = { aprendiz: 'low', joven: 'medium', sabio: 'high' };
-  const LABEL = { aprendiz: 'Aprendiz', joven: 'Mago Joven', sabio: 'Gran Sabio' };
+  const LABEL = { aprendiz: 'Apprentice', joven: 'Young Mage', sabio: 'Grand Sage' };
   const STOP = new Set(['un', 'una', 'unos', 'unas', 'el', 'la', 'los', 'las', 'de', 'del', 'a', 'al', 'en', 'y', 'o', 'para', 'con', 'por', 'que', 'mi', 'su', 'the', 'an', 'to', 'of', 'and', 'for', 'in', 'on', 'add', 'make']);
 
   function slugify(s) {
     const words = s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
     const keep = words.slice(1).filter(w => !STOP.has(w) && w.length > 2);
-    return keep.slice(0, 2).join('-') || 'hechizo';
+    return keep.slice(0, 2).join('-') || 'spell';
   }
   const short = s => (s.length > 34 ? s.slice(0, 33) + '…' : s);
 
   function diffFor(kind, slug, spell) {
     switch (kind) {
       case 'read':
-        return ['@@ NOTAS.md @@', '+ Petición: ' + spell, '+ Ficheros clave: src/app.js, src/settings.js', '+ ' + slug + ': todavía no existe', '+ Riesgo: estilos sin tokens de color'];
+        return ['@@ NOTES.md @@', '+ Request: ' + spell, '+ Key files: src/app.js, src/settings.js', '+ ' + slug + ': does not exist yet', '+ Risk: styles without colour tokens'];
       case 'design':
-        return ['@@ docs/plan.md @@', '+## Plan: ' + spell, '+1. Tokens de color en :root', '+2. Interruptor en ajustes', '+3. Guardar la preferencia', '+4. Tests y documentación'];
+        return ['@@ docs/plan.md @@', '+## Plan: ' + spell, '+1. Colour tokens in :root', '+2. A switch in the settings', '+3. Remember the choice', '+4. Tests and docs'];
       case 'code':
         return ['@@ src/' + slug + '.js @@', "-const mode = 'light';", "+const KEY = '" + slug + "';", '+export function toggle() {', '+  const on = !load(KEY);', '+  save(KEY, on);', "+  document.body.classList.toggle('" + slug + "', on);", '+}'];
       case 'test':
-        return ['@@ test/' + slug + '.test.js @@', "+test('" + slug + " se activa', () => {", '+  toggle();', "+  expect(load('" + slug + "')).toBe(true);", '+});'];
+        return ['@@ test/' + slug + '.test.js @@', "+test('" + slug + " switches on', () => {", '+  toggle();', "+  expect(load('" + slug + "')).toBe(true);", '+});'];
       default:
-        return ['@@ README.md @@', '+## ' + spell, '+Se activa desde Ajustes.', '+La preferencia se guarda en el navegador.'];
+        return ['@@ README.md @@', '+## ' + spell, '+Switch it on in Settings.', '+The choice is kept in the browser.'];
     }
   }
 
@@ -91,7 +91,7 @@
       const c = typeof choice === 'string' ? { rank: choice } : (choice || {});
       const rank = c.rank;
       this.effortChoice = ['low', 'medium', 'high', 'xhigh', 'max'].indexOf(c.effort) >= 0 ? c.effort : null;
-      spell = (spell || '').trim() || 'Hechizo sin nombre';
+      spell = (spell || '').trim() || 'A nameless spell';
       if (!this.opened) { this.opened = true; this.emit('room.opened', { project: 'demo', guild: GUILD }); }
       const slug = slugify(spell);
       const order = ORDERS[3 + Math.floor(this.rand() * 3)];
@@ -106,7 +106,7 @@
       const estimate = Math.round(COST[rank] * (0.8 + this.rand() * 0.5));
       const task = { id, kind, agent, rank, file: p.file.replace('{slug}', slug), diff: diffFor(kind, slug, spell), state: 'created', estimate, erred: false };
       this.tasks.set(id, task);
-      this.emit('task.created', { task: id, title: p.title + (kind === 'read' ? ': ' + short(spell) : ''), estimate, rank, reason: forced ? 'elegido por ti' : 'plan simulado: ' + kind });
+      this.emit('task.created', { task: id, title: p.title + (kind === 'read' ? ': ' + short(spell) : ''), estimate, rank, reason: forced ? 'chosen by you' : 'the illusion\'s plan: ' + kind });
       const effort = this.effortChoice || EFFORT[rank];
       this.at(0.6, () => this.emit('agent.summoned', { agent, guild: GUILD, rank, model: MODEL[rank], account: this.account, effort }));
       this.at(2.8, () => { task.state = 'assigned'; this.emit('agent.assigned', { agent, task: id }); });
@@ -164,7 +164,7 @@
       const task = this.tasks.get(id);
       if (!task || task.state !== 'review') return false;
       task.state = 'rejected';
-      this.emit('review.rejected', { agent: task.agent, task: id, comment: comment || 'Cambia el nombre de la función' });
+      this.emit('review.rejected', { agent: task.agent, task: id, comment: comment || 'Rename the function' });
       this.at(2.0, () => this.write(task));
       return true;
     }

@@ -311,3 +311,8 @@
   - (paso 7) los textos nuevos, en inglés, conservando la voz de magos;
   - (Pol) retoques a mano en Aseprite de lo que quiera, sobre todo iconos, cursor y poses de leer y escribir.
 - Pruebas para Pol: `git am paso-6f.patch`; `codewizards demo`; mover, alargar y enrollar los pergaminos; lanzar un hechizo desde el grimorio.
+
+## Pasos 7-9 · Punto de control · 25/10/2026
+- Hecho en v1.7.0: arreglo de la CI (fuente como fichero de arte), grimorio de dos filas, CRT sobre la interfaz, el Archimago planifica en encargos de distintos rangos (`apps/core/src/router/planner.js`), interfaz en inglés con glosario al pasar el ratón, sonido chiptune (`apps/room/src/sound.js`).
+- Pendiente del paso 7: nombres de fantasía de los gremios (propuesta en `auditorias/producto.md` §6.2: Amber Order, Cerulean Circle, Crimson Court, Indigo Lodge, Jade Cloister, Violet Conclave), `docs/glossary.md` y el manual de tono en `auditorias/copy.md`.
+- Pendiente: paso 8 (web codewizards.app introductoria con instalación y enlace al repo, marca, plan de lanzamiento, valorar la extensión de VS Code) y paso 9 (regresión, publicación, notas, README rehecho entero).

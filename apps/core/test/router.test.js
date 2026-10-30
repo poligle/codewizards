@@ -76,3 +76,14 @@ test('model and effort: the user\'s choice when it is valid, the rank\'s otherwi
   assert.equal(route({ text: 'x', model: 'my-model', extraModels: ['my-model'], table }).model, 'my-model', 'one given with --model');
   assert.throws(() => checkRanks({ ...table, ranks: { ...table.ranks, sabio: { ...table.ranks.sabio, effort: 'ultra' } } }), /sabio.effort/);
 });
+
+test('the planner\'s plan is checked: ranks known, titles and prompts present, at most its maximum', async () => {
+  const { checkPlan, plannerArgs } = await import('../src/router/planner.js');
+  const t = checkPlan({ tasks: [{ title: ' A  b ', prompt: 'do a', rank: 'sabio', why: 'hard' }, { title: 'x', prompt: 'y', rank: 'emperor', why: '' },
+    { title: '', prompt: 'z', rank: 'joven', why: '' }] }, 4);
+  assert.deepEqual(t.map(x => [x.title, x.rank]), [['A b', 'sabio'], ['x', 'joven']]);
+  assert.throws(() => checkPlan({ tasks: [] }), /no tasks/);
+  assert.equal(checkPlan({ tasks: Array(6).fill({ title: 't', prompt: 'p', rank: 'aprendiz', why: '' }) }, 3).length, 3);
+  const a = plannerArgs('haiku');
+  assert.ok(a.includes('--system-prompt') && a[a.indexOf('--tools') + 1] === '' && JSON.parse(a[a.indexOf('--json-schema') + 1]).required[0] === 'tasks');
+});

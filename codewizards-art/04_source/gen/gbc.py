@@ -60,7 +60,7 @@ RW, RD, HW, TW, BASE = 16, 12, 40, 0.25, 3
 ROOM = max(RW, RD)
 # Step 6f: a band of 16 px above the room for the CODEWIZARDS logo, and one of 34 px below its front
 # corner for the spell book; the whole canvas is the screen, drawn at one pixel size.
-TOP_BAND, BOTTOM_BAND = 16, 34
+TOP_BAND, BOTTOM_BAND = 13, 42   # the logo; the spell book in two rows (the spell, then who casts it). 216 px: x5 on 1080p
 OX, OY = RD * 8 + 8, 46 + TOP_BAND
 CW, CH = OX + RW * 8 + 8, OY + (RW + RD) * 4 + BASE + BOTTOM_BAND
 
@@ -1537,6 +1537,11 @@ UI_ICONS6F = {
     'crystal': (["...KK...", "..KbBK..", ".KbbbbK.", "KbbbbbBK", ".KbbbbK.", "..KbbK..", "...KK...", "........"], {'b': 'b1', 'B': 'b0'}),
     'flame':   (["...K....", "..KxK...", "..KxxK..", ".KxXxK..", ".KxXXxK.", "KxXXXxK.", ".KKKKK..", "........"], {'x': 'x2', 'X': 'x0'}),
     'door':    ([".KKKKK..", "KoooooK.", "KoKoKoK.", "KoKoKoK.", "KooooxK.", "KoKoKoK.", "KoooooK.", "KKKKKKK."], {'o': 'o1', 'x': 'x1'}),
+    # Step 7: the sound settings, in the room line.
+    'sound':   (["....K...", "...KK..K", "KKKwK.K.", "KwwwK.K.", "KwwwK.K.", "KKKwK.K.", "...KK..K", "....K..."], {'w': 'w0'}),
+    'mute':    (["....K...", "...KK...", "KKKwK.K.", "KwwwKK.K", "KwwwK.K.", "KKKwKK.K", "...KK...", "....K..."], {'w': 'w1'}),
+    'music':   (["...KKKK.", "...KbbK.", "...K..K.", "...K..K.", ".KKK.KK.", "KbbKKbbK", "KbbK.KK.", ".KK....."], {'b': 'b1'}),
+    'bell':    (["...KK...", "..KxxK..", ".KxXxxK.", ".KxXxxK.", ".KxxxxK.", "KxxxxxxK", "KKKKKKKK", "...KK..."], {'x': 'x1', 'X': 'x0'}),
 }
 
 
@@ -1611,3 +1616,53 @@ def ui_vroll():
             if k:
                 cv.set(x, y, k)
     return cv
+
+
+# The interface's pixel font (step 6): written by build.py as 05_ui/CWPixel.ttf; needs fontTools.
+def pixel_font_bytes():
+    """The interface's pixel font (step 6d): the chalk font's 3 x 5 glyphs (font.py), with Spanish
+    accents, as a TrueType font whose pixels are squares. 8 px per em; use it at 16 px (x2) or 24 px."""
+    import base64, io
+    from fontTools.fontBuilder import FontBuilder
+    from fontTools.pens.ttGlyphPen import TTGlyphPen
+    import font as F
+    from core import Canvas  # noqa: F401  (keeps the import list honest)
+    P = 125                                     # font units per pixel (1000 per em = 8 px)
+    glyphs = {k.upper(): v.split('|') for k, v in F.G.items()}
+    marks = {'Á': ('A', '.#.'), 'É': ('E', '.#.'), 'Í': ('I', '.#.'), 'Ó': ('O', '.#.'), 'Ú': ('U', '.#.'),
+             'Ñ': ('N', '##.'), 'Ü': ('U', '#.#')}
+    for ch, (base, mark) in marks.items():
+        if base in glyphs:
+            glyphs[ch] = [mark] + glyphs[base]
+    names, cmap, gl, adv = ['.notdef', 'space'], {32: 'space'}, {}, {'.notdef': (500, 0), 'space': (375, 0)}
+    pen = TTGlyphPen(None)
+    gl['.notdef'] = pen.glyph()
+    gl['space'] = TTGlyphPen(None).glyph()
+    for i, (ch, rows) in enumerate(sorted(glyphs.items())):
+        name = f'g{i}'
+        pen = TTGlyphPen(None)
+        h = len(rows)
+        for r, row in enumerate(rows):
+            for c, px in enumerate(row):
+                if px == '#':
+                    x0, y0 = c * P, (h - 1 - r) * P - (0 if h <= 5 else 0)
+                    pen.moveTo((x0, y0)); pen.lineTo((x0, y0 + P)); pen.lineTo((x0 + P, y0 + P)); pen.lineTo((x0 + P, y0)); pen.closePath()
+        gl[name] = pen.glyph()
+        names.append(name)
+        adv[name] = (4 * P, 0)
+        for cp in {ord(ch), ord(ch.lower())}:
+            cmap[cp] = name
+    fb = FontBuilder(1000, isTTF=True)
+    fb.setupGlyphOrder(names)
+    fb.setupCharacterMap(cmap)
+    fb.setupGlyf(gl)
+    fb.setupHorizontalMetrics(adv)
+    fb.setupHorizontalHeader(ascent=7 * P, descent=-2 * P)
+    fb.setupNameTable({'familyName': 'CW Pixel', 'styleName': 'Regular'})
+    fb.setupOS2(sTypoAscender=7 * P, sTypoDescender=-2 * P, usWinAscent=7 * P, usWinDescent=2 * P)
+    fb.setupPost()
+    fb.font['head'].created = fb.font['head'].modified = 3846441600   # fixed dates: the same bytes on every build
+    buf = io.BytesIO()
+    fb.font.recalcTimestamp = False
+    fb.save(buf)
+    return buf.getvalue()
