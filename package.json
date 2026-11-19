@@ -31,9 +31,9 @@
     "glossary": "node tools/glossary.mjs"
   },
   "dependencies": {
-    "ws": "8.22.0"
+    "ws": "8.22.2"
   },
   "devDependencies": {
-    "playwright": "1.64.1"
+    "playwright": "1.65.0"
   }
 }
